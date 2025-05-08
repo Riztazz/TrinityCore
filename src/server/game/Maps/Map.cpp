@@ -140,7 +140,7 @@ i_scriptLock(false), _respawnTimes(std::make_unique<RespawnListContainer>()), _r
             // I don't think it matters what the coord is since LoadN just overwrites it
             CellCoord p(Trinity::ComputeCellCoord(0, 0));
             Cell cell(p);
-            ObjectGridLoader loader(grid, this, cell);
+            ObjectGridLoader loader(*grid, this, cell);
             loader.LoadN();
         }
     }
