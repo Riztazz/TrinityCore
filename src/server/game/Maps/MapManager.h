@@ -120,7 +120,7 @@ class TC_GAME_API MapManager
         uint32 GenerateInstanceId();
         void RegisterInstanceId(uint32 instanceId);
 
-        GridMap* GetGrid(uint32 mapId, int gx, int gy)
+        GridMap* GetGrid(uint32 mapId, int gx, int gy);
 
         MapUpdater* GetMapUpdater() { return &m_updater; }
 
