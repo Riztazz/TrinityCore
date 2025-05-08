@@ -2253,7 +2253,7 @@ inline GridMap* Map::GetGrid(float x, float y)
     int gx=(int)(CENTER_GRID_ID - x/SIZE_OF_GRIDS);                       //grid x
     int gy=(int)(CENTER_GRID_ID - y/SIZE_OF_GRIDS);                       //grid y
 
-    return sMapMgr->GetGridMap(GetId(), gx, gy);
+    return sMapMgr->GetGrid(GetId(), gx, gy);
 }
 
 float Map::GetWaterOrGroundLevel(uint32 phasemask, float x, float y, float z, float* ground /*= nullptr*/, bool /*swim = false*/, float collisionHeight /*= DEFAULT_COLLISION_HEIGHT*/) const
