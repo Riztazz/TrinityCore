@@ -113,12 +113,6 @@ struct map_fileheader
     uint32 holesSize;
 };
 
-u_map_magic MapMagic        = { {'M','A','P','S'} };
-uint32 MapVersionMagic      = 10;
-u_map_magic MapAreaMagic    = { {'A','R','E','A'} };
-u_map_magic MapHeightMagic  = { {'M','H','G','T'} };
-u_map_magic MapLiquidMagic  = { {'M','L','I','Q'} };
-
 #define MAP_AREA_NO_AREA      0x0001
 
 struct map_areaHeader
