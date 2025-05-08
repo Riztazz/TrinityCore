@@ -37,18 +37,24 @@
 #include "ScriptMgr.h"
 #include <numeric>
 
+MapManager* MapManager::instance()
+{
+    static MapManager instance;
+    return &instance;
+}
+
 MapManager::MapManager()
     : _nextInstanceId(0), _scheduledScripts(0)
 {
-    i_gridCleanUpDelay = sWorld->getIntConfig(CONFIG_INTERVAL_GRIDCLEAN);
     i_timer.SetInterval(sWorld->getIntConfig(CONFIG_INTERVAL_MAPUPDATE));
 }
 
 MapManager::~MapManager() { }
 
-void MapManager::Initialize()
+void MapManager::Initialize(std::vector<uint32> const& mapIds)
 {
-    Map::InitStateMachine();
+    for (uint32 mapId : mapIds)
+        LoadMapData(mapId);
 
     int num_threads(sWorld->getIntConfig(CONFIG_NUMTHREADS));
     // Start mtmaps if needed.
@@ -60,12 +66,6 @@ void MapManager::InitializeVisibilityDistanceInfo()
 {
     for (MapMapType::iterator iter = i_maps.begin(); iter != i_maps.end(); ++iter)
         (*iter).second->InitVisibilityDistance();
-}
-
-MapManager* MapManager::instance()
-{
-    static MapManager instance;
-    return &instance;
 }
 
 Map* MapManager::CreateBaseMap(uint32 id)
@@ -249,7 +249,63 @@ bool MapManager::ExistMapAndVMap(uint32 mapid, float x, float y)
     int gx = (MAX_NUMBER_OF_GRIDS - 1) - p.x_coord;
     int gy = (MAX_NUMBER_OF_GRIDS - 1) - p.y_coord;
 
-    return Map::ExistMap(mapid, gx, gy) && Map::ExistVMap(mapid, gx, gy);
+    return MapManager::ExistMap(mapid, gx, gy) && MapManager::ExistVMap(mapid, gx, gy);
+}
+
+bool MapManager::ExistMap(uint32 mapid, int gx, int gy)
+{
+    std::string fileName = Trinity::StringFormat("{}maps/{:03}{:02}{:02}.map", sWorld->GetDataPath(), mapid, gx, gy);
+
+    bool ret = false;
+    FILE* pf = fopen(fileName.c_str(), "rb");
+
+    if (!pf)
+    {
+        TC_LOG_ERROR("maps", "Map file '{}' does not exist!", fileName);
+        TC_LOG_ERROR("maps", "Please place MAP-files (*.map) in the appropriate directory ({}), or correct the DataDir setting in your worldserver.conf file.", (sWorld->GetDataPath()+"maps/"));
+    }
+    else
+    {
+        map_fileheader header;
+        if (fread(&header, sizeof(header), 1, pf) == 1)
+        {
+            if (header.mapMagic.asUInt != MapMagic.asUInt || header.versionMagic != MapVersionMagic)
+                TC_LOG_ERROR("maps", "Map file '{}' is from an incompatible map version (%.*s v{}), %.*s v{} is expected. Please pull your source, recompile tools and recreate maps using the updated mapextractor, then replace your old map files with new files. If you still have problems search on forum for error TCE00018.",
+                    fileName, 4, header.mapMagic.asChar, header.versionMagic, 4, MapMagic.asChar, MapVersionMagic);
+            else
+                ret = true;
+        }
+        fclose(pf);
+    }
+
+    return ret;
+}
+
+bool MapManager::ExistVMap(uint32 mapid, int gx, int gy)
+{
+    if (VMAP::IVMapManager* vmgr = VMAP::VMapFactory::createOrGetVMapManager())
+    {
+        if (vmgr->isMapLoadingEnabled())
+        {
+            VMAP::LoadResult result = vmgr->existsMap((sWorld->GetDataPath() + "vmaps").c_str(), mapid, gx, gy);
+            std::string name = vmgr->getDirFileName(mapid, gx, gy);
+            switch (result)
+            {
+                case VMAP::LoadResult::Success:
+                    break;
+                case VMAP::LoadResult::FileNotFound:
+                    TC_LOG_ERROR("maps", "VMap file '{}' does not exist", (sWorld->GetDataPath() + "vmaps/" + name));
+                    TC_LOG_ERROR("maps", "Please place VMAP files (*.vmtree and *.vmtile) in the vmap directory ({}), or correct the DataDir setting in your worldserver.conf file.", (sWorld->GetDataPath() + "vmaps/"));
+                    return false;
+                case VMAP::LoadResult::VersionMismatch:
+                    TC_LOG_ERROR("maps", "VMap file '{}' couldn't be loaded", (sWorld->GetDataPath() + "vmaps/" + name));
+                    TC_LOG_ERROR("maps", "This is because the version of the VMap file and the version of this module are different, please re-extract the maps with the tools compiled with this module.");
+                    return false;
+            }
+        }
+    }
+
+    return true;
 }
 
 bool MapManager::IsValidMAP(uint32 mapid, bool startUp)
@@ -277,10 +333,14 @@ void MapManager::UnloadAll()
     // then delete them
     i_maps.clear();
 
+    // then unload map data
+    for (auto iter = _gridMaps.begin(); iter != _gridMaps.end(); ++iter)
+    {
+        UnloadMapData(iter->first);
+    }
+
     if (m_updater.activated())
         m_updater.deactivate();
-
-    Map::DeleteStateMachine();
 }
 
 uint32 MapManager::GetNumInstances()
@@ -353,4 +413,86 @@ uint32 MapManager::GenerateInstanceId()
     }
 
     return newInstanceId;
+}
+
+GridMap* MapManager::GetGrid(uint32 mapId, int gx, int gy)
+{
+    return _gridMaps[mapId][gx][gy];
+}
+
+void MapManager::LoadMapData(uint32 mapId)
+{
+    for (int gx = 0; gx < MAX_NUMBER_OF_GRIDS; ++gx)
+    {
+        for (int gy = 0; gy < MAX_NUMBER_OF_GRIDS; ++gy)
+        {
+            LoadMap(mapId, gx, gy);
+            LoadVMap(mapId, gx, gy);
+            LoadMMap(mapId, gx, gy);
+        }
+    }
+}
+
+void MapManager::LoadMap(uint32 mapId, int gx, int gy)
+{
+    // map file name
+    std::string fileName = Trinity::StringFormat("{}maps/{:03}{:02}{:02}.map", sWorld->GetDataPath(), mapId, gx, gy);
+    TC_LOG_DEBUG("maps", "Loading map {}", fileName);
+    // loading data
+    _gridMaps[mapId][gx][gy] = new GridMap();
+    if (!_gridMaps[mapId][gx][gy]->loadData(fileName.c_str()))
+        TC_LOG_ERROR("maps", "Error loading map file: \n {}\n", fileName);
+
+    sScriptMgr->OnLoadGridMap(this, _gridMaps[mapId][gx][gy], gx, gy);
+}
+
+void MapManager::LoadVMap(uint32 mapId, int gx, int gy)
+{
+    if (!VMAP::VMapFactory::createOrGetVMapManager()->isMapLoadingEnabled())
+        return;
+                                                            // x and y are swapped !!
+    int vmapLoadResult = VMAP::VMapFactory::createOrGetVMapManager()->loadMap((sWorld->GetDataPath()+ "vmaps").c_str(),  mapId, gx, gy);
+    switch (vmapLoadResult)
+    {
+        case VMAP::VMAP_LOAD_RESULT_OK:
+            TC_LOG_DEBUG("maps", "VMAP loaded name:{}, id:{}, x:{}, y:{} (vmap rep.: x:{}, y:{})", GetMapName(), mapId, gx, gy, gx, gy);
+            break;
+        case VMAP::VMAP_LOAD_RESULT_ERROR:
+            TC_LOG_ERROR("maps", "Could not load VMAP name:{}, id:{}, x:{}, y:{} (vmap rep.: x:{}, y:{})", GetMapName(), mapId, gx, gy, gx, gy);
+            break;
+        case VMAP::VMAP_LOAD_RESULT_IGNORED:
+            TC_LOG_DEBUG("maps", "Ignored VMAP name:{}, id:{}, x:{}, y:{} (vmap rep.: x:{}, y:{})", GetMapName(), mapId, gx, gy, gx, gy);
+            break;
+    }
+}
+
+void MapManager::LoadMMap(uint32 mapId, int gx, int gy)
+{
+    if (!DisableMgr::IsPathfindingEnabled(mapId))
+        return;
+
+    bool mmapLoadResult = MMAP::MMapFactory::createOrGetMMapManager()->loadMap(sWorld->GetDataPath(), mapId, gx, gy);
+
+    if (mmapLoadResult)
+        TC_LOG_DEBUG("mmaps.tiles", "MMAP loaded name:{}, id:{}, x:{}, y:{} (mmap rep.: x:{}, y:{})", GetMapName(), mapId, gx, gy, gx, gy);
+    else
+        TC_LOG_WARN("mmaps.tiles", "Could not load MMAP name:{}, id:{}, x:{}, y:{} (mmap rep.: x:{}, y:{})", GetMapName(), mapId, gx, gy, gx, gy);
+}
+
+void MapManager::UnloadMapData(uint32 mapId)
+{
+    for (int gx = 0; gx < MAX_NUMBER_OF_GRIDS; ++gx)
+    {
+        for (int gy = 0; gy < MAX_NUMBER_OF_GRIDS; ++gy)
+        {
+            if (_gridMaps[mapId][gx][gy])
+            {
+                _gridMaps[mapId][gx][gy]->unloadData();
+                delete _gridMaps[mapId][gx][gy];
+                _gridMaps[mapId][gx][gy] = nullptr;
+                VMAP::VMapFactory::createOrGetVMapManager()->unloadMap(mapId, gx, gy);
+                MMAP::MMapFactory::createOrGetMMapManager()->unloadMap(mapId, gx, gy);
+            }
+        }
+    }
 }

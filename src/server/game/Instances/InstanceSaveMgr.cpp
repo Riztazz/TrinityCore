@@ -22,7 +22,6 @@
 #include "DBCStores.h"
 #include "GameTime.h"
 #include "GridNotifiers.h"
-#include "GridStates.h"
 #include "Group.h"
 #include "InstanceScript.h"
 #include "Log.h"

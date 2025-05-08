@@ -275,34 +275,6 @@ PlayerLimit = 0
 MaxOverspeedPings = 2
 
 #
-#    GridUnload
-#        Description: Unload grids to save memory. Can be disabled if enough memory is available
-#                     to speed up moving players to new grids.
-#        Default:     1 - (enable, Unload grids)
-#                     0 - (disable, Do not unload grids)
-
-GridUnload = 1
-
-#
-#    BaseMapLoadAllGrids
-#        Description: Load all grids for base maps upon load. Requires GridUnload to be 0.
-#                     This will take around 5GB of ram upon server load, and will take some time
-#                     to initially load the server.
-#        Default:     0 - (Don't preload all base maps, dynamically load as used)
-#                     1 - (Preload all grids in all base maps upon load)
-
-BaseMapLoadAllGrids = 0
-
-#
-#    InstanceMapLoadAllGrids
-#        Description: Load all grids for instance maps upon load. Requires GridUnload to be 0.
-#                     Upon loading an instance map, all creatures/objects in the map will be pre-loaded
-#        Default:     0 - (Don't preload all base maps, dynamically load as used)
-#                     1 - (Preload all grids in the instance upon load)
-
-InstanceMapLoadAllGrids = 0
-
-#
 #    SocketTimeOutTime
 #        Description: Time (in milliseconds) after which a connection being idle on the character
 #                     selection screen is disconnected.
@@ -326,13 +298,6 @@ SocketTimeOutTimeActive = 60000
 #        Default:     10000 - (10 milliseconds, 0.01 second)
 
 SessionAddDelay = 10000
-
-#
-#    GridCleanUpDelay
-#        Description: Time (in milliseconds) grid clean up delay.
-#        Default:     300000 - (5 minutes)
-
-GridCleanUpDelay = 300000
 
 #
 #    MinWorldUpdateTime

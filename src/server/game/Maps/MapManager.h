@@ -21,10 +21,10 @@
 #include "Object.h"
 #include "Map.h"
 #include "MapInstanced.h"
-#include "GridStates.h"
 #include "MapUpdater.h"
 #include "UniqueTrackablePtr.h"
 #include <boost/dynamic_bitset.hpp>
+#include <unordered_map>
 
 class Transport;
 struct TransportCreatureProto;
@@ -61,16 +61,8 @@ class TC_GAME_API MapManager
         void GetZoneAndAreaId(uint32 phaseMask, uint32& zoneid, uint32& areaid, uint32 mapid, Position const& pos) const { GetZoneAndAreaId(phaseMask, zoneid, areaid, mapid, pos.GetPositionX(), pos.GetPositionY(), pos.GetPositionZ()); }
         void GetZoneAndAreaId(uint32 phaseMask, uint32& zoneid, uint32& areaid, WorldLocation const& loc) const { GetZoneAndAreaId(phaseMask, zoneid, areaid, loc.GetMapId(), loc); }
 
-        void Initialize(void);
+        void Initialize(std::vector<uint32> const& mapIds);
         void Update(uint32);
-
-        void SetGridCleanUpDelay(uint32 t)
-        {
-            if (t < MIN_GRID_DELAY)
-                i_gridCleanUpDelay = MIN_GRID_DELAY;
-            else
-                i_gridCleanUpDelay = t;
-        }
 
         void SetMapUpdateInterval(uint32 t)
         {
@@ -85,6 +77,8 @@ class TC_GAME_API MapManager
         void UnloadAll();
 
         static bool ExistMapAndVMap(uint32 mapid, float x, float y);
+        static bool ExistMap(uint32 mapid, int gx, int gy);
+        static bool ExistVMap(uint32 mapid, int gx, int gy);
         static bool IsValidMAP(uint32 mapid, bool startUp);
 
         static bool IsValidMapCoord(uint32 mapid, float x, float y)
@@ -138,7 +132,6 @@ class TC_GAME_API MapManager
         void DecreaseScheduledScriptCount() { --_scheduledScripts; }
         void DecreaseScheduledScriptCount(std::size_t count) { _scheduledScripts -= count; }
         bool IsScriptScheduled() const { return _scheduledScripts > 0; }
-
     private:
         typedef std::unordered_map<uint32, Trinity::unique_trackable_ptr<Map>> MapMapType;
         typedef boost::dynamic_bitset<size_t> InstanceIds;
@@ -151,6 +144,12 @@ class TC_GAME_API MapManager
             MapMapType::const_iterator iter = i_maps.find(mapId);
             return (iter == i_maps.end() ? nullptr : iter->second.get());
         }
+
+        void LoadMapData(uint32 mapId);
+        void LoadMap(uint32 mapId, int gx, int gy);
+        void LoadVMap(uint32 mapId, int gx, int gy);
+        void LoadMMap(uint32 mapId, int gx, int gy);
+        void UnloadMapData(uint32 mapId);
 
         MapManager(MapManager const&) = delete;
         MapManager& operator=(MapManager const&) = delete;
@@ -166,6 +165,8 @@ class TC_GAME_API MapManager
 
         // atomic op counter for active scripts amount
         std::atomic<std::size_t> _scheduledScripts;
+
+        std::unordered_map<uint32, GridMap*[MAX_NUMBER_OF_GRIDS][MAX_NUMBER_OF_GRIDS]> _gridMaps;
 };
 
 template<typename Worker>

@@ -2530,7 +2530,7 @@ ObjectGuid::LowType ObjectMgr::AddCreatureData(uint32 entry, uint32 mapId, Posit
     AddCreatureToGrid(spawnId, &data);
 
     // We use spawn coords to spawn
-    if (!map->Instanceable() && !map->IsRemovalGrid(data.spawnPoint))
+    if (!map->Instanceable())
     {
         Creature* creature = new Creature();
         if (!creature->LoadFromDB(spawnId, map, true, true))

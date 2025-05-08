@@ -344,39 +344,15 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
         template<class T, class CONTAINER>
         void Visit(Cell const& cell, TypeContainerVisitor<T, CONTAINER>& visitor);
 
-        bool IsRemovalGrid(float x, float y) const
-        {
-            GridCoord p = Trinity::ComputeGridCoord(x, y);
-            return !getNGrid(p.x_coord, p.y_coord) || getNGrid(p.x_coord, p.y_coord)->GetGridState() == GRID_STATE_REMOVAL;
-        }
-        bool IsRemovalGrid(Position const& pos) const { return IsRemovalGrid(pos.GetPositionX(), pos.GetPositionY()); }
-
         bool IsGridLoaded(uint32 gridId) const { return IsGridLoaded(GridCoord(gridId % MAX_NUMBER_OF_GRIDS, gridId / MAX_NUMBER_OF_GRIDS)); }
         bool IsGridLoaded(float x, float y) const { return IsGridLoaded(Trinity::ComputeGridCoord(x, y)); }
         bool IsGridLoaded(Position const& pos) const { return IsGridLoaded(pos.GetPositionX(), pos.GetPositionY()); }
 
-        bool GetUnloadLock(GridCoord const& p) const { return getNGrid(p.x_coord, p.y_coord)->getUnloadLock(); }
-        void SetUnloadLock(GridCoord const& p, bool on) { getNGrid(p.x_coord, p.y_coord)->setUnloadExplicitLock(on); }
         void LoadGrid(float x, float y);
-        void LoadAllCells();
         bool UnloadGrid(NGridType& ngrid, bool pForce);
-        void GridMarkNoUnload(uint32 x, uint32 y);
-        void GridUnmarkNoUnload(uint32 x, uint32 y);
         virtual void UnloadAll();
 
-        void ResetGridExpiry(NGridType &grid, float factor = 1) const
-        {
-            grid.ResetTimeTracker(time_t(float(i_gridExpiry)*factor));
-        }
-
-        time_t GetGridExpiry(void) const { return i_gridExpiry; }
         uint32 GetId() const;
-
-        static bool ExistMap(uint32 mapid, int gx, int gy);
-        static bool ExistVMap(uint32 mapid, int gx, int gy);
-
-        static void InitStateMachine();
-        static void DeleteStateMachine();
 
         Map const* GetParent() const { return m_parentMap; }
 
@@ -647,13 +623,7 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
         virtual std::string GetDebugInfo() const;
 
     private:
-        void LoadMapAndVMap(int gx, int gy);
-        void LoadVMap(int gx, int gy);
-        void LoadMap(int gx, int gy, bool reload = false);
-        void LoadMMap(int gx, int gy);
         GridMap* GetGrid(float x, float y);
-
-        void SetTimer(uint32 t) { i_gridExpiry = t < MIN_GRID_DELAY ? MIN_GRID_DELAY : t; }
 
         void SendInitSelf(Player* player);
 
@@ -679,10 +649,6 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
         std::vector<DynamicObject*> _dynamicObjectsToMove;
 
         bool IsGridLoaded(GridCoord const&) const;
-        void EnsureGridCreated(GridCoord const&);
-        void EnsureGridCreated_i(GridCoord const&);
-        bool EnsureGridLoaded(Cell const&);
-        void EnsureGridLoadedForActiveObject(Cell const&, WorldObject* object);
 
         void buildNGridLinkage(NGridType* pNGridType) { pNGridType->link(this); }
 
@@ -698,10 +664,7 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
         void SendObjectUpdates();
 
     protected:
-        void SetUnloadReferenceLock(GridCoord const& p, bool on) { getNGrid(p.x_coord, p.y_coord)->setUnloadReferenceLock(on); }
-
         std::mutex _mapLock;
-        std::mutex _gridLock;
 
         MapEntry const* i_mapEntry;
         uint8 i_spawnMode;
@@ -736,14 +699,11 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
         void _ScriptProcessDoor(Object* source, Object* target, ScriptInfo const* scriptInfo) const;
         GameObject* _FindGameObject(WorldObject* pWorldObject, ObjectGuid::LowType guid) const;
 
-        time_t i_gridExpiry;
-
         //used for fast base_map (e.g. MapInstanced class object) search for
         //InstanceMaps and BattlegroundMaps...
         Map* m_parentMap;
 
         NGridType* i_grids[MAX_NUMBER_OF_GRIDS][MAX_NUMBER_OF_GRIDS];
-        GridMap* GridMaps[MAX_NUMBER_OF_GRIDS][MAX_NUMBER_OF_GRIDS];
         std::bitset<TOTAL_NUMBER_OF_CELLS_PER_MAP*TOTAL_NUMBER_OF_CELLS_PER_MAP> marked_cells;
 
         //these functions used to process player/mob aggro reactions and
@@ -907,7 +867,7 @@ enum InstanceResetMethod
 class TC_GAME_API InstanceMap : public Map
 {
     public:
-        InstanceMap(uint32 id, time_t, uint32 InstanceId, uint8 SpawnMode, Map* _parent, TeamId InstanceTeam);
+        InstanceMap(uint32 id, uint32 InstanceId, uint8 SpawnMode, Map* _parent, TeamId InstanceTeam);
         ~InstanceMap();
         bool AddPlayerToMap(Player*) override;
         void RemovePlayerFromMap(Player*, bool) override;
@@ -946,7 +906,7 @@ class TC_GAME_API InstanceMap : public Map
 class TC_GAME_API BattlegroundMap : public Map
 {
     public:
-        BattlegroundMap(uint32 id, time_t, uint32 InstanceId, Map* _parent, uint8 spawnMode);
+        BattlegroundMap(uint32 id, uint32 InstanceId, Map* _parent, uint8 spawnMode);
         ~BattlegroundMap();
 
         bool AddPlayerToMap(Player*) override;
@@ -970,9 +930,6 @@ inline void Map::Visit(Cell const& cell, TypeContainerVisitor<T, CONTAINER>& vis
     const uint32 y = cell.GridY();
     const uint32 cell_x = cell.CellX();
     const uint32 cell_y = cell.CellY();
-
-    if (!cell.NoCreate())
-        EnsureGridLoaded(cell);
 
     NGridType* grid = getNGrid(x, y);
     if (grid && grid->isGridObjectDataLoaded())

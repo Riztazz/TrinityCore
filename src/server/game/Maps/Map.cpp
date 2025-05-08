@@ -26,7 +26,6 @@
 #include "GameTime.h"
 #include "GridNotifiers.h"
 #include "GridNotifiersImpl.h"
-#include "GridStates.h"
 #include "Group.h"
 #include "InstanceScript.h"
 #include "Log.h"
@@ -71,11 +70,8 @@ u_map_magic MapLiquidMagic  = { {'M','L','I','Q'} };
 static uint16 const holetab_h[4] = { 0x1111, 0x2222, 0x4444, 0x8888 };
 static uint16 const holetab_v[4] = { 0x000F, 0x00F0, 0x0F00, 0xF000 };
 
-#define DEFAULT_GRID_EXPIRY     300
 #define MAX_GRID_LOAD_TIME      50
 #define MAX_CREATURE_ATTACK_RADIUS  (45.0f * sWorld->getRate(RATE_CREATURE_AGGRO))
-
-GridState* si_GridStates[MAX_GRID_STATE];
 
 ZoneDynamicInfo::ZoneDynamicInfo() : MusicId(0), DefaultWeather(nullptr), WeatherId(WEATHER_STATE_FINE),
     Intensity(0.0f) { }
@@ -115,188 +111,37 @@ Map::~Map()
     MMAP::MMapFactory::createOrGetMMapManager()->unloadMapInstance(GetId(), i_InstanceId);
 }
 
-bool Map::ExistMap(uint32 mapid, int gx, int gy)
-{
-    std::string fileName = Trinity::StringFormat("{}maps/{:03}{:02}{:02}.map", sWorld->GetDataPath(), mapid, gx, gy);
-
-    bool ret = false;
-    FILE* pf = fopen(fileName.c_str(), "rb");
-
-    if (!pf)
-    {
-        TC_LOG_ERROR("maps", "Map file '{}' does not exist!", fileName);
-        TC_LOG_ERROR("maps", "Please place MAP-files (*.map) in the appropriate directory ({}), or correct the DataDir setting in your worldserver.conf file.", (sWorld->GetDataPath()+"maps/"));
-    }
-    else
-    {
-        map_fileheader header;
-        if (fread(&header, sizeof(header), 1, pf) == 1)
-        {
-            if (header.mapMagic.asUInt != MapMagic.asUInt || header.versionMagic != MapVersionMagic)
-                TC_LOG_ERROR("maps", "Map file '{}' is from an incompatible map version (%.*s v{}), %.*s v{} is expected. Please pull your source, recompile tools and recreate maps using the updated mapextractor, then replace your old map files with new files. If you still have problems search on forum for error TCE00018.",
-                    fileName, 4, header.mapMagic.asChar, header.versionMagic, 4, MapMagic.asChar, MapVersionMagic);
-            else
-                ret = true;
-        }
-        fclose(pf);
-    }
-
-    return ret;
-}
-
-bool Map::ExistVMap(uint32 mapid, int gx, int gy)
-{
-    if (VMAP::IVMapManager* vmgr = VMAP::VMapFactory::createOrGetVMapManager())
-    {
-        if (vmgr->isMapLoadingEnabled())
-        {
-            VMAP::LoadResult result = vmgr->existsMap((sWorld->GetDataPath() + "vmaps").c_str(), mapid, gx, gy);
-            std::string name = vmgr->getDirFileName(mapid, gx, gy);
-            switch (result)
-            {
-                case VMAP::LoadResult::Success:
-                    break;
-                case VMAP::LoadResult::FileNotFound:
-                    TC_LOG_ERROR("maps", "VMap file '{}' does not exist", (sWorld->GetDataPath() + "vmaps/" + name));
-                    TC_LOG_ERROR("maps", "Please place VMAP files (*.vmtree and *.vmtile) in the vmap directory ({}), or correct the DataDir setting in your worldserver.conf file.", (sWorld->GetDataPath() + "vmaps/"));
-                    return false;
-                case VMAP::LoadResult::VersionMismatch:
-                    TC_LOG_ERROR("maps", "VMap file '{}' couldn't be loaded", (sWorld->GetDataPath() + "vmaps/" + name));
-                    TC_LOG_ERROR("maps", "This is because the version of the VMap file and the version of this module are different, please re-extract the maps with the tools compiled with this module.");
-                    return false;
-            }
-        }
-    }
-
-    return true;
-}
-
-void Map::LoadMMap(int gx, int gy)
-{
-    if (!DisableMgr::IsPathfindingEnabled(GetId()))
-        return;
-
-    bool mmapLoadResult = MMAP::MMapFactory::createOrGetMMapManager()->loadMap(sWorld->GetDataPath(), GetId(), gx, gy);
-
-    if (mmapLoadResult)
-        TC_LOG_DEBUG("mmaps.tiles", "MMAP loaded name:{}, id:{}, x:{}, y:{} (mmap rep.: x:{}, y:{})", GetMapName(), GetId(), gx, gy, gx, gy);
-    else
-        TC_LOG_WARN("mmaps.tiles", "Could not load MMAP name:{}, id:{}, x:{}, y:{} (mmap rep.: x:{}, y:{})", GetMapName(), GetId(), gx, gy, gx, gy);
-}
-
-void Map::LoadVMap(int gx, int gy)
-{
-    if (!VMAP::VMapFactory::createOrGetVMapManager()->isMapLoadingEnabled())
-        return;
-                                                            // x and y are swapped !!
-    int vmapLoadResult = VMAP::VMapFactory::createOrGetVMapManager()->loadMap((sWorld->GetDataPath()+ "vmaps").c_str(),  GetId(), gx, gy);
-    switch (vmapLoadResult)
-    {
-        case VMAP::VMAP_LOAD_RESULT_OK:
-            TC_LOG_DEBUG("maps", "VMAP loaded name:{}, id:{}, x:{}, y:{} (vmap rep.: x:{}, y:{})", GetMapName(), GetId(), gx, gy, gx, gy);
-            break;
-        case VMAP::VMAP_LOAD_RESULT_ERROR:
-            TC_LOG_ERROR("maps", "Could not load VMAP name:{}, id:{}, x:{}, y:{} (vmap rep.: x:{}, y:{})", GetMapName(), GetId(), gx, gy, gx, gy);
-            break;
-        case VMAP::VMAP_LOAD_RESULT_IGNORED:
-            TC_LOG_DEBUG("maps", "Ignored VMAP name:{}, id:{}, x:{}, y:{} (vmap rep.: x:{}, y:{})", GetMapName(), GetId(), gx, gy, gx, gy);
-            break;
-    }
-}
-
-void Map::LoadMap(int gx, int gy, bool reload)
-{
-    if (i_InstanceId != 0)
-    {
-        if (GridMaps[gx][gy])
-            return;
-
-        // load grid map for base map
-        if (!m_parentMap->GridMaps[gx][gy])
-            m_parentMap->EnsureGridCreated(GridCoord((MAX_NUMBER_OF_GRIDS - 1) - gx, (MAX_NUMBER_OF_GRIDS - 1) - gy));
-
-        ((MapInstanced*)(m_parentMap))->AddGridMapReference(GridCoord(gx, gy));
-        GridMaps[gx][gy] = m_parentMap->GridMaps[gx][gy];
-        return;
-    }
-
-    if (GridMaps[gx][gy] && !reload)
-        return;
-
-    //map already load, delete it before reloading (Is it necessary? Do we really need the ability the reload maps during runtime?)
-    if (GridMaps[gx][gy])
-    {
-        TC_LOG_DEBUG("maps", "Unloading previously loaded map {} before reloading.", GetId());
-        sScriptMgr->OnUnloadGridMap(this, GridMaps[gx][gy], gx, gy);
-
-        delete (GridMaps[gx][gy]);
-        GridMaps[gx][gy]=nullptr;
-    }
-
-    // map file name
-    std::string fileName = Trinity::StringFormat("{}maps/{:03}{:02}{:02}.map", sWorld->GetDataPath(), GetId(), gx, gy);
-    TC_LOG_DEBUG("maps", "Loading map {}", fileName);
-    // loading data
-    GridMaps[gx][gy] = new GridMap();
-    if (!GridMaps[gx][gy]->loadData(fileName.c_str()))
-        TC_LOG_ERROR("maps", "Error loading map file: \n {}\n", fileName);
-
-    sScriptMgr->OnLoadGridMap(this, GridMaps[gx][gy], gx, gy);
-}
-
-void Map::LoadMapAndVMap(int gx, int gy)
-{
-    LoadMap(gx, gy);
-   // Only load the data for the base map
-    if (i_InstanceId == 0)
-    {
-        LoadVMap(gx, gy);
-        LoadMMap(gx, gy);
-    }
-}
-
-void Map::LoadAllCells()
-{
-    for (uint32 cellX = 0; cellX < TOTAL_NUMBER_OF_CELLS_PER_MAP; cellX++)
-        for (uint32 cellY = 0; cellY < TOTAL_NUMBER_OF_CELLS_PER_MAP; cellY++)
-            LoadGrid((cellX + 0.5f - CENTER_GRID_CELL_ID) * SIZE_OF_GRID_CELL, (cellY + 0.5f - CENTER_GRID_CELL_ID) * SIZE_OF_GRID_CELL);
-}
-
-void Map::InitStateMachine()
-{
-    si_GridStates[GRID_STATE_INVALID] = new InvalidState;
-    si_GridStates[GRID_STATE_ACTIVE] = new ActiveState;
-    si_GridStates[GRID_STATE_IDLE] = new IdleState;
-    si_GridStates[GRID_STATE_REMOVAL] = new RemovalState;
-}
-
-void Map::DeleteStateMachine()
-{
-    delete si_GridStates[GRID_STATE_INVALID];
-    delete si_GridStates[GRID_STATE_ACTIVE];
-    delete si_GridStates[GRID_STATE_IDLE];
-    delete si_GridStates[GRID_STATE_REMOVAL];
-}
-
-Map::Map(uint32 id, time_t expiry, uint32 InstanceId, uint8 SpawnMode, Map* _parent):
+Map::Map(uint32 id, uint32 InstanceId, uint8 SpawnMode, Map* _parent):
 _creatureToMoveLock(false), _gameObjectsToMoveLock(false), _dynamicObjectsToMoveLock(false),
 i_mapEntry(sMapStore.LookupEntry(id)), i_spawnMode(SpawnMode), i_InstanceId(InstanceId),
 m_unloadTimer(0), m_VisibleDistance(DEFAULT_VISIBILITY_DISTANCE),
 m_VisibilityNotifyPeriod(DEFAULT_VISIBILITY_NOTIFY_PERIOD),
 m_activeNonPlayersIter(m_activeNonPlayers.end()), _transportsUpdateIter(_transports.end()),
-i_gridExpiry(expiry),
 i_scriptLock(false), _respawnTimes(std::make_unique<RespawnListContainer>()), _respawnCheckTimer(0)
 {
     m_parentMap = (_parent ? _parent : this);
-    for (unsigned int idx=0; idx < MAX_NUMBER_OF_GRIDS; ++idx)
+
+    for (unsigned int i=0; i < MAX_NUMBER_OF_GRIDS; ++i)
     {
         for (unsigned int j=0; j < MAX_NUMBER_OF_GRIDS; ++j)
         {
-            //z code
-            GridMaps[idx][j] =nullptr;
-            setNGrid(nullptr, idx, j);
+            TC_LOG_DEBUG("maps", "Creating grid[{}, {}] for map {} instance {}", i, j, GetId(), i_InstanceId);
+
+            setNGrid(new NGridType(i*MAX_NUMBER_OF_GRIDS + j, i, j), i, j);
+
+            // build a linkage between this map and NGridType
+            buildNGridLinkage(getNGrid(i, j));
+
+            TC_LOG_DEBUG("maps", "Loading grid[{}, {}] for map {} instance {}", i, j, GetId(), i_InstanceId);
+
+            getNGrid(i, j)->setGridObjectDataLoaded(true);
+
+            ObjectGridLoader loader(*getNGrid(i, j), this, cell);
+            loader.LoadN();
         }
     }
+
+    Balance();
 
     _zonePlayerCountMap.clear();
 
@@ -498,102 +343,9 @@ void Map::DeleteFromWorld(Transport* transport)
     delete transport;
 }
 
-void Map::EnsureGridCreated(GridCoord const& p)
-{
-    std::lock_guard<std::mutex> lock(_gridLock);
-    EnsureGridCreated_i(p);
-}
-
-//Create NGrid so the object can be added to it
-//But object data is not loaded here
-void Map::EnsureGridCreated_i(GridCoord const& p)
-{
-    if (!getNGrid(p.x_coord, p.y_coord))
-    {
-        TC_LOG_DEBUG("maps", "Creating grid[{}, {}] for map {} instance {}", p.x_coord, p.y_coord, GetId(), i_InstanceId);
-
-        setNGrid(new NGridType(p.x_coord*MAX_NUMBER_OF_GRIDS + p.y_coord, p.x_coord, p.y_coord, i_gridExpiry, sWorld->getBoolConfig(CONFIG_GRID_UNLOAD)),
-            p.x_coord, p.y_coord);
-
-        // build a linkage between this map and NGridType
-        buildNGridLinkage(getNGrid(p.x_coord, p.y_coord));
-
-        getNGrid(p.x_coord, p.y_coord)->SetGridState(GRID_STATE_IDLE);
-
-        //z coord
-        int gx = (MAX_NUMBER_OF_GRIDS - 1) - p.x_coord;
-        int gy = (MAX_NUMBER_OF_GRIDS - 1) - p.y_coord;
-
-        if (!GridMaps[gx][gy])
-            LoadMapAndVMap(gx, gy);
-    }
-}
-
-//Load NGrid and make it active
-void Map::EnsureGridLoadedForActiveObject(Cell const& cell, WorldObject* object)
-{
-    EnsureGridLoaded(cell);
-    NGridType *grid = getNGrid(cell.GridX(), cell.GridY());
-    ASSERT(grid != nullptr);
-
-    // refresh grid state & timer
-    if (grid->GetGridState() != GRID_STATE_ACTIVE)
-    {
-        TC_LOG_DEBUG("maps", "Active object {} triggers loading of grid [{}, {}] on map {}", object->GetGUID().ToString(), cell.GridX(), cell.GridY(), GetId());
-        ResetGridExpiry(*grid, 0.1f);
-        grid->SetGridState(GRID_STATE_ACTIVE);
-    }
-}
-
-//Create NGrid and load the object data in it
-bool Map::EnsureGridLoaded(Cell const& cell)
-{
-    EnsureGridCreated(GridCoord(cell.GridX(), cell.GridY()));
-    NGridType *grid = getNGrid(cell.GridX(), cell.GridY());
-
-    ASSERT(grid != nullptr);
-    if (!grid->isGridObjectDataLoaded())
-    {
-        TC_LOG_DEBUG("maps", "Loading grid[{}, {}] for map {} instance {}", cell.GridX(), cell.GridY(), GetId(), i_InstanceId);
-
-        grid->setGridObjectDataLoaded(true);
-
-        ObjectGridLoader loader(*grid, this, cell);
-        loader.LoadN();
-
-        Balance();
-        return true;
-    }
-
-    return false;
-}
-
-void Map::GridMarkNoUnload(uint32 x, uint32 y)
-{
-    // First make sure this grid is loaded
-    float gX = ((float(x) - 0.5f - CENTER_GRID_ID) * SIZE_OF_GRIDS) + (CENTER_GRID_OFFSET * 2);
-    float gY = ((float(y) - 0.5f - CENTER_GRID_ID) * SIZE_OF_GRIDS) + (CENTER_GRID_OFFSET * 2);
-    Cell cell = Cell(gX, gY);
-    EnsureGridLoaded(cell);
-
-    // Mark as don't unload
-    NGridType* grid = getNGrid(x, y);
-    grid->setUnloadExplicitLock(true);
-}
-
-void Map::GridUnmarkNoUnload(uint32 x, uint32 y)
-{
-    // If grid is loaded, clear unload lock
-    if (IsGridLoaded(GridCoord(x, y)))
-    {
-        NGridType* grid = getNGrid(x, y);
-        grid->setUnloadExplicitLock(false);
-    }
-}
-
 void Map::LoadGrid(float x, float y)
 {
-    EnsureGridLoaded(Cell(x, y));
+    // Leaving this as many boss scripts call it, but it does nothing since we map is always loaded
 }
 
 bool Map::AddPlayerToMap(Player* player)
@@ -608,7 +360,6 @@ bool Map::AddPlayerToMap(Player* player)
     }
 
     Cell cell(cellCoord);
-    EnsureGridLoadedForActiveObject(cell, player);
     AddToGrid(player, cell);
 
     // Check if we are adding to correct map
@@ -670,10 +421,6 @@ bool Map::AddToMap(T* obj)
     }
 
     Cell cell(cellCoord);
-    if (obj->isActiveObject())
-        EnsureGridLoadedForActiveObject(cell, obj);
-    else
-        EnsureGridCreated(GridCoord(cell.GridX(), cell.GridY()));
     AddToGrid(obj, cell);
     TC_LOG_DEBUG("maps", "Object {} enters grid[{}, {}]", obj->GetGUID().ToString(), cell.GridX(), cell.GridY());
 
@@ -758,7 +505,6 @@ void Map::VisitNearbyCellsOf(WorldObject* obj, TypeContainerVisitor<Trinity::Obj
             markCell(cell_id);
             CellCoord pair(x, y);
             Cell cell(pair);
-            cell.SetNoCreate();
             Visit(cell, gridVisitor);
             Visit(cell, worldVisitor);
         }
@@ -1014,11 +760,8 @@ void Map::ProcessRelocationNotifies(const uint32 diff)
     {
         NGridType *grid = i->GetSource();
 
-        if (grid->GetGridState() != GRID_STATE_ACTIVE)
-            continue;
-
-        grid->getGridInfoRef()->getRelocationTimer().TUpdate(diff);
-        if (!grid->getGridInfoRef()->getRelocationTimer().TPassed())
+        grid->getRelocationTimer().TUpdate(diff);
+        if (!grid->getRelocationTimer().TPassed())
             continue;
 
         uint32 gx = grid->getX(), gy = grid->getY();
@@ -1036,7 +779,6 @@ void Map::ProcessRelocationNotifies(const uint32 diff)
 
                 CellCoord pair(x, y);
                 Cell cell(pair);
-                cell.SetNoCreate();
 
                 /** @epoch-start */
                 Trinity::DelayedUnitRelocation cell_relocation(cell, pair, *this, 100);
@@ -1056,13 +798,10 @@ void Map::ProcessRelocationNotifies(const uint32 diff)
     {
         NGridType *grid = i->GetSource();
 
-        if (grid->GetGridState() != GRID_STATE_ACTIVE)
+        if (!grid->getRelocationTimer().TPassed())
             continue;
 
-        if (!grid->getGridInfoRef()->getRelocationTimer().TPassed())
-            continue;
-
-        grid->getGridInfoRef()->getRelocationTimer().TReset(diff, m_VisibilityNotifyPeriod);
+        grid->getRelocationTimer().TReset(diff, m_VisibilityNotifyPeriod);
 
         uint32 gx = grid->getX(), gy = grid->getY();
 
@@ -1079,7 +818,6 @@ void Map::ProcessRelocationNotifies(const uint32 diff)
 
                 CellCoord pair(x, y);
                 Cell cell(pair);
-                cell.SetNoCreate();
                 Visit(cell, grid_notifier);
                 Visit(cell, world_notifier);
             }
@@ -1192,10 +930,6 @@ void Map::PlayerRelocation(Player* player, float x, float y, float z, float orie
         TC_LOG_DEBUG("maps", "Player {} relocation grid[{}, {}]cell[{}, {}]->grid[{}, {}]cell[{}, {}]", player->GetName(), old_cell.GridX(), old_cell.GridY(), old_cell.CellX(), old_cell.CellY(), new_cell.GridX(), new_cell.GridY(), new_cell.CellX(), new_cell.CellY());
 
         player->RemoveFromGrid();
-
-        if (old_cell.DiffGrid(new_cell))
-            EnsureGridLoadedForActiveObject(new_cell, player);
-
         AddToGrid(player, new_cell);
     }
 
@@ -1529,8 +1263,6 @@ bool Map::CreatureCellRelocation(Creature* c, Cell new_cell)
     // in diff. grids but active creature
     if (c->isActiveObject())
     {
-        EnsureGridLoadedForActiveObject(new_cell, c);
-
 #ifdef TRINITY_DEBUG
         TC_LOG_DEBUG("maps", "Active creature {} moved from grid[{}, {}]cell[{}, {}] to grid[{}, {}]cell[{}, {}].", c->GetGUID().ToString(), old_cell.GridX(), old_cell.GridY(), old_cell.CellX(), old_cell.CellY(), new_cell.GridX(), new_cell.GridY(), new_cell.CellX(), new_cell.CellY());
 #endif
@@ -1541,27 +1273,18 @@ bool Map::CreatureCellRelocation(Creature* c, Cell new_cell)
         return true;
     }
 
-    if (c->GetCharmerOrOwnerGUID().IsPlayer())
-        EnsureGridLoaded(new_cell);
-
-    // in diff. loaded grid normal creature
-    if (IsGridLoaded(GridCoord(new_cell.GridX(), new_cell.GridY())))
+    // in diff. grids normal creature
     {
         #ifdef TRINITY_DEBUG
             TC_LOG_DEBUG("maps", "Creature {} moved from grid[{}, {}]cell[{}, {}] to grid[{}, {}]cell[{}, {}].", c->GetGUID().ToString(), old_cell.GridX(), old_cell.GridY(), old_cell.CellX(), old_cell.CellY(), new_cell.GridX(), new_cell.GridY(), new_cell.CellX(), new_cell.CellY());
         #endif
 
         c->RemoveFromGrid();
-        EnsureGridCreated(GridCoord(new_cell.GridX(), new_cell.GridY()));
         AddToGrid(c, new_cell);
 
         return true;
     }
 
-    // fail to move: normal creature attempt move to unloaded grid
-    #ifdef TRINITY_DEBUG
-        TC_LOG_DEBUG("maps", "Creature {} attempted to move from grid[{}, {}]cell[{}, {}] to unloaded grid[{}, {}]cell[{}, {}].", c->GetGUID().ToString(), old_cell.GridX(), old_cell.GridY(), old_cell.CellX(), old_cell.CellY(), new_cell.GridX(), new_cell.GridY(), new_cell.CellX(), new_cell.CellY());
-    #endif
     return false;
 }
 
@@ -1593,8 +1316,6 @@ bool Map::GameObjectCellRelocation(GameObject* go, Cell new_cell)
     // in diff. grids but active GameObject
     if (go->isActiveObject())
     {
-        EnsureGridLoadedForActiveObject(new_cell, go);
-
 #ifdef TRINITY_DEBUG
         TC_LOG_DEBUG("maps", "Active GameObject {} moved from grid[{}, {}]cell[{}, {}] to grid[{}, {}]cell[{}, {}].", go->GetGUID().ToString(), old_cell.GridX(), old_cell.GridY(), old_cell.CellX(), old_cell.CellY(), new_cell.GridX(), new_cell.GridY(), new_cell.CellX(), new_cell.CellY());
 #endif
@@ -1606,14 +1327,12 @@ bool Map::GameObjectCellRelocation(GameObject* go, Cell new_cell)
     }
 
     // in diff. loaded grid normal GameObject
-    if (IsGridLoaded(GridCoord(new_cell.GridX(), new_cell.GridY())))
     {
 #ifdef TRINITY_DEBUG
         TC_LOG_DEBUG("maps", "GameObject {} moved from grid[{}, {}]cell[{}, {}] to grid[{}, {}]cell[{}, {}].", go->GetGUID().ToString(), old_cell.GridX(), old_cell.GridY(), old_cell.CellX(), old_cell.CellY(), new_cell.GridX(), new_cell.GridY(), new_cell.CellX(), new_cell.CellY());
 #endif
 
         go->RemoveFromGrid();
-        EnsureGridCreated(GridCoord(new_cell.GridX(), new_cell.GridY()));
         AddToGrid(go, new_cell);
 
         return true;
@@ -1654,8 +1373,6 @@ bool Map::DynamicObjectCellRelocation(DynamicObject* go, Cell new_cell)
     // in diff. grids but active GameObject
     if (go->isActiveObject())
     {
-        EnsureGridLoadedForActiveObject(new_cell, go);
-
 #ifdef TRINITY_DEBUG
         TC_LOG_DEBUG("maps", "Active DynamicObject {} moved from grid[{}, {}]cell[{}, {}] to grid[{}, {}]cell[{}, {}].", go->GetGUID().ToString(), old_cell.GridX(), old_cell.GridY(), old_cell.CellX(), old_cell.CellY(), new_cell.GridX(), new_cell.GridY(), new_cell.CellX(), new_cell.CellY());
 #endif
@@ -1667,14 +1384,12 @@ bool Map::DynamicObjectCellRelocation(DynamicObject* go, Cell new_cell)
     }
 
     // in diff. loaded grid normal GameObject
-    if (IsGridLoaded(GridCoord(new_cell.GridX(), new_cell.GridY())))
     {
 #ifdef TRINITY_DEBUG
         TC_LOG_DEBUG("maps", "DynamicObject {} moved from grid[{}, {}]cell[{}, {}] to grid[{}, {}]cell[{}, {}].", go->GetGUID().ToString(), old_cell.GridX(), old_cell.GridY(), old_cell.CellX(), old_cell.CellY(), new_cell.GridX(), new_cell.GridY(), new_cell.CellX(), new_cell.CellY());
 #endif
 
         go->RemoveFromGrid();
-        EnsureGridCreated(GridCoord(new_cell.GridX(), new_cell.GridY()));
         AddToGrid(go, new_cell);
 
         return true;
@@ -1805,29 +1520,6 @@ bool Map::UnloadGrid(NGridType& ngrid, bool unloadAll)
 
         delete &ngrid;
         setNGrid(nullptr, x, y);
-    }
-    int gx = (MAX_NUMBER_OF_GRIDS - 1) - x;
-    int gy = (MAX_NUMBER_OF_GRIDS - 1) - y;
-
-    // delete grid map, but don't delete if it is from parent map (and thus only reference)
-    //+++if (GridMaps[gx][gy]) don't check for GridMaps[gx][gy], we might have to unload vmaps
-    {
-        if (i_InstanceId == 0)
-        {
-            ZoneScopedNC("Map::UnloadGrid i_InstanceId == 0", WORLD_UPDATE_COLOR)
-
-            if (GridMaps[gx][gy])
-            {
-                GridMaps[gx][gy]->unloadData();
-                delete GridMaps[gx][gy];
-            }
-            VMAP::VMapFactory::createOrGetVMapManager()->unloadMap(GetId(), gx, gy);
-            MMAP::MMapFactory::createOrGetMMapManager()->unloadMap(GetId(), gx, gy);
-        }
-        else
-            ((MapInstanced*)m_parentMap)->RemoveGridMapReference(GridCoord(gx, gy));
-
-        GridMaps[gx][gy] = nullptr;
     }
     TC_LOG_DEBUG("maps", "Unloading grid[{}, {}] for map {} finished", x, y, GetId());
     return true;
@@ -2561,10 +2253,7 @@ inline GridMap* Map::GetGrid(float x, float y)
     int gx=(int)(CENTER_GRID_ID - x/SIZE_OF_GRIDS);                       //grid x
     int gy=(int)(CENTER_GRID_ID - y/SIZE_OF_GRIDS);                       //grid y
 
-    // ensure GridMap is loaded
-    EnsureGridCreated(GridCoord((MAX_NUMBER_OF_GRIDS - 1) - gx, (MAX_NUMBER_OF_GRIDS - 1) - gy));
-
-    return GridMaps[gx][gy];
+    return sMapMgr->GetGridMap(GetId(), gx, gy);
 }
 
 float Map::GetWaterOrGroundLevel(uint32 phasemask, float x, float y, float z, float* ground /*= nullptr*/, bool /*swim = false*/, float collisionHeight /*= DEFAULT_COLLISION_HEIGHT*/) const
@@ -3873,20 +3562,6 @@ void Map::DelayedUpdate(uint32 t_diff)
     }
 
     RemoveAllObjectsInRemoveList();
-
-    // Don't unload grids if it's battleground, since we may have manually added GOs, creatures, those doesn't load from DB at grid re-load !
-    // This isn't really bother us, since as soon as we have instanced BG-s, the whole map unloads as the BG gets ended
-    if (!IsBattlegroundOrArena())
-    {
-        for (GridRefManager<NGridType>::iterator i = GridRefManager<NGridType>::begin(); i != GridRefManager<NGridType>::end();)
-        {
-            NGridType *grid = i->GetSource();
-            GridInfo* info = i->GetSource()->getGridInfoRef();
-            ++i;                                                // The update might delete the map and we need the next map before the iterator gets invalid
-            ASSERT(grid->GetGridState() >= 0 && grid->GetGridState() < MAX_GRID_STATE);
-            si_GridStates[grid->GetGridState()]->Update(*this, *grid, *info, t_diff);
-        }
-    }
 }
 
 void Map::AddObjectToRemoveList(WorldObject* obj)
@@ -4062,79 +3737,11 @@ bool Map::ActiveObjectsNearGrid(NGridType const& ngrid) const
 void Map::AddToActive(WorldObject* obj)
 {
     AddToActiveHelper(obj);
-
-    Optional<Position> respawnLocation;
-    switch (obj->GetTypeId())
-    {
-        case TYPEID_UNIT:
-            if (Creature* creature = obj->ToCreature(); !creature->IsPet() && creature->GetSpawnId())
-            {
-                respawnLocation.emplace();
-                creature->GetRespawnPosition(respawnLocation->m_positionX, respawnLocation->m_positionY, respawnLocation->m_positionZ);
-            }
-            break;
-        case TYPEID_GAMEOBJECT:
-            if (GameObject* gameObject = obj->ToGameObject(); gameObject->GetSpawnId())
-            {
-                respawnLocation.emplace();
-                gameObject->GetRespawnPosition(respawnLocation->m_positionX, respawnLocation->m_positionY, respawnLocation->m_positionZ);
-            }
-            break;
-        default:
-            break;
-    }
-
-    if (respawnLocation)
-    {
-        GridCoord p = Trinity::ComputeGridCoord(respawnLocation->GetPositionX(), respawnLocation->GetPositionY());
-        if (getNGrid(p.x_coord, p.y_coord))
-            getNGrid(p.x_coord, p.y_coord)->incUnloadActiveLock();
-        else
-        {
-            GridCoord p2 = Trinity::ComputeGridCoord(obj->GetPositionX(), obj->GetPositionY());
-            TC_LOG_ERROR("maps", "Active object {} added to grid[{}, {}] but spawn grid[{}, {}] was not loaded.",
-                obj->GetGUID().ToString(), p.x_coord, p.y_coord, p2.x_coord, p2.y_coord);
-        }
-    }
 }
 
 void Map::RemoveFromActive(WorldObject* obj)
 {
     RemoveFromActiveHelper(obj);
-
-    Optional<Position> respawnLocation;
-    switch (obj->GetTypeId())
-    {
-        case TYPEID_UNIT:
-            if (Creature* creature = obj->ToCreature(); !creature->IsPet() && creature->GetSpawnId())
-            {
-                respawnLocation.emplace();
-                creature->GetRespawnPosition(respawnLocation->m_positionX, respawnLocation->m_positionY, respawnLocation->m_positionZ);
-            }
-            break;
-        case TYPEID_GAMEOBJECT:
-            if (GameObject* gameObject = obj->ToGameObject(); gameObject->GetSpawnId())
-            {
-                respawnLocation.emplace();
-                gameObject->GetRespawnPosition(respawnLocation->m_positionX, respawnLocation->m_positionY, respawnLocation->m_positionZ);
-            }
-            break;
-        default:
-            break;
-    }
-
-    if (respawnLocation)
-    {
-        GridCoord p = Trinity::ComputeGridCoord(respawnLocation->GetPositionX(), respawnLocation->GetPositionY());
-        if (getNGrid(p.x_coord, p.y_coord))
-            getNGrid(p.x_coord, p.y_coord)->decUnloadActiveLock();
-        else
-        {
-            GridCoord p2 = Trinity::ComputeGridCoord(obj->GetPositionX(), obj->GetPositionY());
-            TC_LOG_ERROR("maps", "Active object {} removed from grid[{}, {}] but spawn grid[{}, {}] was not loaded.",
-                obj->GetGUID().ToString(), p.x_coord, p.y_coord, p2.x_coord, p2.y_coord);
-        }
-    }
 }
 
 template TC_GAME_API bool Map::AddToMap(Corpse*);
@@ -4149,8 +3756,8 @@ template TC_GAME_API void Map::RemoveFromMap(DynamicObject*, bool);
 
 /* ******* Dungeon Instance Maps ******* */
 
-InstanceMap::InstanceMap(uint32 id, time_t expiry, uint32 InstanceId, uint8 SpawnMode, Map* _parent, TeamId InstanceTeam)
-  : Map(id, expiry, InstanceId, SpawnMode, _parent),
+InstanceMap::InstanceMap(uint32 id, uint32 InstanceId, uint8 SpawnMode, Map* _parent, TeamId InstanceTeam)
+  : Map(id, InstanceId, SpawnMode, _parent),
     m_resetAfterUnload(false), m_unloadWhenEmpty(false),
     i_data(nullptr), i_script_id(0), i_script_team(InstanceTeam)
 {
@@ -4670,8 +4277,8 @@ uint32 InstanceMap::GetMaxResetDelay() const
 
 /* ******* Battleground Instance Maps ******* */
 
-BattlegroundMap::BattlegroundMap(uint32 id, time_t expiry, uint32 InstanceId, Map* _parent, uint8 spawnMode)
-  : Map(id, expiry, InstanceId, spawnMode, _parent), m_bg(nullptr)
+BattlegroundMap::BattlegroundMap(uint32 id, uint32 InstanceId, Map* _parent, uint8 spawnMode)
+  : Map(id, InstanceId, spawnMode, _parent), m_bg(nullptr)
 {
     //lets initialize visibility distance for BG/Arenas
     BattlegroundMap::InitVisibilityDistance();
@@ -5195,8 +4802,7 @@ Corpse* Map::ConvertCorpseToBones(ObjectGuid const& ownerGuid, bool insignia /*=
     // create the bones only if the map and the grid is loaded at the corpse's location
     // ignore bones creating option in case insignia
     if ((insignia ||
-        (IsBattlegroundOrArena() ? sWorld->getBoolConfig(CONFIG_DEATH_BONES_BG_OR_ARENA) : sWorld->getBoolConfig(CONFIG_DEATH_BONES_WORLD))) &&
-        !IsRemovalGrid(corpse->GetPositionX(), corpse->GetPositionY()))
+        (IsBattlegroundOrArena() ? sWorld->getBoolConfig(CONFIG_DEATH_BONES_BG_OR_ARENA) : sWorld->getBoolConfig(CONFIG_DEATH_BONES_WORLD))))
     {
         // Create bones, don't change Corpse
         bones = new Corpse();

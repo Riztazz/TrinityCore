@@ -71,8 +71,6 @@ struct Cell
     uint32 CellY() const { return data.Part.cell_y; }
     uint32 GridX() const { return data.Part.grid_x; }
     uint32 GridY() const { return data.Part.grid_y; }
-    bool NoCreate() const { return data.Part.nocreate; }
-    void SetNoCreate() { data.Part.nocreate = 1; }
 
     CellCoord GetCellCoord() const
     {
@@ -90,7 +88,6 @@ struct Cell
             uint8 grid_y;
             uint8 cell_x;
             uint8 cell_y;
-            uint8 nocreate;
         } Part;
         uint64 All;
     } data;
@@ -100,13 +97,13 @@ struct Cell
 
     static CellArea CalculateCellArea(float x, float y, float radius);
 
-    template<class T> static void VisitGridObjects(WorldObject const* obj, T& visitor, float radius, bool dont_load = true);
-    template<class T> static void VisitWorldObjects(WorldObject const* obj, T& visitor, float radius, bool dont_load = true);
-    template<class T> static void VisitAllObjects(WorldObject const* obj, T& visitor, float radius, bool dont_load = true);
+    template<class T> static void VisitGridObjects(WorldObject const* obj, T& visitor, float radius);
+    template<class T> static void VisitWorldObjects(WorldObject const* obj, T& visitor, float radius);
+    template<class T> static void VisitAllObjects(WorldObject const* obj, T& visitor, float radius);
 
-    template<class T> static void VisitGridObjects(float x, float y, Map* map, T& visitor, float radius, bool dont_load = true);
-    template<class T> static void VisitWorldObjects(float x, float y, Map* map, T& visitor, float radius, bool dont_load = true);
-    template<class T> static void VisitAllObjects(float x, float y, Map* map, T& visitor, float radius, bool dont_load = true);
+    template<class T> static void VisitGridObjects(float x, float y, Map* map, T& visitor, float radius);
+    template<class T> static void VisitWorldObjects(float x, float y, Map* map, T& visitor, float radius);
+    template<class T> static void VisitAllObjects(float x, float y, Map* map, T& visitor, float radius);
 
 private:
     template<class T, class CONTAINER> void VisitCircle(TypeContainerVisitor<T, CONTAINER> &, Map &, CellCoord const&, CellCoord const&) const;
