@@ -33,6 +33,7 @@
 #include "Language.h"
 #include "LFG.h"
 #include "Log.h"
+#include "MapManager.h"
 #include "MiscPackets.h"
 #include "MMapFactory.h"
 #include "MotionMaster.h"
