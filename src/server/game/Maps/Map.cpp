@@ -61,11 +61,7 @@
 #include "TSMainThreadContext.h"
 // @tswow-end
 
-u_map_magic MapMagic        = { {'M','A','P','S'} };
-uint32 MapVersionMagic      = 10;
-u_map_magic MapAreaMagic    = { {'A','R','E','A'} };
-u_map_magic MapHeightMagic  = { {'M','H','G','T'} };
-u_map_magic MapLiquidMagic  = { {'M','L','I','Q'} };
+
 
 static uint16 const holetab_h[4] = { 0x1111, 0x2222, 0x4444, 0x8888 };
 static uint16 const holetab_v[4] = { 0x000F, 0x00F0, 0x0F00, 0xF000 };
@@ -2738,7 +2734,7 @@ bool Map::CheckGridIntegrity(Creature* c, bool moved) const
 
 char const* Map::GetMapName() const
 {
-    return i_mapEntry ? i_mapEntry->MapName[sWorld->GetDefaultDbcLocale()] : "UNNAMEDMAP\x0";
+    return MapManager::GetMapName(GetId());
 }
 
 void Map::SendInitSelf(Player* player)

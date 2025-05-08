@@ -76,6 +76,7 @@ class TC_GAME_API MapManager
         //void LoadGrid(int mapid, int instId, float x, float y, WorldObject const* obj, bool no_unload = false);
         void UnloadAll();
 
+        static char const* GetMapName(uint32 mapid);
         static bool ExistMapAndVMap(uint32 mapid, float x, float y);
         static bool ExistMap(uint32 mapid, int gx, int gy);
         static bool ExistVMap(uint32 mapid, int gx, int gy);

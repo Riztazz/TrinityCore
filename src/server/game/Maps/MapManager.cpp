@@ -16,6 +16,7 @@
  */
 
 #include "MapManager.h"
+#include "DisableMgr.h"
 #include "InstanceSaveMgr.h"
 #include "DatabaseEnv.h"
 #include "Log.h"
@@ -37,6 +38,7 @@
 #include "ScriptMgr.h"
 #include "VMapFactory.h"
 #include "VMapManager2.h"
+#include "MMapFactory.h"
 #include <numeric>
 
 MapManager* MapManager::instance()
@@ -244,6 +246,12 @@ void MapManager::Update(uint32 diff)
 
 void MapManager::DoDelayedMovesAndRemoves() { }
 
+char const* MapManager::GetMapName(uint32 mapid)
+{
+    MapEntry const* entry = sMapStore.LookupEntry(mapid);
+    return entry ? entry->MapName[sWorld->GetDefaultDbcLocale()] : "UNNAMEDMAP\x0";
+}
+
 bool MapManager::ExistMapAndVMap(uint32 mapid, float x, float y)
 {
     GridCoord p = Trinity::ComputeGridCoord(x, y);
@@ -444,8 +452,6 @@ void MapManager::LoadMap(uint32 mapId, int gx, int gy)
     _gridMaps[mapId][gx][gy] = new GridMap();
     if (!_gridMaps[mapId][gx][gy]->loadData(fileName.c_str()))
         TC_LOG_ERROR("maps", "Error loading map file: \n {}\n", fileName);
-
-    sScriptMgr->OnLoadGridMap(this, _gridMaps[mapId][gx][gy], gx, gy);
 }
 
 void MapManager::LoadVMap(uint32 mapId, int gx, int gy)
