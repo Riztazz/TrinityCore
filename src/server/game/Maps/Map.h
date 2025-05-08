@@ -18,9 +18,8 @@
 #ifndef TRINITY_MAP_H
 #define TRINITY_MAP_H
 
-#include "Define.h"
-
 #include "Cell.h"
+#include "Define.h"
 #include "DynamicTree.h"
 #include "GridDefines.h"
 #include "GridRefManager.h"
@@ -113,6 +112,12 @@ struct map_fileheader
     uint32 holesOffset;
     uint32 holesSize;
 };
+
+u_map_magic MapMagic        = { {'M','A','P','S'} };
+uint32 MapVersionMagic      = 10;
+u_map_magic MapAreaMagic    = { {'A','R','E','A'} };
+u_map_magic MapHeightMagic  = { {'M','H','G','T'} };
+u_map_magic MapLiquidMagic  = { {'M','L','I','Q'} };
 
 #define MAP_AREA_NO_AREA      0x0001
 

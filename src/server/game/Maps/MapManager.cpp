@@ -35,6 +35,8 @@
 #include "Opcodes.h"
 #include "TSProfile.h"
 #include "ScriptMgr.h"
+#include "VMapFactory.h"
+#include "VMapManager2.h"
 #include <numeric>
 
 MapManager* MapManager::instance()
