@@ -155,7 +155,6 @@ class TC_GAME_API MapManager
         MapManager& operator=(MapManager const&) = delete;
 
         std::mutex _mapsLock;
-        uint32 i_gridCleanUpDelay;
         MapMapType i_maps;
         IntervalTimer i_timer;
 

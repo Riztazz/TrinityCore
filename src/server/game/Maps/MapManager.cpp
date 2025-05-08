@@ -82,10 +82,10 @@ Map* MapManager::CreateBaseMap(uint32 id)
         ASSERT(entry);
 
         if (entry->Instanceable())
-            map = new MapInstanced(id, i_gridCleanUpDelay);
+            map = new MapInstanced(id);
         else
         {
-            map = new Map(id, i_gridCleanUpDelay, 0, REGULAR_DIFFICULTY);
+            map = new Map(id, 0, REGULAR_DIFFICULTY);
             map->LoadRespawnTimes();
             map->LoadCorpseData();
         }
