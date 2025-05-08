@@ -463,13 +463,13 @@ void MapManager::LoadVMap(uint32 mapId, int gx, int gy)
     switch (vmapLoadResult)
     {
         case VMAP::VMAP_LOAD_RESULT_OK:
-            TC_LOG_DEBUG("maps", "VMAP loaded name:{}, id:{}, x:{}, y:{} (vmap rep.: x:{}, y:{})", GetMapName(), mapId, gx, gy, gx, gy);
+            TC_LOG_DEBUG("maps", "VMAP loaded name:{}, id:{}, x:{}, y:{} (vmap rep.: x:{}, y:{})", GetMapName(mapId), mapId, gx, gy, gx, gy);
             break;
         case VMAP::VMAP_LOAD_RESULT_ERROR:
-            TC_LOG_ERROR("maps", "Could not load VMAP name:{}, id:{}, x:{}, y:{} (vmap rep.: x:{}, y:{})", GetMapName(), mapId, gx, gy, gx, gy);
+            TC_LOG_ERROR("maps", "Could not load VMAP name:{}, id:{}, x:{}, y:{} (vmap rep.: x:{}, y:{})", GetMapName(mapId), mapId, gx, gy, gx, gy);
             break;
         case VMAP::VMAP_LOAD_RESULT_IGNORED:
-            TC_LOG_DEBUG("maps", "Ignored VMAP name:{}, id:{}, x:{}, y:{} (vmap rep.: x:{}, y:{})", GetMapName(), mapId, gx, gy, gx, gy);
+            TC_LOG_DEBUG("maps", "Ignored VMAP name:{}, id:{}, x:{}, y:{} (vmap rep.: x:{}, y:{})", GetMapName(mapId), mapId, gx, gy, gx, gy);
             break;
     }
 }
@@ -482,9 +482,9 @@ void MapManager::LoadMMap(uint32 mapId, int gx, int gy)
     bool mmapLoadResult = MMAP::MMapFactory::createOrGetMMapManager()->loadMap(sWorld->GetDataPath(), mapId, gx, gy);
 
     if (mmapLoadResult)
-        TC_LOG_DEBUG("mmaps.tiles", "MMAP loaded name:{}, id:{}, x:{}, y:{} (mmap rep.: x:{}, y:{})", GetMapName(), mapId, gx, gy, gx, gy);
+        TC_LOG_DEBUG("mmaps.tiles", "MMAP loaded name:{}, id:{}, x:{}, y:{} (mmap rep.: x:{}, y:{})", GetMapName(mapId), mapId, gx, gy, gx, gy);
     else
-        TC_LOG_WARN("mmaps.tiles", "Could not load MMAP name:{}, id:{}, x:{}, y:{} (mmap rep.: x:{}, y:{})", GetMapName(), mapId, gx, gy, gx, gy);
+        TC_LOG_WARN("mmaps.tiles", "Could not load MMAP name:{}, id:{}, x:{}, y:{} (mmap rep.: x:{}, y:{})", GetMapName(mapId), mapId, gx, gy, gx, gy);
 }
 
 void MapManager::UnloadMapData(uint32 mapId)
