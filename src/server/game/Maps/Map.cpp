@@ -128,15 +128,19 @@ i_scriptLock(false), _respawnTimes(std::make_unique<RespawnListContainer>()), _r
             TC_LOG_DEBUG("maps", "Creating grid[{}, {}] for map {} instance {}", i, j, GetId(), i_InstanceId);
 
             setNGrid(new NGridType(i*MAX_NUMBER_OF_GRIDS + j, i, j), i, j);
+            NGridType *grid = getNGrid(i, j);
 
             // build a linkage between this map and NGridType
-            buildNGridLinkage(getNGrid(i, j));
+            buildNGridLinkage(grid);
 
             TC_LOG_DEBUG("maps", "Loading grid[{}, {}] for map {} instance {}", i, j, GetId(), i_InstanceId);
 
-            getNGrid(i, j)->setGridObjectDataLoaded(true);
+            grid->setGridObjectDataLoaded(true);
 
-            ObjectGridLoader loader(*getNGrid(i, j), this, cell);
+            // I don't think it matters what the coord is since LoadN just overwrites it
+            CellCoord p(Trinity::ComputeCellCoord(0, 0));
+            Cell cell(p);
+            ObjectGridLoader loader(grid, this, cell);
             loader.LoadN();
         }
     }
