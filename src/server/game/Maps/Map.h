@@ -113,6 +113,12 @@ struct map_fileheader
     uint32 holesSize;
 };
 
+extern u_map_magic MapMagic;
+extern uint32 MapVersionMagic;
+extern u_map_magic MapAreaMagic;
+extern u_map_magic MapHeightMagic;
+extern u_map_magic MapLiquidMagic;
+
 #define MAP_AREA_NO_AREA      0x0001
 
 struct map_areaHeader
