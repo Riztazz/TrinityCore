@@ -942,6 +942,9 @@ inline void Map::Visit(Cell const& cell, TypeContainerVisitor<T, CONTAINER>& vis
     const uint32 cell_x = cell.CellX();
     const uint32 cell_y = cell.CellY();
 
+    if (!cell.NoCreate())
+        EnsureGridLoaded(cell);
+
     NGridType* grid = getNGrid(x, y);
     if (grid && grid->isGridObjectDataLoaded())
         grid->VisitGrid(cell_x, cell_y, visitor);
