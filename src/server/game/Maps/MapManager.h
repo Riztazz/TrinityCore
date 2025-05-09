@@ -35,7 +35,6 @@ class TC_GAME_API MapManager
     public:
         static MapManager* instance();
 
-        void LoadMaps(std::vector<uint32> const& mapIds);
         void Initialize();
         Map* CreateBaseMap(uint32 mapId);
         Map* FindBaseNonInstanceMap(uint32 mapId) const;

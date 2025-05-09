@@ -1699,9 +1699,6 @@ void World::SetInitialWorldSettings()
     MMAP::MMapManager* mmmgr = MMAP::MMapFactory::createOrGetMMapManager();
     mmmgr->InitializeThreadUnsafe(mapIds);
 
-    TC_LOG_INFO("server.loading", "Loading All Maps");
-    sMapMgr->LoadMaps(mapIds);
-
     TC_LOG_INFO("server.loading", "Initializing PlayerDump tables...");
     PlayerDump::InitializeTables();
 
