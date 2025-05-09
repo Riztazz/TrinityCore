@@ -191,7 +191,7 @@ void MapManager::DoForAllMaps(Worker&& worker)
         }
         else if (MapPartitioned* mapPartitioned = map->ToMapPartitioned())
         {
-            MapPartitioned::PartitionMaps& partitions = mapPartitioned->GetPartitionedMaps();
+            MapPartitioned::PartitionedMaps& partitions = mapPartitioned->GetPartitionedMaps();
             for (auto& p : partitions)
                 worker(p.second.get());
         }
@@ -215,7 +215,7 @@ inline void MapManager::DoForAllMapsWithMapId(uint32 mapId, Worker&& worker)
         }
         else if (MapPartitioned* mapPartitioned = map->ToMapPartitioned())
         {
-            MapPartitioned::PartitionMaps& partitions = mapPartitioned->GetPartitionedMaps();
+            MapPartitioned::PartitionedMaps& partitions = mapPartitioned->GetPartitionedMaps();
             for (auto& p : partitions)
                 worker(p.second.get());
         }
