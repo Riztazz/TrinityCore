@@ -20,7 +20,6 @@
 
 #include "TypeList.h"
 #include "Define.h"
-#include "GridLoader.h"
 #include "GridDefines.h"
 #include "Cell.h"
 
