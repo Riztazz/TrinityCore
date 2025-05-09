@@ -18,8 +18,9 @@
 #ifndef TRINITY_MAP_H
 #define TRINITY_MAP_H
 
-#include "Cell.h"
 #include "Define.h"
+
+#include "Cell.h"
 #include "DynamicTree.h"
 #include "GridDefines.h"
 #include "GridRefManager.h"
@@ -230,8 +231,6 @@ public:
     ZLiquidStatus GetLiquidStatus(float x, float y, float z, Optional<uint8> ReqLiquidType, LiquidData* data = 0, float collisionHeight = 2.03128f); // DEFAULT_COLLISION_HEIGHT in Object.h
 };
 
-typedef GridMap*[MAX_NUMBER_OF_GRIDS][MAX_NUMBER_OF_GRIDS] GridMaps;
-
 #pragma pack(push, 1)
 
 enum LevelRequirementVsMode
@@ -355,8 +354,8 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
         bool IsGridLoaded(float x, float y) const { return IsGridLoaded(Trinity::ComputeGridCoord(x, y)); }
         bool IsGridLoaded(Position const& pos) const { return IsGridLoaded(pos.GetPositionX(), pos.GetPositionY()); }
 
-        void LoadGrids();
         void LoadGrid(float x, float y);
+        void LoadAllCells();
         bool UnloadGrid(NGridType& ngrid, bool pForce);
         virtual void UnloadAll();
 
@@ -657,6 +656,9 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
         std::vector<DynamicObject*> _dynamicObjectsToMove;
 
         bool IsGridLoaded(GridCoord const&) const;
+        void EnsureGridCreated(GridCoord const&);
+        void EnsureGridCreated_i(GridCoord const&);
+        bool EnsureGridLoaded(Cell const&);
 
         void buildNGridLinkage(NGridType* pNGridType) { pNGridType->link(this); }
 
@@ -673,6 +675,7 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
 
     protected:
         std::mutex _mapLock;
+        std::mutex _gridLock;
 
         MapEntry const* i_mapEntry;
         uint8 i_spawnMode;

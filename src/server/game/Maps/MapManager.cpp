@@ -41,12 +41,6 @@
 #include "MMapFactory.h"
 #include <numeric>
 
-MapManager* MapManager::instance()
-{
-    static MapManager instance;
-    return &instance;
-}
-
 MapManager::MapManager()
     : _nextInstanceId(0), _scheduledScripts(0)
 {
@@ -67,6 +61,12 @@ void MapManager::InitializeVisibilityDistanceInfo()
 {
     for (MapMapType::iterator iter = i_maps.begin(); iter != i_maps.end(); ++iter)
         (*iter).second->InitVisibilityDistance();
+}
+
+MapManager* MapManager::instance()
+{
+    static MapManager instance;
+    return &instance;
 }
 
 Map* MapManager::CreateBaseMap(uint32 id)

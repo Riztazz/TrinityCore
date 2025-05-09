@@ -111,6 +111,13 @@ Map::~Map()
     MMAP::MMapFactory::createOrGetMMapManager()->unloadMapInstance(GetId(), i_InstanceId);
 }
 
+void Map::LoadAllCells()
+{
+    for (uint32 cellX = 0; cellX < TOTAL_NUMBER_OF_CELLS_PER_MAP; cellX++)
+        for (uint32 cellY = 0; cellY < TOTAL_NUMBER_OF_CELLS_PER_MAP; cellY++)
+            LoadGrid((cellX + 0.5f - CENTER_GRID_CELL_ID) * SIZE_OF_GRID_CELL, (cellY + 0.5f - CENTER_GRID_CELL_ID) * SIZE_OF_GRID_CELL);
+}
+
 Map::Map(uint32 id, uint32 InstanceId, uint8 SpawnMode, Map* _parent):
 _creatureToMoveLock(false), _gameObjectsToMoveLock(false), _dynamicObjectsToMoveLock(false),
 i_mapEntry(sMapStore.LookupEntry(id)), i_spawnMode(SpawnMode), i_InstanceId(InstanceId),
@@ -120,6 +127,14 @@ m_activeNonPlayersIter(m_activeNonPlayers.end()), _transportsUpdateIter(_transpo
 i_scriptLock(false), _respawnTimes(std::make_unique<RespawnListContainer>()), _respawnCheckTimer(0)
 {
     m_parentMap = (_parent ? _parent : this);
+    for (unsigned int idx=0; idx < MAX_NUMBER_OF_GRIDS; ++idx)
+    {
+        for (unsigned int j=0; j < MAX_NUMBER_OF_GRIDS; ++j)
+        {
+            //z code
+            setNGrid(nullptr, idx, j);
+        }
+    }
 
     _zonePlayerCountMap.clear();
 
@@ -321,39 +336,60 @@ void Map::DeleteFromWorld(Transport* transport)
     delete transport;
 }
 
-void Map::LoadGrids()
+void Map::EnsureGridCreated(GridCoord const& p)
 {
-    for (uint32 cellX = 0; cellX < TOTAL_NUMBER_OF_CELLS_PER_MAP; cellX++)
-        for (uint32 cellY = 0; cellY < TOTAL_NUMBER_OF_CELLS_PER_MAP; cellY++)
-        {
-            Cell cell((cellX + 0.5f - CENTER_GRID_CELL_ID) * SIZE_OF_GRID_CELL, (cellY + 0.5f - CENTER_GRID_CELL_ID) * SIZE_OF_GRID_CELL);
-            if (!getNGrid(p.x_coord, p.y_coord))
-            TC_LOG_DEBUG("maps", "Loading grid[{}, {}] for map {} instance {}", cell.GridX(), cell.GridY(), GetId(), i_InstanceId);
+    std::lock_guard<std::mutex> lock(_gridLock);
+    EnsureGridCreated_i(p);
+}
 
-            setNGrid(new NGridType(cell.GridX(), cell.GridY(), cell.GridX(), cell.GridY()), cell.GridX(), cell.GridY());
-            NGridType *grid = getNGrid(cell.GridX(), cell.GridY());
+//Create NGrid so the object can be added to it
+//But object data is not loaded here
+void Map::EnsureGridCreated_i(GridCoord const& p)
+{
+    if (!getNGrid(p.x_coord, p.y_coord))
+    {
+        TC_LOG_DEBUG("maps", "Creating grid[{}, {}] for map {} instance {}", p.x_coord, p.y_coord, GetId(), i_InstanceId);
 
-            // build a linkage between this map and NGridType
-            buildNGridLinkage(grid);
+        setNGrid(new NGridType(p.x_coord*MAX_NUMBER_OF_GRIDS + p.y_coord, p.x_coord, p.y_coord),
+            p.x_coord, p.y_coord);
 
-            TC_LOG_DEBUG("maps", "Loading grid[{}, {}] for map {} instance {}", i, j, GetId(), i_InstanceId);
+        // build a linkage between this map and NGridType
+        buildNGridLinkage(getNGrid(p.x_coord, p.y_coord));
 
-            grid->setGridObjectDataLoaded(true);
+        //z coord
+        int gx = (MAX_NUMBER_OF_GRIDS - 1) - p.x_coord;
+        int gy = (MAX_NUMBER_OF_GRIDS - 1) - p.y_coord;
 
-            // I don't think it matters what the coord is since LoadN just overwrites it
-            CellCoord p(Trinity::ComputeCellCoord(0, 0));
-            
-            ObjectGridLoader loader(*grid, this, cell);
-            loader.LoadN();
-        }
+        sMapMgr->GetMapGrid(GetId(),gx, gy);
+    }
+}
+
+//Create NGrid and load the object data in it
+bool Map::EnsureGridLoaded(Cell const& cell)
+{
+    EnsureGridCreated(GridCoord(cell.GridX(), cell.GridY()));
+    NGridType *grid = getNGrid(cell.GridX(), cell.GridY());
+
+    ASSERT(grid != nullptr);
+    if (!grid->isGridObjectDataLoaded())
+    {
+        TC_LOG_DEBUG("maps", "Loading grid[{}, {}] for map {} instance {}", cell.GridX(), cell.GridY(), GetId(), i_InstanceId);
+
+        grid->setGridObjectDataLoaded(true);
+
+        ObjectGridLoader loader(*grid, this, cell);
+        loader.LoadN();
+
+        Balance();
+        return true;
     }
 
-    Balance();
+    return false;
 }
 
 void Map::LoadGrid(float x, float y)
 {
-    // Leaving this as many boss scripts call it, but it does nothing since we map is always loaded
+    EnsureGridLoaded(Cell(x, y));
 }
 
 bool Map::AddPlayerToMap(Player* player)
@@ -368,6 +404,7 @@ bool Map::AddPlayerToMap(Player* player)
     }
 
     Cell cell(cellCoord);
+    EnsureGridLoaded(cell);
     AddToGrid(player, cell);
 
     // Check if we are adding to correct map
@@ -409,7 +446,6 @@ void Map::InitializeObject(GameObject* obj)
 template<class T>
 bool Map::AddToMap(T* obj)
 {
-    TC_LOG_DEBUG("maps", "AddToMap called with object {}", obj->GetGUID().ToString());
     /// @todo Needs clean up. An object should not be added to map twice.
     if (obj->IsInWorld())
     {
@@ -430,17 +466,17 @@ bool Map::AddToMap(T* obj)
     }
 
     Cell cell(cellCoord);
-    TC_LOG_DEBUG("maps", "About to Call AddToGrid for object {}", obj->GetGUID().ToString());
+    if (obj->isActiveObject())
+        EnsureGridLoadedForActiveObject(cell, obj);
+    else
+        EnsureGridCreated(GridCoord(cell.GridX(), cell.GridY()));
     AddToGrid(obj, cell);
-    TC_LOG_DEBUG("maps", "Object {} enters grid[{}, {}]", obj->GetGUID().ToString(), cell.GridX(), cell.GridY());
 
     //Must already be set before AddToMap. Usually during obj->Create.
     //obj->SetMap(this);
     obj->AddToWorld();
-    TC_LOG_DEBUG("maps", "Object {} added to world", obj->GetGUID().ToString());
 
     InitializeObject(obj);
-    TC_LOG_DEBUG("maps", "Object {} initialized", obj->GetGUID().ToString());
 
     if (obj->isActiveObject())
         AddToActive(obj);
@@ -942,6 +978,10 @@ void Map::PlayerRelocation(Player* player, float x, float y, float z, float orie
         TC_LOG_DEBUG("maps", "Player {} relocation grid[{}, {}]cell[{}, {}]->grid[{}, {}]cell[{}, {}]", player->GetName(), old_cell.GridX(), old_cell.GridY(), old_cell.CellX(), old_cell.CellY(), new_cell.GridX(), new_cell.GridY(), new_cell.CellX(), new_cell.CellY());
 
         player->RemoveFromGrid();
+
+        if (old_cell.DiffGrid(new_cell))
+            EnsureGridLoaded(new_cell);
+
         AddToGrid(player, new_cell);
     }
 
@@ -1275,6 +1315,7 @@ bool Map::CreatureCellRelocation(Creature* c, Cell new_cell)
     // in diff. grids but active creature
     if (c->isActiveObject())
     {
+        EnsureGridLoaded(new_cell);
 #ifdef TRINITY_DEBUG
         TC_LOG_DEBUG("maps", "Active creature {} moved from grid[{}, {}]cell[{}, {}] to grid[{}, {}]cell[{}, {}].", c->GetGUID().ToString(), old_cell.GridX(), old_cell.GridY(), old_cell.CellX(), old_cell.CellY(), new_cell.GridX(), new_cell.GridY(), new_cell.CellX(), new_cell.CellY());
 #endif
@@ -1285,18 +1326,27 @@ bool Map::CreatureCellRelocation(Creature* c, Cell new_cell)
         return true;
     }
 
-    // in diff. grids normal creature
+    if (c->GetCharmerOrOwnerGUID().IsPlayer())
+        EnsureGridLoaded(new_cell);
+
+    // in diff. loaded grid normal creature
+    if (IsGridLoaded(GridCoord(new_cell.GridX(), new_cell.GridY())))
     {
         #ifdef TRINITY_DEBUG
             TC_LOG_DEBUG("maps", "Creature {} moved from grid[{}, {}]cell[{}, {}] to grid[{}, {}]cell[{}, {}].", c->GetGUID().ToString(), old_cell.GridX(), old_cell.GridY(), old_cell.CellX(), old_cell.CellY(), new_cell.GridX(), new_cell.GridY(), new_cell.CellX(), new_cell.CellY());
         #endif
 
         c->RemoveFromGrid();
+        EnsureGridCreated(GridCoord(new_cell.GridX(), new_cell.GridY()));
         AddToGrid(c, new_cell);
 
         return true;
     }
 
+    // fail to move: normal creature attempt move to unloaded grid
+    #ifdef TRINITY_DEBUG
+        TC_LOG_DEBUG("maps", "Creature {} attempted to move from grid[{}, {}]cell[{}, {}] to unloaded grid[{}, {}]cell[{}, {}].", c->GetGUID().ToString(), old_cell.GridX(), old_cell.GridY(), old_cell.CellX(), old_cell.CellY(), new_cell.GridX(), new_cell.GridY(), new_cell.CellX(), new_cell.CellY());
+    #endif
     return false;
 }
 
@@ -1328,6 +1378,7 @@ bool Map::GameObjectCellRelocation(GameObject* go, Cell new_cell)
     // in diff. grids but active GameObject
     if (go->isActiveObject())
     {
+        EnsureGridLoaded(new_cell);
 #ifdef TRINITY_DEBUG
         TC_LOG_DEBUG("maps", "Active GameObject {} moved from grid[{}, {}]cell[{}, {}] to grid[{}, {}]cell[{}, {}].", go->GetGUID().ToString(), old_cell.GridX(), old_cell.GridY(), old_cell.CellX(), old_cell.CellY(), new_cell.GridX(), new_cell.GridY(), new_cell.CellX(), new_cell.CellY());
 #endif
@@ -1339,12 +1390,14 @@ bool Map::GameObjectCellRelocation(GameObject* go, Cell new_cell)
     }
 
     // in diff. loaded grid normal GameObject
+    if (IsGridLoaded(GridCoord(new_cell.GridX(), new_cell.GridY())))
     {
 #ifdef TRINITY_DEBUG
         TC_LOG_DEBUG("maps", "GameObject {} moved from grid[{}, {}]cell[{}, {}] to grid[{}, {}]cell[{}, {}].", go->GetGUID().ToString(), old_cell.GridX(), old_cell.GridY(), old_cell.CellX(), old_cell.CellY(), new_cell.GridX(), new_cell.GridY(), new_cell.CellX(), new_cell.CellY());
 #endif
 
         go->RemoveFromGrid();
+        EnsureGridCreated(GridCoord(new_cell.GridX(), new_cell.GridY()));
         AddToGrid(go, new_cell);
 
         return true;
@@ -1385,6 +1438,7 @@ bool Map::DynamicObjectCellRelocation(DynamicObject* go, Cell new_cell)
     // in diff. grids but active GameObject
     if (go->isActiveObject())
     {
+        EnsureGridLoaded(new_cell);
 #ifdef TRINITY_DEBUG
         TC_LOG_DEBUG("maps", "Active DynamicObject {} moved from grid[{}, {}]cell[{}, {}] to grid[{}, {}]cell[{}, {}].", go->GetGUID().ToString(), old_cell.GridX(), old_cell.GridY(), old_cell.CellX(), old_cell.CellY(), new_cell.GridX(), new_cell.GridY(), new_cell.CellX(), new_cell.CellY());
 #endif
@@ -1396,6 +1450,7 @@ bool Map::DynamicObjectCellRelocation(DynamicObject* go, Cell new_cell)
     }
 
     // in diff. loaded grid normal GameObject
+    if (IsGridLoaded(GridCoord(new_cell.GridX(), new_cell.GridY())))
     {
 #ifdef TRINITY_DEBUG
         TC_LOG_DEBUG("maps", "DynamicObject {} moved from grid[{}, {}]cell[{}, {}] to grid[{}, {}]cell[{}, {}].", go->GetGUID().ToString(), old_cell.GridX(), old_cell.GridY(), old_cell.CellX(), old_cell.CellY(), new_cell.GridX(), new_cell.GridY(), new_cell.CellX(), new_cell.CellY());
@@ -2264,6 +2319,9 @@ inline GridMap* Map::GetGrid(float x, float y)
     // half opt method
     int gx=(int)(CENTER_GRID_ID - x/SIZE_OF_GRIDS);                       //grid x
     int gy=(int)(CENTER_GRID_ID - y/SIZE_OF_GRIDS);                       //grid y
+
+    // ensure GridMap is loaded
+    EnsureGridCreated(GridCoord((MAX_NUMBER_OF_GRIDS - 1) - gx, (MAX_NUMBER_OF_GRIDS - 1) - gy));
 
     return sMapMgr->GetGridMap(GetId(), gx, gy);
 }
