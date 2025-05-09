@@ -360,7 +360,7 @@ void Map::EnsureGridCreated_i(GridCoord const& p)
         int gx = (MAX_NUMBER_OF_GRIDS - 1) - p.x_coord;
         int gy = (MAX_NUMBER_OF_GRIDS - 1) - p.y_coord;
 
-        sMapMgr->GetMapGrid(GetId(),gx, gy);
+        sMapMgr->GetGridMap(GetId(), gx, gy);
     }
 }
 
@@ -409,6 +409,7 @@ bool Map::AddPlayerToMap(Player* player)
 
     // Check if we are adding to correct map
     ASSERT (player->GetMap() == this);
+    // Like object, shouldnt this already be set based on the ASSERT?
     player->SetMap(this);
     player->AddToWorld();
 
@@ -443,6 +444,8 @@ void Map::InitializeObject(GameObject* obj)
     obj->_moveState = MAP_OBJECT_CELL_MOVE_NONE;
 }
 
+// FIXME there doesn't seem to be any locking around AddToGrid (there is for loading the grid)
+// but AddToGrid is not thread safe (its linking to a linked list)
 template<class T>
 bool Map::AddToMap(T* obj)
 {
@@ -467,7 +470,7 @@ bool Map::AddToMap(T* obj)
 
     Cell cell(cellCoord);
     if (obj->isActiveObject())
-        EnsureGridLoadedForActiveObject(cell, obj);
+        EnsureGridLoaded(cell);
     else
         EnsureGridCreated(GridCoord(cell.GridX(), cell.GridY()));
     AddToGrid(obj, cell);
@@ -642,6 +645,7 @@ void Map::Update(uint32 t_diff)
     resetMarkedCells();
 
     Trinity::ObjectUpdater updater(t_diff);
+
     // for creature
     TypeContainerVisitor<Trinity::ObjectUpdater, GridTypeMapContainer  > grid_object_update(updater);
     // for pets
@@ -1174,7 +1178,6 @@ void Map::MoveAllCreaturesInMoveList()
             c->Relocate(c->_newPosition);
             if (c->IsVehicle())
                 c->GetVehicleKit()->RelocatePassengers();
-            //CreatureRelocationNotify(c, new_cell, new_cell.cellCoord());
             c->UpdatePositionData();
             c->UpdateObjectVisibility(false);
         }
@@ -1340,7 +1343,6 @@ bool Map::CreatureCellRelocation(Creature* c, Cell new_cell)
         #endif
 
         c->RemoveFromGrid();
-        EnsureGridCreated(GridCoord(new_cell.GridX(), new_cell.GridY()));
         AddToGrid(c, new_cell);
 
         return true;
@@ -1400,7 +1402,6 @@ bool Map::GameObjectCellRelocation(GameObject* go, Cell new_cell)
 #endif
 
         go->RemoveFromGrid();
-        EnsureGridCreated(GridCoord(new_cell.GridX(), new_cell.GridY()));
         AddToGrid(go, new_cell);
 
         return true;
@@ -1494,7 +1495,6 @@ bool Map::CreatureRespawnRelocation(Creature* c, bool diffGridOnly)
     {
         c->Relocate(resp_x, resp_y, resp_z, resp_o);
         c->GetMotionMaster()->Initialize(); // prevent possible problems with default move generators
-        //CreatureRelocationNotify(c, resp_cell, resp_cell.GetCellCoord());
         c->UpdatePositionData();
         c->UpdateObjectVisibility(false);
         return true;
@@ -2320,10 +2320,13 @@ inline ZLiquidStatus GridMap::GetLiquidStatus(float x, float y, float z, Optiona
 inline GridMap* Map::GetGrid(float x, float y)
 {
     // half opt method
+    // gx/gy go from N-1->0, whereas x/y go from -MapSize->MapSize
+    // This correctly scales, inverts and offsets our position
     int gx=(int)(CENTER_GRID_ID - x/SIZE_OF_GRIDS);                       //grid x
     int gy=(int)(CENTER_GRID_ID - y/SIZE_OF_GRIDS);                       //grid y
 
     // ensure GridMap is loaded
+    // GridCoords go from 0>N-1, so we need to invert gx/gy
     EnsureGridCreated(GridCoord((MAX_NUMBER_OF_GRIDS - 1) - gx, (MAX_NUMBER_OF_GRIDS - 1) - gy));
 
     return sMapMgr->GetGridMap(GetId(), gx, gy);
