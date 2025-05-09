@@ -40,6 +40,10 @@
 #include "VMapManager2.h"
 #include "MMapFactory.h"
 #include <numeric>
+#include <thread>
+#include <future>
+#include <vector>
+#include <algorithm>
 
 MapManager* MapManager::instance()
 {
@@ -57,8 +61,22 @@ MapManager::~MapManager() { }
 
 void MapManager::LoadMaps(std::vector<uint32> const& mapIds)
 {
+    const size_t max_concurrent = std::thread::hardware_concurrency();
+    std::vector<std::future<void>> futures;
+
     for (uint32 mapId : mapIds)
-        LoadMapData(mapId);
+    {
+        futures.emplace_back(std::async(std::launch::async, [this, mapId]() {
+            this->LoadMapData(mapId);
+        }));
+        if (futures.size() >= max_concurrent)
+        {
+            futures.front().get();
+            futures.erase(futures.begin());
+        }
+    }
+    for (auto& f : futures)
+        f.get();
 }
 
 void MapManager::Initialize()
@@ -347,10 +365,22 @@ void MapManager::UnloadAll()
     i_maps.clear();
 
     // then unload map data
-    for (auto iter = _gridMaps.begin(); iter != _gridMaps.end(); ++iter)
+    const size_t max_concurrent = std::thread::hardware_concurrency();
+    std::vector<std::future<void>> futures;
+
+    for (uint32 mapId : mapIds)
     {
-        UnloadMapData(iter->first);
+        futures.emplace_back(std::async(std::launch::async, [this, mapId]() {
+            this->UnloadMapData(mapId);
+        }));
+        if (futures.size() >= max_concurrent)
+        {
+            futures.front().get();
+            futures.erase(futures.begin());
+        }
     }
+    for (auto& f : futures)
+        f.get();
 
     if (m_updater.activated())
         m_updater.deactivate();
@@ -435,26 +465,37 @@ GridMap* MapManager::GetGrid(uint32 mapId, int gx, int gy)
 
 void MapManager::LoadMapData(uint32 mapId)
 {
+    GridMap* gridMap[MAX_NUMBER_OF_GRIDS][MAX_NUMBER_OF_GRIDS];
     for (int gx = 0; gx < MAX_NUMBER_OF_GRIDS; ++gx)
     {
         for (int gy = 0; gy < MAX_NUMBER_OF_GRIDS; ++gy)
         {
-            LoadMap(mapId, gx, gy);
-            LoadVMap(mapId, gx, gy);
-            LoadMMap(mapId, gx, gy);
+            gridMap[gx][gy] = LoadMap(mapId, gx, gy);
         }
+    }
+    {
+        std::lock_guard<std::mutex> lock(_gridMapsMutex);
+        _gridMaps[mapId] = gridMap;
     }
 }
 
-void MapManager::LoadMap(uint32 mapId, int gx, int gy)
+GridMap* MapManager::LoadMap(uint32 mapId, int gx, int gy)
 {
     // map file name
     std::string fileName = Trinity::StringFormat("{}maps/{:03}{:02}{:02}.map", sWorld->GetDataPath(), mapId, gx, gy);
     TC_LOG_DEBUG("maps", "Loading map {}", fileName);
     // loading data
-    _gridMaps[mapId][gx][gy] = new GridMap();
-    if (!_gridMaps[mapId][gx][gy]->loadData(fileName.c_str()))
+    GridMap* gridMap = new GridMap();
+    if (gridMap->loadData(fileName.c_str()))
+    {
+        LoadVMap(mapId, gx, gy);
+        LoadMMap(mapId, gx, gy);
+    }
+    else
+    {
         TC_LOG_ERROR("maps", "Error loading map file: \n {}\n", fileName);
+    }
+    return gridMap;
 }
 
 void MapManager::LoadVMap(uint32 mapId, int gx, int gy)
@@ -492,15 +533,28 @@ void MapManager::LoadMMap(uint32 mapId, int gx, int gy)
 
 void MapManager::UnloadMapData(uint32 mapId)
 {
+    GridMap* grids[MAX_NUMBER_OF_GRIDS][MAX_NUMBER_OF_GRIDS] = {nullptr};
+
+    // Lock only to extract and erase the entry
+    {
+        std::lock_guard<std::mutex> lock(_gridMapsMutex);
+        auto it = _gridMaps.find(mapId);
+        if (it != _gridMaps.end())
+        {
+            memcpy(grids, it->second, sizeof(grids));
+            _gridMaps.erase(it);
+        }
+    }
+
+    // Now unload outside the lock
     for (int gx = 0; gx < MAX_NUMBER_OF_GRIDS; ++gx)
     {
         for (int gy = 0; gy < MAX_NUMBER_OF_GRIDS; ++gy)
         {
-            if (_gridMaps[mapId][gx][gy])
+            if (grids[gx][gy])
             {
-                _gridMaps[mapId][gx][gy]->unloadData();
-                delete _gridMaps[mapId][gx][gy];
-                _gridMaps[mapId][gx][gy] = nullptr;
+                grids[gx][gy]->unloadData();
+                delete grids[gx][gy];
                 VMAP::VMapFactory::createOrGetVMapManager()->unloadMap(mapId, gx, gy);
                 MMAP::MMapFactory::createOrGetMMapManager()->unloadMap(mapId, gx, gy);
             }
