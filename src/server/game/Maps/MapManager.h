@@ -26,6 +26,9 @@
 #include <boost/dynamic_bitset.hpp>
 #include <unordered_map>
 #include <mutex>
+#include <array>
+
+using GridMapGrid = std::array<std::array<GridMap*, MAX_NUMBER_OF_GRIDS>, MAX_NUMBER_OF_GRIDS>;
 
 class Transport;
 struct TransportCreatureProto;
@@ -149,11 +152,10 @@ class TC_GAME_API MapManager
             return (iter == i_maps.end() ? nullptr : iter->second.get());
         }
 
-        void LoadMapData(uint32 mapId);
-        GridMap* LoadMap(uint32 mapId, int gx, int gy);
+        GridMap* GetGridMap(uint32 mapId, int gx, int gy);
         void LoadVMap(uint32 mapId, int gx, int gy);
         void LoadMMap(uint32 mapId, int gx, int gy);
-        void UnloadMapData(uint32 mapId);
+        void UnloadGridMaps(uint32 mapId);
 
         MapManager(MapManager const&) = delete;
         MapManager& operator=(MapManager const&) = delete;
@@ -169,7 +171,7 @@ class TC_GAME_API MapManager
         // atomic op counter for active scripts amount
         std::atomic<std::size_t> _scheduledScripts;
 
-        std::unordered_map<uint32, GridMap***> _gridMaps;
+        std::unordered_map<uint32, GridMapGrid> _mapGrids;
 };
 
 template<typename Worker>

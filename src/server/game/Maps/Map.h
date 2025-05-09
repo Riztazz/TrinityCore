@@ -230,6 +230,8 @@ public:
     ZLiquidStatus GetLiquidStatus(float x, float y, float z, Optional<uint8> ReqLiquidType, LiquidData* data = 0, float collisionHeight = 2.03128f); // DEFAULT_COLLISION_HEIGHT in Object.h
 };
 
+typedef GridMap*[MAX_NUMBER_OF_GRIDS][MAX_NUMBER_OF_GRIDS] GridMaps;
+
 #pragma pack(push, 1)
 
 enum LevelRequirementVsMode

@@ -323,14 +323,15 @@ void Map::DeleteFromWorld(Transport* transport)
 
 void Map::LoadGrids()
 {
-    for (unsigned int i=0; i < MAX_NUMBER_OF_GRIDS; ++i)
-    {
-        for (unsigned int j=0; j < MAX_NUMBER_OF_GRIDS; ++j)
+    for (uint32 cellX = 0; cellX < TOTAL_NUMBER_OF_CELLS_PER_MAP; cellX++)
+        for (uint32 cellY = 0; cellY < TOTAL_NUMBER_OF_CELLS_PER_MAP; cellY++)
         {
-            TC_LOG_DEBUG("maps", "Loading grid[{}, {}] for map {} instance {}", i, j, GetId(), i_InstanceId);
+            Cell cell((cellX + 0.5f - CENTER_GRID_CELL_ID) * SIZE_OF_GRID_CELL, (cellY + 0.5f - CENTER_GRID_CELL_ID) * SIZE_OF_GRID_CELL);
+            if (!getNGrid(p.x_coord, p.y_coord))
+            TC_LOG_DEBUG("maps", "Loading grid[{}, {}] for map {} instance {}", cell.GridX(), cell.GridY(), GetId(), i_InstanceId);
 
-            setNGrid(new NGridType(i*MAX_NUMBER_OF_GRIDS + j, i, j), i, j);
-            NGridType *grid = getNGrid(i, j);
+            setNGrid(new NGridType(cell.GridX(), cell.GridY(), cell.GridX(), cell.GridY()), cell.GridX(), cell.GridY());
+            NGridType *grid = getNGrid(cell.GridX(), cell.GridY());
 
             // build a linkage between this map and NGridType
             buildNGridLinkage(grid);
@@ -341,7 +342,7 @@ void Map::LoadGrids()
 
             // I don't think it matters what the coord is since LoadN just overwrites it
             CellCoord p(Trinity::ComputeCellCoord(0, 0));
-            Cell cell(p);
+            
             ObjectGridLoader loader(*grid, this, cell);
             loader.LoadN();
         }
@@ -2264,7 +2265,7 @@ inline GridMap* Map::GetGrid(float x, float y)
     int gx=(int)(CENTER_GRID_ID - x/SIZE_OF_GRIDS);                       //grid x
     int gy=(int)(CENTER_GRID_ID - y/SIZE_OF_GRIDS);                       //grid y
 
-    return sMapMgr->GetGrid(GetId(), gx, gy);
+    return sMapMgr->GetGridMap(GetId(), gx, gy);
 }
 
 float Map::GetWaterOrGroundLevel(uint32 phasemask, float x, float y, float z, float* ground /*= nullptr*/, bool /*swim = false*/, float collisionHeight /*= DEFAULT_COLLISION_HEIGHT*/) const

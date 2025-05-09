@@ -82,16 +82,11 @@ Map* MapManager::CreateBaseMap(uint32 id)
         MapEntry const* entry = sMapStore.LookupEntry(id);
         ASSERT(entry);
 
-        LoadMapData(id);
-
-        if (entry->Instanceable()) {
+        if (entry->Instanceable())
             map = new MapInstanced(id);
-            map->LoadGrids();
-        }
         else
         {
             map = new Map(id, 0, REGULAR_DIFFICULTY);
-            map->LoadGrids();
             map->LoadRespawnTimes();
             map->LoadCorpseData();
         }
@@ -341,8 +336,7 @@ void MapManager::UnloadAll()
 
         sScriptMgr->OnDestroyMap(iter->second.get());
 
-        // unload map data
-        UnloadMapData(iter->first);
+        UnloadGridMaps(iter->first);
     }
 
     // then delete them
@@ -424,34 +418,17 @@ uint32 MapManager::GenerateInstanceId()
     return newInstanceId;
 }
 
-GridMap* MapManager::GetGrid(uint32 mapId, int gx, int gy)
+GridMap* MapManager::GetGridMap(uint32 mapId, int gx, int gy)
 {
-    return _gridMaps[mapId][gx][gy];
-}
+    auto& grid = _mapGrids[mapId]; // Will create if not present
+    if (grid[gx][gy])
+        return grid[gx][gy];
 
-void MapManager::LoadMapData(uint32 mapId)
-{
-    GridMap*** gridMap = new GridMap**[MAX_NUMBER_OF_GRIDS];
-    for (int gx = 0; gx < MAX_NUMBER_OF_GRIDS; ++gx)
-    {
-        gridMap[gx] = new GridMap*[MAX_NUMBER_OF_GRIDS];
-        for (int gy = 0; gy < MAX_NUMBER_OF_GRIDS; ++gy)
-        {
-            gridMap[gx][gy] = LoadMap(mapId, gx, gy);
-        }
-    }
-    _gridMaps[mapId] = gridMap;
-}
-
-GridMap* MapManager::LoadMap(uint32 mapId, int gx, int gy)
-{
-    // map file name
     std::string fileName = Trinity::StringFormat("{}maps/{:03}{:02}{:02}.map", sWorld->GetDataPath(), mapId, gx, gy);
-    TC_LOG_DEBUG("maps", "Loading map {}", fileName);
-    // loading data
-    GridMap* gridMap = new GridMap();
-    if (gridMap->loadData(fileName.c_str()))
+    grid[gx][gy] = new GridMap();
+    if (grid[gx][gy]->loadData(fileName.c_str()))
     {
+        sScriptMgr->OnLoadGridMap(this, grid[gx][gy], gx, gy);
         LoadVMap(mapId, gx, gy);
         LoadMMap(mapId, gx, gy);
     }
@@ -459,7 +436,6 @@ GridMap* MapManager::LoadMap(uint32 mapId, int gx, int gy)
     {
         TC_LOG_ERROR("maps", "Error loading map file: \n {}\n", fileName);
     }
-    return gridMap;
 }
 
 void MapManager::LoadVMap(uint32 mapId, int gx, int gy)
@@ -495,33 +471,26 @@ void MapManager::LoadMMap(uint32 mapId, int gx, int gy)
         TC_LOG_WARN("mmaps.tiles", "Could not load MMAP name:{}, id:{}, x:{}, y:{} (mmap rep.: x:{}, y:{})", GetMapName(mapId), mapId, gx, gy, gx, gy);
 }
 
-void MapManager::UnloadMapData(uint32 mapId)
+void MapManager::UnloadGridMaps(uint32 mapId)
 {
-    GridMap*** grids = nullptr;
+    auto it = _mapGrids.find(mapId);
+    if (it != _mapGrids.end())
     {
-        auto it = _gridMaps.find(mapId);
-        if (it != _gridMaps.end())
-        {
-            grids = it->second;
-            _gridMaps.erase(it);
-        }
-    }
-    if (grids)
-    {
+        auto& grid = it->second;
         for (int gx = 0; gx < MAX_NUMBER_OF_GRIDS; ++gx)
         {
             for (int gy = 0; gy < MAX_NUMBER_OF_GRIDS; ++gy)
             {
-                if (grids[gx][gy])
+                if (grid[gx][gy])
                 {
-                    grids[gx][gy]->unloadData();
-                    delete grids[gx][gy];
+                    grid[gx][gy]->unloadData();
+                    delete grid[gx][gy];
+                    grid[gx][gy] = nullptr;
                     VMAP::VMapFactory::createOrGetVMapManager()->unloadMap(mapId, gx, gy);
                     MMAP::MMapFactory::createOrGetMMapManager()->unloadMap(mapId, gx, gy);
                 }
             }
-            delete[] grids[gx];
         }
-        delete[] grids;
+        _mapGrids.erase(it);
     }
 }
