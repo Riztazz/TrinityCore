@@ -151,7 +151,7 @@ class TC_GAME_API MapManager
         }
 
         void LoadMapData(uint32 mapId);
-        void LoadMap(uint32 mapId, int gx, int gy);
+        GridMap* LoadMap(uint32 mapId, int gx, int gy);
         void LoadVMap(uint32 mapId, int gx, int gy);
         void LoadMMap(uint32 mapId, int gx, int gy);
         void UnloadMapData(uint32 mapId);
