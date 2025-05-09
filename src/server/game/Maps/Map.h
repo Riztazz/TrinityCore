@@ -885,11 +885,11 @@ class TC_GAME_API PartitionMap : public Map
         ~PartitionMap();
 
         uint32 GetPartitionId() const override { return _partitionId; }
-        Map const* GetParent() const override;
-        bool IsInPartition(float x, float y) { return _parent->CalculatePartitionId(x, y) == _partitionId; }
+        Map const* GetParent() const override { return _parent; }
+        bool IsInPartition(float x, float y);
     private:
         uint32 _partitionId;
-        MapPartitioned const* _parent;
+        Map const* _parent;
 };
 
 class TC_GAME_API InstanceMap : public Map

@@ -3853,8 +3853,10 @@ PartitionMap::~PartitionMap()
 {
 }
 
-Map const* PartitionMap::GetParent() const {
-    return static_cast<const Map*>(_parent);
+bool PartitionMap::IsInPartition(float x, float y)
+{
+    auto parentPartitioned = static_cast<MapPartitioned const*>(_parent);
+    return parentPartitioned->CalculatePartitionId(x, y) == _partitionId;
 }
 
 // TODO anything we need to override from map or additional functions
