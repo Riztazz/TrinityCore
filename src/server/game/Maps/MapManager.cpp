@@ -61,10 +61,11 @@ MapManager::~MapManager() { }
 
 void MapManager::LoadMaps(std::vector<uint32> const& mapIds)
 {
+    _mapIds = mapIds;
     const size_t max_concurrent = std::thread::hardware_concurrency();
     std::vector<std::future<void>> futures;
 
-    for (uint32 mapId : mapIds)
+    for (uint32 mapId : _mapIds)
     {
         futures.emplace_back(std::async(std::launch::async, [this, mapId]() {
             this->LoadMapData(mapId);
@@ -368,7 +369,7 @@ void MapManager::UnloadAll()
     const size_t max_concurrent = std::thread::hardware_concurrency();
     std::vector<std::future<void>> futures;
 
-    for (uint32 mapId : mapIds)
+    for (uint32 mapId : _mapIds)
     {
         futures.emplace_back(std::async(std::launch::async, [this, mapId]() {
             this->UnloadMapData(mapId);
