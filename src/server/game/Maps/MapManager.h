@@ -21,6 +21,7 @@
 #include "Object.h"
 #include "Map.h"
 #include "MapInstanced.h"
+#include "MapPartitioned.h"
 #include "MapUpdater.h"
 #include "UniqueTrackablePtr.h"
 #include <boost/dynamic_bitset.hpp>
