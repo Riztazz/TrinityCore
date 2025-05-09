@@ -39,9 +39,9 @@ class TC_GAME_API MapManager
         static MapManager* instance();
 
         Map* CreateBaseMap(uint32 mapId);
-        Map* FindBaseNonInstanceMap(uint32 mapId) const;
+        Map* FindPartitionMap(uint32 mapId, float x, float y) const;
         Map* CreateMap(uint32 mapId, Player* player, uint32 loginInstanceId=0);
-        Map* FindMap(uint32 mapId, uint32 instanceId) const;
+        Map* FindMap(uint32 mapId, uint32 instanceId, float x = 0, float y = 0) const;
 
         uint32 GetAreaId(uint32 phaseMask, uint32 mapid, float x, float y, float z) const
         {
@@ -188,8 +188,12 @@ void MapManager::DoForAllMaps(Worker&& worker)
             for (auto& instancePair : instances)
                 worker(instancePair.second.get());
         }
-        else
-            worker(map);
+        else if (MapPartitioned* mapPartitioned = map->ToMapPartitioned())
+        {
+            MapPartitioned::PartitionMaps& partitions = mapPartitioned->GetPartitionedMaps();
+            for (auto& p : partitions)
+                worker(p.second.get());
+        }
     }
 }
 
@@ -208,8 +212,12 @@ inline void MapManager::DoForAllMapsWithMapId(uint32 mapId, Worker&& worker)
             for (auto& p : instances)
                 worker(p.second.get());
         }
-        else
-            worker(map);
+        else if (MapPartitioned* mapPartitioned = map->ToMapPartitioned())
+        {
+            MapPartitioned::PartitionMaps& partitions = mapPartitioned->GetPartitionedMaps();
+            for (auto& p : partitions)
+                worker(p.second.get());
+        }
     }
 }
 

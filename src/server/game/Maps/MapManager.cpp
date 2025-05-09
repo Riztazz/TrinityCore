@@ -24,6 +24,7 @@
 #include "Transport.h"
 #include "GridDefines.h"
 #include "MapInstanced.h"
+#include "MapPartitioned.h"
 #include "InstanceScript.h"
 #include "Config.h"
 #include "World.h"
@@ -73,6 +74,8 @@ Map* MapManager::CreateBaseMap(uint32 id)
 {
     ZoneScopedNC("Map* MapManager::CreateBaseMap", WORLD_UPDATE_COLOR)
 
+    // BaseMaps are 'maps' that manage other maps.
+    // MapInstanced manages its instances, and MapPartitioned manages its partitions.
     Map* map = FindBaseMap(id);
 
     if (map == nullptr)
@@ -85,11 +88,7 @@ Map* MapManager::CreateBaseMap(uint32 id)
         if (entry->Instanceable())
             map = new MapInstanced(id);
         else
-        {
-            map = new Map(id, 0, REGULAR_DIFFICULTY);
-            map->LoadRespawnTimes();
-            map->LoadCorpseData();
-        }
+            map = new MapPartitioned(id);
 
         Trinity::unique_trackable_ptr<Map>& ptr = i_maps[id];
         ptr.reset(map);
@@ -102,36 +101,81 @@ Map* MapManager::CreateBaseMap(uint32 id)
     return map;
 }
 
-Map* MapManager::FindBaseNonInstanceMap(uint32 mapId) const
+Map* MapManager::FindPartitionMap(uint32 mapId, float x, float y) const
 {
     Map* map = FindBaseMap(mapId);
-    if (map && map->Instanceable())
+    if (!map || !map->IsWorldMap())
         return nullptr;
-    return map;
+
+    MapPartitioned* mapPartitioned = map->ToMapPartitioned();
+    if (!mapPartitioned)
+        return nullptr;
+
+    uint32 partitionId = mapPartitioned->GetPartitionId(x, y);
+    return mapPartitioned->FindPartition(partitionId);
 }
 
+// Players are the primary instigator of map creation
 Map* MapManager::CreateMap(uint32 id, Player* player, uint32 loginInstanceId)
 {
     ZoneScopedNC("Map* MapManager::CreateMap", WORLD_UPDATE_COLOR)
 
-    Map* m = CreateBaseMap(id);
+    Map* map = CreateBaseMap(id);
+    if (!map)
+        return nullptr;
 
-    if (m && m->Instanceable())
-        m = ((MapInstanced*)m)->CreateInstanceForPlayer(id, player, loginInstanceId);
+    if (map->Instanceable())
+    {
+        MapInstanced* mapInstanced = map->ToMapInstanced();
+        if (!mapInstanced)
+            return nullptr;
 
-    return m;
+        // Additional Logic to check for existing instance
+        return mapInstanced->CreateInstanceForPlayer(id, player, loginInstanceId);
+    }
+    else
+    {
+        MapPartitioned* mapPartitioned = map->ToMapPartitioned();
+        if (!mapPartitioned)
+            return nullptr;
+
+        uint32 partitionId = mapPartitioned->GetPartitionId(player->GetPositionX(), player->GetPositionY());
+
+        Map* partition = mapPartitioned->FindPartition(partitionId);
+        if (partition)
+            return partition;
+
+        return mapPartitioned->CreatePartition(id, partitionId);
+    }
+
+    return nullptr;
 }
 
-Map* MapManager::FindMap(uint32 mapid, uint32 instanceId) const
+Map* MapManager::FindMap(uint32 mapid, uint32 instanceId, float x, float y) const
 {
     Map* map = FindBaseMap(mapid);
     if (!map)
         return nullptr;
 
-    if (!map->Instanceable())
-        return instanceId == 0 ? map : nullptr;
+    if (map->Instanceable())
+    {
+        MapInstanced* mapInstanced = map->ToMapInstanced();
+        if (!mapInstanced)
+            return nullptr;
 
-    return ((MapInstanced*)map)->FindInstanceMap(instanceId);
+        return mapInstanced->FindInstanceMap(instanceId);
+    }
+    else if (map->IsWorldMap())
+    {
+        MapPartitioned* mapPartitioned = map->ToMapPartitioned();
+        if (!mapPartitioned)
+            return nullptr;
+
+        uint32 partitionId = mapPartitioned->GetPartitionId(x, y);
+        return mapPartitioned->FindPartition(partitionId);
+    }
+
+    return nullptr;
 }
 
 Map::EnterState MapManager::PlayerCannotEnter(uint32 mapid, Player* player, bool loginCheck)

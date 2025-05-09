@@ -360,8 +360,10 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
         virtual void UnloadAll();
 
         uint32 GetId() const;
-
-        Map const* GetParent() const { return m_parentMap; }
+        uint32 GetPartitionId() const { return 0; }
+        uint32 GetInstanceId() const { return 0; }
+        uint8 GetSpawnMode() const { return REGULAR_DIFFICULTY; }
+        Map const* GetParent() const { return this; }
 
         void GetFullTerrainStatusForPosition(uint32 phaseMask, float x, float y, float z, PositionFullTerrainStatus& data, Optional<uint8> reqLiquidType = {}, float collisionHeight = 2.03128f) const; // DEFAULT_COLLISION_HEIGHT in Object.h
         ZLiquidStatus GetLiquidStatus(uint32 phaseMask, float x, float y, float z, Optional<uint8> ReqLiquidType, LiquidData* data = nullptr, float collisionHeight = 2.03128f) const; // DEFAULT_COLLISION_HEIGHT in Object.h
@@ -390,9 +392,6 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
 
         // assert print helper
         bool CheckGridIntegrity(Creature* c, bool moved) const;
-
-        uint32 GetInstanceId() const { return i_InstanceId; }
-        uint8 GetSpawnMode() const { return (i_spawnMode); }
 
         Trinity::unique_weak_ptr<Map> GetWeakPtr() const { return m_weakRef; }
         void SetWeakPtr(Trinity::unique_weak_ptr<Map> weakRef) { m_weakRef = std::move(weakRef); }
@@ -521,8 +520,14 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
             return nullptr;
         }
 
+        MapPartitioned* ToMapPartitioned() { if (IsWorldMap()) return reinterpret_cast<MapPartitioned*>(this); return nullptr; }
+        MapPartitioned const* ToMapPartitioned() const { if (IsWorldMap()) return reinterpret_cast<MapPartitioned const*>(this); return nullptr; }
+
         MapInstanced* ToMapInstanced() { if (Instanceable()) return reinterpret_cast<MapInstanced*>(this); return nullptr; }
         MapInstanced const* ToMapInstanced() const { if (Instanceable()) return reinterpret_cast<MapInstanced const*>(this); return nullptr; }
+
+        PartitionMap* ToPartitionMap() { if (IsWorldMap()) return reinterpret_cast<PartitionMap*>(this); return nullptr; }
+        PartitionMap const* ToPartitionMap() const { if (IsWorldMap()) return reinterpret_cast<PartitionMap const*>(this); return nullptr; }
 
         InstanceMap* ToInstanceMap() { if (IsDungeon()) return reinterpret_cast<InstanceMap*>(this); else return nullptr;  }
         InstanceMap const* ToInstanceMap() const { if (IsDungeon()) return reinterpret_cast<InstanceMap const*>(this); return nullptr; }
@@ -710,10 +715,6 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
         void _ScriptProcessDoor(Object* source, Object* target, ScriptInfo const* scriptInfo) const;
         GameObject* _FindGameObject(WorldObject* pWorldObject, ObjectGuid::LowType guid) const;
 
-        //used for fast base_map (e.g. MapInstanced class object) search for
-        //InstanceMaps and BattlegroundMaps...
-        Map* m_parentMap;
-
         NGridType* i_grids[MAX_NUMBER_OF_GRIDS][MAX_NUMBER_OF_GRIDS];
         std::bitset<TOTAL_NUMBER_OF_CELLS_PER_MAP*TOTAL_NUMBER_OF_CELLS_PER_MAP> marked_cells;
 
@@ -875,11 +876,30 @@ enum InstanceResetMethod
     INSTANCE_RESET_RESPAWN_DELAY
 };
 
+class TC_GAME_API PartitionMap : public Map
+{
+    public:
+        PartitionMap(uint32 id, uint32 partitionId, Map* parent);
+        ~PartitionMap();
+
+        uint32 GetPartitionId() const override { return _partitionId; }
+        Map const* GetParent() const override { return _parent; }
+        bool IsInPartition(float x, float y) { return _parent->GetPartitionId(x, y) == _partitionId; }
+    private:
+        uint32 _partitionId;
+        Map* _parent;
+};
+
 class TC_GAME_API InstanceMap : public Map
 {
     public:
-        InstanceMap(uint32 id, uint32 InstanceId, uint8 SpawnMode, Map* _parent, TeamId InstanceTeam);
+        InstanceMap(uint32 id, uint32 instanceId, uint8 spawnMode, Map* parent, TeamId instanceTeam);
         ~InstanceMap();
+
+        uint32 GetInstanceId() const override { return _instanceId; }
+        uint8 GetSpawnMode() const override { return _spawnMode; }
+        Map const* GetParent() const override { return _parent; }
+
         bool AddPlayerToMap(Player*) override;
         void RemovePlayerFromMap(Player*, bool) override;
         void Update(uint32) override;
@@ -907,6 +927,9 @@ class TC_GAME_API InstanceMap : public Map
 
         std::string GetDebugInfo() const override;
     private:
+        uint32 _instanceId;
+        uint8 _spawnMode;
+        Map* _parent;
         bool m_resetAfterUnload;
         bool m_unloadWhenEmpty;
         InstanceScript* i_data;
@@ -917,8 +940,12 @@ class TC_GAME_API InstanceMap : public Map
 class TC_GAME_API BattlegroundMap : public Map
 {
     public:
-        BattlegroundMap(uint32 id, uint32 InstanceId, Map* _parent, uint8 spawnMode);
+        BattlegroundMap(uint32 id, uint32 instanceId, uint8 spawnMode, Map* parent);
         ~BattlegroundMap();
+
+        uint32 GetInstanceId() const override { return _instanceId; }
+        uint8 GetSpawnMode() const override { return _spawnMode; }
+        Map const* GetParent() const override { return _parent; }
 
         bool AddPlayerToMap(Player*) override;
         void RemovePlayerFromMap(Player*, bool) override;
@@ -931,6 +958,9 @@ class TC_GAME_API BattlegroundMap : public Map
         Battleground* GetBG() { return m_bg; }
         void SetBG(Battleground* bg) { m_bg = bg; }
     private:
+        uint32 _instanceId;
+        uint8 _spawnMode;
+        Map* _parent;
         Battleground* m_bg;
 };
 

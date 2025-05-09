@@ -108,7 +108,7 @@ Map::~Map()
     if (!m_scriptSchedule.empty())
         sMapMgr->DecreaseScheduledScriptCount(m_scriptSchedule.size());
 
-    MMAP::MMapFactory::createOrGetMMapManager()->unloadMapInstance(GetId(), i_InstanceId);
+    MMAP::MMapFactory::createOrGetMMapManager()->unloadMapInstance(GetId(), GetInstanceId());
 }
 
 void Map::LoadAllCells()
@@ -118,9 +118,9 @@ void Map::LoadAllCells()
             LoadGrid((cellX + 0.5f - CENTER_GRID_CELL_ID) * SIZE_OF_GRID_CELL, (cellY + 0.5f - CENTER_GRID_CELL_ID) * SIZE_OF_GRID_CELL);
 }
 
-Map::Map(uint32 id, uint32 InstanceId, uint8 SpawnMode, Map* _parent):
+Map::Map(uint32 id):
 _creatureToMoveLock(false), _gameObjectsToMoveLock(false), _dynamicObjectsToMoveLock(false),
-i_mapEntry(sMapStore.LookupEntry(id)), i_spawnMode(SpawnMode), i_InstanceId(InstanceId),
+i_mapEntry(sMapStore.LookupEntry(id)),
 m_unloadTimer(0), m_VisibleDistance(DEFAULT_VISIBILITY_DISTANCE),
 m_VisibilityNotifyPeriod(DEFAULT_VISIBILITY_NOTIFY_PERIOD),
 m_activeNonPlayersIter(m_activeNonPlayers.end()), _transportsUpdateIter(_transports.end()),
@@ -348,7 +348,7 @@ void Map::EnsureGridCreated_i(GridCoord const& p)
 {
     if (!getNGrid(p.x_coord, p.y_coord))
     {
-        TC_LOG_DEBUG("maps", "Creating grid[{}, {}] for map {} instance {}", p.x_coord, p.y_coord, GetId(), i_InstanceId);
+        TC_LOG_DEBUG("maps", "Creating grid[{}, {}] for map {} instance {}", p.x_coord, p.y_coord, GetId(), GetInstanceId());
 
         setNGrid(new NGridType(p.x_coord*MAX_NUMBER_OF_GRIDS + p.y_coord, p.x_coord, p.y_coord),
             p.x_coord, p.y_coord);
@@ -373,7 +373,7 @@ bool Map::EnsureGridLoaded(Cell const& cell)
     ASSERT(grid != nullptr);
     if (!grid->isGridObjectDataLoaded())
     {
-        TC_LOG_DEBUG("maps", "Loading grid[{}, {}] for map {} instance {}", cell.GridX(), cell.GridY(), GetId(), i_InstanceId);
+        TC_LOG_DEBUG("maps", "Loading grid[{}, {}] for map {} instance {}", cell.GridX(), cell.GridY(), GetId(), GetInstanceId());
 
         grid->setGridObjectDataLoaded(true);
 
@@ -3830,12 +3830,24 @@ template TC_GAME_API void Map::RemoveFromMap(Creature*, bool);
 template TC_GAME_API void Map::RemoveFromMap(GameObject*, bool);
 template TC_GAME_API void Map::RemoveFromMap(DynamicObject*, bool);
 
+/* ******* Partition Maps ******* */
+
+PartitionMap::PartitionMap(uint32 id, uint32 partitionId, Map* parent): Map(id), _partitionId(partitionId), _parent(parent)
+{
+}
+
+PartitionMap::~PartitionMap()
+{
+}
+
+// TODO anything we need to override from map or additional functions
+
 /* ******* Dungeon Instance Maps ******* */
 
-InstanceMap::InstanceMap(uint32 id, uint32 InstanceId, uint8 SpawnMode, Map* _parent, TeamId InstanceTeam)
-  : Map(id, InstanceId, SpawnMode, _parent),
+InstanceMap::InstanceMap(uint32 id, uint32 instanceId, uint8 spawnMode, Map* parent, TeamId instanceTeam)
+  : Map(id), _instanceId(instanceId), _spawnMode(spawnMode), _parent(parent),
     m_resetAfterUnload(false), m_unloadWhenEmpty(false),
-    i_data(nullptr), i_script_id(0), i_script_team(InstanceTeam)
+    i_data(nullptr), i_script_id(0), i_script_team(instanceTeam)
 {
     //lets initialize visibility distance for dungeons
     InstanceMap::InitVisibilityDistance();
@@ -4085,7 +4097,7 @@ void InstanceMap::CreateInstanceData(bool load)
         /// @todo make a global storage for this
         CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_SEL_INSTANCE);
         stmt->setUInt16(0, uint16(GetId()));
-        stmt->setUInt32(1, i_InstanceId);
+        stmt->setUInt32(1, GetInstanceId());
         PreparedQueryResult result = CharacterDatabase.Query(stmt);
 
         if (result)
@@ -4095,7 +4107,7 @@ void InstanceMap::CreateInstanceData(bool load)
             i_data->SetCompletedEncountersMask(fields[1].GetUInt32());
             if (!data.empty())
             {
-                TC_LOG_DEBUG("maps", "Loading instance data for `{}` with id {}", sObjectMgr->GetScriptName(i_script_id), i_InstanceId);
+                TC_LOG_DEBUG("maps", "Loading instance data for `{}` with id {}", sObjectMgr->GetScriptName(i_script_id), GetInstanceId());
                 i_data->Load(data.c_str());
             }
         }
@@ -4288,18 +4300,18 @@ bool Map::IsRaid() const
 
 bool Map::IsRaidOrHeroicDungeon() const
 {
-    return IsRaid() || i_spawnMode > DUNGEON_DIFFICULTY_NORMAL;
+    return IsRaid() || GetSpawnMode() > DUNGEON_DIFFICULTY_NORMAL;
 }
 
 bool Map::IsHeroic() const
 {
-    return IsRaid() ? i_spawnMode >= RAID_DIFFICULTY_10MAN_HEROIC : i_spawnMode >= DUNGEON_DIFFICULTY_HEROIC;
+    return IsRaid() ? GetSpawnMode() >= RAID_DIFFICULTY_10MAN_HEROIC : GetSpawnMode() >= DUNGEON_DIFFICULTY_HEROIC;
 }
 
 bool Map::Is25ManRaid() const
 {
     // since 25man difficulties are 1 and 3, we can check them like that
-    return IsRaid() && i_spawnMode & RAID_DIFFICULTY_MASK_25MAN;
+    return IsRaid() && GetSpawnMode() & RAID_DIFFICULTY_MASK_25MAN;
 }
 
 bool Map::IsBattleground() const
@@ -4353,8 +4365,8 @@ uint32 InstanceMap::GetMaxResetDelay() const
 
 /* ******* Battleground Instance Maps ******* */
 
-BattlegroundMap::BattlegroundMap(uint32 id, uint32 InstanceId, Map* _parent, uint8 spawnMode)
-  : Map(id, InstanceId, spawnMode, _parent), m_bg(nullptr)
+BattlegroundMap::BattlegroundMap(uint32 id, uint32 instanceId, uint8 spawnMode, Map* parent)
+  : Map(id), _instanceId(instanceId), _spawnMode(spawnMode), _parent(parent), m_bg(nullptr)
 {
     //lets initialize visibility distance for BG/Arenas
     BattlegroundMap::InitVisibilityDistance();

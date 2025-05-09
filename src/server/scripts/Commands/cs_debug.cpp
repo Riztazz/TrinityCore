@@ -1378,10 +1378,18 @@ public:
 
     static bool HandleDebugLoadCellsCommand(ChatHandler* handler, Optional<uint32> mapId, Optional<uint32> tileX, Optional<uint32> tileY)
     {
+        float x = 0;
+        float y = 0;
+        if (tileX && tileY)
+        {
+            x = ((float(64 - 1 - *tileX) - 0.5f - CENTER_GRID_ID) * SIZE_OF_GRIDS) + (CENTER_GRID_OFFSET * 2);
+            y = ((float(64 - 1 - *tileY) - 0.5f - CENTER_GRID_ID) * SIZE_OF_GRIDS) + (CENTER_GRID_OFFSET * 2);
+        }
+
         Map* map = nullptr;
         if (mapId)
         {
-            map = sMapMgr->FindBaseNonInstanceMap(*mapId);
+            map = sMapMgr->FindPartitionMap(*mapId, x, y);
         }
         else if (Player* player = handler->GetPlayer())
         {
@@ -1398,9 +1406,6 @@ public:
             handler->PSendSysMessage("Loading cell (mapId: %u tile: %u, %u). Current GameObjects " SZFMTD ", Creatures " SZFMTD,
                 map->GetId(), *tileX, *tileY, map->GetObjectsStore().Size<GameObject>(), map->GetObjectsStore().Size<Creature>());
 
-            // Some unit convertions to go from TileXY to GridXY to WorldXY
-            float x = ((float(64 - 1 - *tileX) - 0.5f - CENTER_GRID_ID) * SIZE_OF_GRIDS) + (CENTER_GRID_OFFSET * 2);
-            float y = ((float(64 - 1 - *tileY) - 0.5f - CENTER_GRID_ID) * SIZE_OF_GRIDS) + (CENTER_GRID_OFFSET * 2);
             map->LoadGrid(x, y);
 
             handler->PSendSysMessage("Cell loaded (mapId: %u tile: %u, %u) After load - GameObject " SZFMTD ", Creatures " SZFMTD,

@@ -31,8 +31,9 @@
 #include "TSProfile.h"
 #include "World.h"
 
-MapInstanced::MapInstanced(uint32 id) : Map(id, 0, DUNGEON_DIFFICULTY_NORMAL)
+MapInstanced::MapInstanced(uint32 id) : Map(id)
 {
+    // This is the parent map for instance maps, don't need to do anything
 }
 
 void MapInstanced::InitVisibilityDistance()
