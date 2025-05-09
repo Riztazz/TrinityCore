@@ -146,7 +146,7 @@ PartitionMap* MapPartitioned::CreatePartition(uint32 mapId, uint32 partitionId)
     map->LoadRespawnTimes();
     map->LoadCorpseData();
 
-    Trinity::unique_trackable_ptr<Map>& ptr = _partitionedMaps[partitionId];
+    Trinity::unique_trackable_ptr<PartitionMap>& ptr = _partitionedMaps[partitionId];
     ptr.reset(map);
     map->SetWeakPtr(ptr);
 

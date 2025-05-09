@@ -263,7 +263,7 @@ BattlegroundMap* MapInstanced::CreateBattleground(uint32 InstanceId, Battlegroun
     else
         spawnMode = REGULAR_DIFFICULTY;
 
-    BattlegroundMap* map = new BattlegroundMap(GetId(), InstanceId, this, spawnMode);
+    BattlegroundMap* map = new BattlegroundMap(GetId(), InstanceId, spawnMode, this);
     ASSERT(map->IsBattlegroundOrArena());
     map->SetBG(bg);
     bg->SetBgMap(map);
