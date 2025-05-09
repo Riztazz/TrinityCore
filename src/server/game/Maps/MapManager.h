@@ -172,7 +172,7 @@ class TC_GAME_API MapManager
 
         std::vector<uint32> _mapIds;
         std::mutex _gridMapsMutex;
-        std::unordered_map<uint32, GridMap*[MAX_NUMBER_OF_GRIDS][MAX_NUMBER_OF_GRIDS]> _gridMaps;
+        std::unordered_map<uint32, GridMap***> _gridMaps;
 };
 
 template<typename Worker>

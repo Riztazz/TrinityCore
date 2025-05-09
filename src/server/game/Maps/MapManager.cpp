@@ -466,9 +466,10 @@ GridMap* MapManager::GetGrid(uint32 mapId, int gx, int gy)
 
 void MapManager::LoadMapData(uint32 mapId)
 {
-    GridMap* gridMap[MAX_NUMBER_OF_GRIDS][MAX_NUMBER_OF_GRIDS];
+    GridMap*** gridMap = new GridMap**[MAX_NUMBER_OF_GRIDS];
     for (int gx = 0; gx < MAX_NUMBER_OF_GRIDS; ++gx)
     {
+        gridMap[gx] = new GridMap*[MAX_NUMBER_OF_GRIDS];
         for (int gy = 0; gy < MAX_NUMBER_OF_GRIDS; ++gy)
         {
             gridMap[gx][gy] = LoadMap(mapId, gx, gy);
@@ -534,31 +535,32 @@ void MapManager::LoadMMap(uint32 mapId, int gx, int gy)
 
 void MapManager::UnloadMapData(uint32 mapId)
 {
-    GridMap* grids[MAX_NUMBER_OF_GRIDS][MAX_NUMBER_OF_GRIDS] = {nullptr};
-
-    // Lock only to extract and erase the entry
+    GridMap*** grids = nullptr;
     {
         std::lock_guard<std::mutex> lock(_gridMapsMutex);
         auto it = _gridMaps.find(mapId);
         if (it != _gridMaps.end())
         {
-            memcpy(grids, it->second, sizeof(grids));
+            grids = it->second;
             _gridMaps.erase(it);
         }
     }
-
-    // Now unload outside the lock
-    for (int gx = 0; gx < MAX_NUMBER_OF_GRIDS; ++gx)
+    if (grids)
     {
-        for (int gy = 0; gy < MAX_NUMBER_OF_GRIDS; ++gy)
+        for (int gx = 0; gx < MAX_NUMBER_OF_GRIDS; ++gx)
         {
-            if (grids[gx][gy])
+            for (int gy = 0; gy < MAX_NUMBER_OF_GRIDS; ++gy)
             {
-                grids[gx][gy]->unloadData();
-                delete grids[gx][gy];
-                VMAP::VMapFactory::createOrGetVMapManager()->unloadMap(mapId, gx, gy);
-                MMAP::MMapFactory::createOrGetMMapManager()->unloadMap(mapId, gx, gy);
+                if (grids[gx][gy])
+                {
+                    grids[gx][gy]->unloadData();
+                    delete grids[gx][gy];
+                    VMAP::VMapFactory::createOrGetVMapManager()->unloadMap(mapId, gx, gy);
+                    MMAP::MMapFactory::createOrGetMMapManager()->unloadMap(mapId, gx, gy);
+                }
             }
+            delete[] grids[gx];
         }
+        delete[] grids;
     }
 }
