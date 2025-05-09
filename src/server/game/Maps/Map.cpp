@@ -405,6 +405,7 @@ void Map::InitializeObject(GameObject* obj)
 template<class T>
 bool Map::AddToMap(T* obj)
 {
+    TC_LOG_DEBUG("maps", "AddToMap called with object {}", obj->GetGUID().ToString());
     /// @todo Needs clean up. An object should not be added to map twice.
     if (obj->IsInWorld())
     {
@@ -425,14 +426,17 @@ bool Map::AddToMap(T* obj)
     }
 
     Cell cell(cellCoord);
+    TC_LOG_DEBUG("maps", "About to Call AddToGrid for object {}", obj->GetGUID().ToString());
     AddToGrid(obj, cell);
     TC_LOG_DEBUG("maps", "Object {} enters grid[{}, {}]", obj->GetGUID().ToString(), cell.GridX(), cell.GridY());
 
     //Must already be set before AddToMap. Usually during obj->Create.
     //obj->SetMap(this);
     obj->AddToWorld();
+    TC_LOG_DEBUG("maps", "Object {} added to world", obj->GetGUID().ToString());
 
     InitializeObject(obj);
+    TC_LOG_DEBUG("maps", "Object {} initialized", obj->GetGUID().ToString());
 
     if (obj->isActiveObject())
         AddToActive(obj);
