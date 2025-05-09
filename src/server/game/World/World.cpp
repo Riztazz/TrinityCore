@@ -1699,6 +1699,9 @@ void World::SetInitialWorldSettings()
     MMAP::MMapManager* mmmgr = MMAP::MMapFactory::createOrGetMMapManager();
     mmmgr->InitializeThreadUnsafe(mapIds);
 
+    TC_LOG_INFO("server.loading", "Loading All Maps");
+    sMapMgr->LoadMaps(mapIds);
+
     TC_LOG_INFO("server.loading", "Initializing PlayerDump tables...");
     PlayerDump::InitializeTables();
 
@@ -1932,6 +1935,7 @@ void World::SetInitialWorldSettings()
 
     TC_LOG_INFO("server.loading", "Loading Objects Pooling Data...");
     sPoolMgr->LoadFromDB();
+
     TC_LOG_INFO("server.loading", "Loading Quest Pooling Data...");
     sQuestPoolMgr->LoadFromDB();                                // must be after quest templates
 
@@ -2267,7 +2271,7 @@ void World::SetInitialWorldSettings()
 
     ///- Initialize MapManager
     TC_LOG_INFO("server.loading", "Starting Map System");
-    sMapMgr->Initialize(mapIds);
+    sMapMgr->Initialize();
 
     TC_LOG_INFO("server.loading", "Starting Game Event system...");
     uint32 nextGameEvent = sGameEventMgr->StartSystem();

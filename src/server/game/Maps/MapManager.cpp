@@ -55,11 +55,14 @@ MapManager::MapManager()
 
 MapManager::~MapManager() { }
 
-void MapManager::Initialize(std::vector<uint32> const& mapIds)
+void MapManager::LoadMaps(std::vector<uint32> const& mapIds)
 {
     for (uint32 mapId : mapIds)
         LoadMapData(mapId);
+}
 
+void MapManager::Initialize()
+{
     int num_threads(sWorld->getIntConfig(CONFIG_NUMTHREADS));
     // Start mtmaps if needed.
     if (num_threads > 0)

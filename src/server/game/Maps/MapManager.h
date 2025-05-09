@@ -34,6 +34,8 @@ class TC_GAME_API MapManager
     public:
         static MapManager* instance();
 
+        void LoadMaps(std::vector<uint32> const& mapIds);
+        void Initialize();
         Map* CreateBaseMap(uint32 mapId);
         Map* FindBaseNonInstanceMap(uint32 mapId) const;
         Map* CreateMap(uint32 mapId, Player* player, uint32 loginInstanceId=0);
@@ -61,7 +63,6 @@ class TC_GAME_API MapManager
         void GetZoneAndAreaId(uint32 phaseMask, uint32& zoneid, uint32& areaid, uint32 mapid, Position const& pos) const { GetZoneAndAreaId(phaseMask, zoneid, areaid, mapid, pos.GetPositionX(), pos.GetPositionY(), pos.GetPositionZ()); }
         void GetZoneAndAreaId(uint32 phaseMask, uint32& zoneid, uint32& areaid, WorldLocation const& loc) const { GetZoneAndAreaId(phaseMask, zoneid, areaid, loc.GetMapId(), loc); }
 
-        void Initialize(std::vector<uint32> const& mapIds);
         void Update(uint32);
 
         void SetMapUpdateInterval(uint32 t)
