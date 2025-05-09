@@ -2335,6 +2335,16 @@ void World::SetInitialWorldSettings()
     TC_LOG_INFO("server.loading", "Calculate guild limitation(s) reset time...");
     InitGuildResetTime();
 
+    // Preload all cells, required for the base maps
+    sMapMgr->DoForAllMaps([](Map* map)
+    {
+        if (!map->Instanceable())
+        {
+            TC_LOG_INFO("server.loading", "Pre-loading base map data for map {}", map->GetId());
+            map->LoadAllCells();
+        }
+    });
+
     uint32 startupDuration = GetMSTimeDiffToNow(startupBegin);
 
     if (getIntConfig(CONFIG_RESPAWN_DYNAMICMODE))

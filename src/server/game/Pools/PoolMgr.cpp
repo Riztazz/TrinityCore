@@ -256,7 +256,6 @@ template <class T>
 void PoolGroup<T>::SpawnObject(ActivePoolData& spawns, uint32 limit, uint32 triggerFrom)
 {
     int count = limit - spawns.GetActiveObjectCount(poolId);
-    TC_LOG_DEBUG("pool", "Spawning Pool {} with limit {} and count {}", poolId, limit, count);
 
     // If triggered from some object respawn this object is still marked as spawned
     // and also counted into m_SpawnedPoolAmount so we need increase count to be
@@ -324,22 +323,18 @@ void PoolGroup<Creature>::Spawn1Object(PoolObject* obj)
 {
     if (CreatureData const* data = sObjectMgr->GetCreatureData(obj->guid))
     {
-        TC_LOG_DEBUG("pool", "Spawning 1 Creature, Calling AddCeatureToGrid for Creature {}", obj->guid);
         sObjectMgr->AddCreatureToGrid(obj->guid, data);
-        TC_LOG_DEBUG("pool", "Spawning 1 Creature, Finished Calling AddCeatureToGrid for Creature {}", obj->guid);
 
         // Spawn if necessary (loaded grids only)
         Map* map = sMapMgr->CreateBaseMap(data->mapId);
-        TC_LOG_DEBUG("pool", "Spawning 1 Creature, Created Base Map {} for Creature {}", map->GetId(), obj->guid);
+
         // We use spawn coords to spawn
         if (!map->Instanceable() && map->IsGridLoaded(data->spawnPoint))
         {
-            TC_LOG_DEBUG("pool", "Spawning 1 Creature, Grid for Map {} is loaded for Creature {}", map->GetId(), obj->guid);
             Creature* creature = new Creature();
             //TC_LOG_DEBUG("pool", "Spawning creature {}", guid);
             if (!creature->LoadFromDB(obj->guid, map, true, false))
             {
-                TC_LOG_DEBUG("pool", "Spawning 1 Creature, Failed to load Creature {}", obj->guid);
                 delete creature;
                 return;
             }
@@ -353,31 +348,24 @@ void PoolGroup<GameObject>::Spawn1Object(PoolObject* obj)
 {
     if (GameObjectData const* data = sObjectMgr->GetGameObjectData(obj->guid))
     {
-        TC_LOG_DEBUG("pool", "Spawning 1 GameObject, Calling AddGameobjectToGrid for GameObject {}", obj->guid);
         sObjectMgr->AddGameobjectToGrid(obj->guid, data);
-        TC_LOG_DEBUG("pool", "Spawning 1 GameObject, Finished Calling AddGameobjectToGrid for GameObject {}", obj->guid);
         // Spawn if necessary (loaded grids only)
         // this base map checked as non-instanced and then only existed
         Map* map = sMapMgr->CreateBaseMap(data->mapId);
-        TC_LOG_DEBUG("pool", "Spawning 1 GameObject, Created Base Map {} for GameObject {}", map->GetId(), obj->guid);
         // We use current coords to unspawn, not spawn coords since creature can have changed grid
         if (!map->Instanceable() && map->IsGridLoaded(data->spawnPoint))
         {
-            TC_LOG_DEBUG("pool", "Spawning 1 GameObject, Grid for Map {} is loaded for GameObject {}", map->GetId(), obj->guid);
             GameObject* pGameobject = GameObject::CreateGameObject(data->id);
             //TC_LOG_DEBUG("pool", "Spawning gameobject {}", guid);
             if (!pGameobject->LoadFromDB(obj->guid, map, false))
             {
-                TC_LOG_DEBUG("pool", "Spawning 1 GameObject, Failed to load GameObject {}", obj->guid);
                 delete pGameobject;
                 return;
             }
             else
             {
-                TC_LOG_DEBUG("pool", "Spawning 1 GameObject, GameObject {} is spawned by default", obj->guid);
                 if (pGameobject->isSpawnedByDefault())
                 {
-                    TC_LOG_DEBUG("pool", "Spawning 1 GameObject, GameObject {} is spawned by default, adding to map", obj->guid);
                     map->AddToMap(pGameobject);
                 }
             }
@@ -787,7 +775,6 @@ void PoolMgr::SpawnPool<Pool>(uint32 pool_id, uint32 sub_pool_id)
 
 void PoolMgr::SpawnPool(uint32 pool_id)
 {
-    TC_LOG_DEBUG("pool", "Spwaning Pool {}", pool_id);
     SpawnPool<Pool>(pool_id, 0);
     SpawnPool<GameObject>(pool_id, 0);
     SpawnPool<Creature>(pool_id, 0);
