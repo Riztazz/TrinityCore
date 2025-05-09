@@ -360,10 +360,10 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
         virtual void UnloadAll();
 
         uint32 GetId() const;
-        uint32 GetPartitionId() const { return 0; }
-        uint32 GetInstanceId() const { return 0; }
-        uint8 GetSpawnMode() const { return REGULAR_DIFFICULTY; }
-        Map const* GetParent() const { return this; }
+        virtual uint32 GetPartitionId() const { return 0; }
+        virtual uint32 GetInstanceId() const { return 0; }
+        virtual uint8 GetSpawnMode() const { return REGULAR_DIFFICULTY; }
+        virtual Map const* GetParent() const { return this; }
 
         void GetFullTerrainStatusForPosition(uint32 phaseMask, float x, float y, float z, PositionFullTerrainStatus& data, Optional<uint8> reqLiquidType = {}, float collisionHeight = 2.03128f) const; // DEFAULT_COLLISION_HEIGHT in Object.h
         ZLiquidStatus GetLiquidStatus(uint32 phaseMask, float x, float y, float z, Optional<uint8> ReqLiquidType, LiquidData* data = nullptr, float collisionHeight = 2.03128f) const; // DEFAULT_COLLISION_HEIGHT in Object.h
