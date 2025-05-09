@@ -3853,6 +3853,10 @@ PartitionMap::~PartitionMap()
 {
 }
 
+Map const* PartitionMap::GetParent() const {
+    return static_cast<const Map*>(_parent);
+}
+
 // TODO anything we need to override from map or additional functions
 
 /* ******* Dungeon Instance Maps ******* */
