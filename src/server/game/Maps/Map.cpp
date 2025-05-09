@@ -973,6 +973,19 @@ void Map::PlayerRelocation(Player* player, float x, float y, float z, float orie
 
     ASSERT(player);
 
+    Map* checkMap = sMapMgr->CreateMap(GetId(), player);
+    if (checkMap->GetPartitionId() != GetPartitionId())
+    {
+        RemovePlayerFromMap(player, false);
+        player->Relocate(x, y, z, orientation);
+        player->ResetMap();
+        player->SetMap(checkMap);
+        player->GetMap()->AddPlayerToMap(player);
+        player->UpdatePositionData();
+        player->UpdateObjectVisibility(false);
+        return;
+    }
+
     Cell old_cell(player->GetPositionX(), player->GetPositionY());
     Cell new_cell(x, y);
 

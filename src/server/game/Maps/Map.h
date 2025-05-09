@@ -57,6 +57,8 @@ class InstanceMap;
 class InstanceSave;
 class InstanceScript;
 class MapInstanced;
+class MapPartitioned;
+class PartitionMap;
 class Object;
 class Player;
 class TempSummon;
@@ -884,10 +886,10 @@ class TC_GAME_API PartitionMap : public Map
 
         uint32 GetPartitionId() const override { return _partitionId; }
         Map const* GetParent() const override { return _parent; }
-        bool IsInPartition(float x, float y) { return _parent->GetPartitionId(x, y) == _partitionId; }
+        bool IsInPartition(float x, float y) { return _parent->CalculatePartitionId(x, y) == _partitionId; }
     private:
         uint32 _partitionId;
-        Map* _parent;
+        MapPartitioned* _parent;
 };
 
 class TC_GAME_API InstanceMap : public Map

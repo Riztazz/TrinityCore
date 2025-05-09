@@ -111,7 +111,7 @@ Map* MapManager::FindPartitionMap(uint32 mapId, float x, float y) const
     if (!mapPartitioned)
         return nullptr;
 
-    uint32 partitionId = mapPartitioned->GetPartitionId(x, y);
+    uint32 partitionId = mapPartitioned->CalculatePartitionId(x, y);
     return mapPartitioned->FindPartition(partitionId);
 }
 
@@ -139,7 +139,7 @@ Map* MapManager::CreateMap(uint32 id, Player* player, uint32 loginInstanceId)
         if (!mapPartitioned)
             return nullptr;
 
-        uint32 partitionId = mapPartitioned->GetPartitionId(player->GetPositionX(), player->GetPositionY());
+        uint32 partitionId = mapPartitioned->CalculatePartitionId(player->GetPositionX(), player->GetPositionY());
 
         Map* partition = mapPartitioned->FindPartition(partitionId);
         if (partition)
@@ -171,7 +171,8 @@ Map* MapManager::FindMap(uint32 mapid, uint32 instanceId, float x, float y) cons
         if (!mapPartitioned)
             return nullptr;
 
-        uint32 partitionId = mapPartitioned->GetPartitionId(x, y);
+        uint32 partitionId = mapPartitioned->CalculatePartitionId(x, y);
+
         return mapPartitioned->FindPartition(partitionId);
     }
 

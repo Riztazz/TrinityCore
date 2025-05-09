@@ -15,10 +15,9 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef TRINITY_MAP_INSTANCED_H
-#define TRINITY_MAP_INSTANCED_H
+#ifndef TRINITY_MAP_PARTITIONED_H
+#define TRINITY_MAP_PARTITIONED_H
 
-#include "DBCEnums.h"
 #include "Map.h"
 #include "UniqueTrackablePtr.h"
 
@@ -28,7 +27,7 @@ class TC_GAME_API MapPartitioned : public Map
     public:
         typedef std::vector<std::pair<float, float>> PartitionPolygon;
         typedef std::unordered_map<uint32, PartitionPolygon> PartitionBounds;
-        typedef std::unordered_map<uint32, Trinity::unique_trackable_ptr<Map>> PartitionedMaps;
+        typedef std::unordered_map<uint32, Trinity::unique_trackable_ptr<PartitionMap>> PartitionedMaps;
 
         MapPartitioned(uint32 id);
         ~MapPartitioned() { }
@@ -40,9 +39,9 @@ class TC_GAME_API MapPartitioned : public Map
         //void RelocationNotify();
         void UnloadAll() override;
 
-        uint32 GetPartitionId(float x, float y) const;
-        Map* CreatePartition(uint32 mapId, uint32 partitionId);
-        Map* FindPartition(uint32 partitionId) const
+        uint32 CalculatePartitionId(float x, float y) const;
+        PartitionMap* CreatePartition(uint32 mapId, uint32 partitionId);
+        PartitionMap* FindPartition(uint32 partitionId) const
         {
             PartitionedMaps::const_iterator i = _partitionedMaps.find(partitionId);
             return(i == _partitionedMaps.end() ? nullptr : i->second.get());
@@ -57,4 +56,5 @@ class TC_GAME_API MapPartitioned : public Map
         PartitionedMaps _partitionedMaps;
         PartitionBounds _partitionBounds; // partitionId -> polygon
 };
-#endif
+
+#endif // TRINITY_MAP_PARTITIONED_H

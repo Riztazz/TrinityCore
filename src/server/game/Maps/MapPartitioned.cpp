@@ -103,7 +103,7 @@ static bool IsPointInPolygon(float x, float y, const std::vector<std::pair<float
     return inside;
 }
 
-uint32 MapPartitioned::GetPartitionId(float x, float y) const
+uint32 MapPartitioned::CalculatePartitionId(float x, float y) const
 {
     for (const auto& [partitionId, polygon] : _partitionBounds)
     {
