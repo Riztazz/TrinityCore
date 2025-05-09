@@ -241,7 +241,7 @@ void DelayedUnitRelocation::Visit(PlayerMapType &m)
             continue;
 
         PlayerRelocationNotifier relocate(*player);
-        Cell::VisitAllObjects(viewPoint, relocate, i_radius);
+        Cell::VisitAllObjects(viewPoint, relocate, i_radius, false);
         relocate.SendToSelf();
     }
 }
