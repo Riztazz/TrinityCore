@@ -40,10 +40,6 @@
 #include "VMapManager2.h"
 #include "MMapFactory.h"
 #include <numeric>
-#include <thread>
-#include <future>
-#include <vector>
-#include <algorithm>
 
 MapManager* MapManager::instance()
 {
@@ -58,27 +54,6 @@ MapManager::MapManager()
 }
 
 MapManager::~MapManager() { }
-
-void MapManager::LoadMaps(std::vector<uint32> const& mapIds)
-{
-    _mapIds = mapIds;
-    const size_t max_concurrent = std::thread::hardware_concurrency();
-    std::vector<std::future<void>> futures;
-
-    for (uint32 mapId : _mapIds)
-    {
-        futures.emplace_back(std::async(std::launch::async, [this, mapId]() {
-            this->LoadMapData(mapId);
-        }));
-        if (futures.size() >= max_concurrent)
-        {
-            futures.front().get();
-            futures.erase(futures.begin());
-        }
-    }
-    for (auto& f : futures)
-        f.get();
-}
 
 void MapManager::Initialize()
 {
@@ -107,11 +82,16 @@ Map* MapManager::CreateBaseMap(uint32 id)
         MapEntry const* entry = sMapStore.LookupEntry(id);
         ASSERT(entry);
 
-        if (entry->Instanceable())
+        LoadMapData(id);
+
+        if (entry->Instanceable()) {
             map = new MapInstanced(id);
+            map->LoadGrids();
+        }
         else
         {
             map = new Map(id, 0, REGULAR_DIFFICULTY);
+            map->LoadGrids();
             map->LoadRespawnTimes();
             map->LoadCorpseData();
         }
@@ -360,28 +340,13 @@ void MapManager::UnloadAll()
         iter->second->UnloadAll();
 
         sScriptMgr->OnDestroyMap(iter->second.get());
+
+        // unload map data
+        UnloadMapData(iter->first);
     }
 
     // then delete them
     i_maps.clear();
-
-    // then unload map data
-    const size_t max_concurrent = std::thread::hardware_concurrency();
-    std::vector<std::future<void>> futures;
-
-    for (uint32 mapId : _mapIds)
-    {
-        futures.emplace_back(std::async(std::launch::async, [this, mapId]() {
-            this->UnloadMapData(mapId);
-        }));
-        if (futures.size() >= max_concurrent)
-        {
-            futures.front().get();
-            futures.erase(futures.begin());
-        }
-    }
-    for (auto& f : futures)
-        f.get();
 
     if (m_updater.activated())
         m_updater.deactivate();

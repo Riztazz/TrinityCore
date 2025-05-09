@@ -353,6 +353,7 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
         bool IsGridLoaded(float x, float y) const { return IsGridLoaded(Trinity::ComputeGridCoord(x, y)); }
         bool IsGridLoaded(Position const& pos) const { return IsGridLoaded(pos.GetPositionX(), pos.GetPositionY()); }
 
+        void LoadGrids();
         void LoadGrid(float x, float y);
         bool UnloadGrid(NGridType& ngrid, bool pForce);
         virtual void UnloadAll();

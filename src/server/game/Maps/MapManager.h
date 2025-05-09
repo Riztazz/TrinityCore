@@ -170,8 +170,6 @@ class TC_GAME_API MapManager
         // atomic op counter for active scripts amount
         std::atomic<std::size_t> _scheduledScripts;
 
-        std::vector<uint32> _mapIds;
-        std::mutex _gridMapsMutex;
         std::unordered_map<uint32, GridMap***> _gridMaps;
 };
 
