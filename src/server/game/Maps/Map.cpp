@@ -321,6 +321,35 @@ void Map::DeleteFromWorld(Transport* transport)
     delete transport;
 }
 
+void Map::LoadGrids()
+{
+    for (unsigned int i=0; i < MAX_NUMBER_OF_GRIDS; ++i)
+    {
+        for (unsigned int j=0; j < MAX_NUMBER_OF_GRIDS; ++j)
+        {
+            TC_LOG_DEBUG("maps", "Loading grid[{}, {}] for map {} instance {}", i, j, GetId(), i_InstanceId);
+
+            setNGrid(new NGridType(i*MAX_NUMBER_OF_GRIDS + j, i, j), i, j);
+            NGridType *grid = getNGrid(i, j);
+
+            // build a linkage between this map and NGridType
+            buildNGridLinkage(grid);
+
+            TC_LOG_DEBUG("maps", "Loading grid[{}, {}] for map {} instance {}", i, j, GetId(), i_InstanceId);
+
+            grid->setGridObjectDataLoaded(true);
+
+            // I don't think it matters what the coord is since LoadN just overwrites it
+            CellCoord p(Trinity::ComputeCellCoord(0, 0));
+            Cell cell(p);
+            ObjectGridLoader loader(*grid, this, cell);
+            loader.LoadN();
+        }
+    }
+
+    Balance();
+}
+
 void Map::LoadGrid(float x, float y)
 {
     // Leaving this as many boss scripts call it, but it does nothing since we map is always loaded
