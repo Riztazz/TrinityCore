@@ -440,10 +440,7 @@ void MapManager::LoadMapData(uint32 mapId)
             gridMap[gx][gy] = LoadMap(mapId, gx, gy);
         }
     }
-    {
-        std::lock_guard<std::mutex> lock(_gridMapsMutex);
-        _gridMaps[mapId] = gridMap;
-    }
+    _gridMaps[mapId] = gridMap;
 }
 
 GridMap* MapManager::LoadMap(uint32 mapId, int gx, int gy)
@@ -502,7 +499,6 @@ void MapManager::UnloadMapData(uint32 mapId)
 {
     GridMap*** grids = nullptr;
     {
-        std::lock_guard<std::mutex> lock(_gridMapsMutex);
         auto it = _gridMaps.find(mapId);
         if (it != _gridMaps.end())
         {
