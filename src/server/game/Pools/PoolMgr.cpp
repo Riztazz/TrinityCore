@@ -327,7 +327,6 @@ void PoolGroup<Creature>::Spawn1Object(PoolObject* obj)
 
         // Spawn if necessary (loaded grids only)
         Map* map = sMapMgr->CreateBaseMap(data->mapId);
-
         // We use spawn coords to spawn
         if (!map->Instanceable() && map->IsGridLoaded(data->spawnPoint))
         {
@@ -365,9 +364,7 @@ void PoolGroup<GameObject>::Spawn1Object(PoolObject* obj)
             else
             {
                 if (pGameobject->isSpawnedByDefault())
-                {
                     map->AddToMap(pGameobject);
-                }
             }
         }
     }
