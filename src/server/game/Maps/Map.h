@@ -889,7 +889,7 @@ class TC_GAME_API PartitionMap : public Map
         bool IsInPartition(float x, float y) { return _parent->CalculatePartitionId(x, y) == _partitionId; }
     private:
         uint32 _partitionId;
-        MapPartitioned* _parent;
+        MapPartitioned const* _parent;
 };
 
 class TC_GAME_API InstanceMap : public Map
@@ -931,7 +931,7 @@ class TC_GAME_API InstanceMap : public Map
     private:
         uint32 _instanceId;
         uint8 _spawnMode;
-        Map* _parent;
+        Map const* _parent;
         bool m_resetAfterUnload;
         bool m_unloadWhenEmpty;
         InstanceScript* i_data;
@@ -962,7 +962,7 @@ class TC_GAME_API BattlegroundMap : public Map
     private:
         uint32 _instanceId;
         uint8 _spawnMode;
-        Map* _parent;
+        Map const* _parent;
         Battleground* m_bg;
 };
 
