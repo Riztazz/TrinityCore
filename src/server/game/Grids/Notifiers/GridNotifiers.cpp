@@ -238,7 +238,7 @@ void DelayedUnitRelocation::Visit(PlayerMapType &m)
         // I am injection partition checks here as this is our slower/heavy update to updat visibility
         // so a great time to check if we need to change maps
         Map* currentMap = player->GetMap();
-        Map* checkMap = sMapMgr->CreateMap(GetId(), player->GetPosition(), player);
+        Map* checkMap = sMapMgr->CreateMap(currentMap->GetId(), player->GetPosition(), player);
         if (checkMap->GetPartitionId() != currentMap->GetPartitionId())
         {
             currentMap->RemovePlayerFromMap(player, false);
