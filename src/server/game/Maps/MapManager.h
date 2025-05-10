@@ -169,6 +169,8 @@ void MapManager::DoForAllMaps(Worker&& worker)
     for (auto& [_, mapPtr] : _baseMaps)
     {
         Map* map = mapPtr.get();
+        worker(map);
+
         if (auto* mapInstanced = map->ToMapInstanced())
         {
             for (auto& [__, instancePtr] : mapInstanced->GetInstances())
@@ -191,6 +193,8 @@ inline void MapManager::DoForAllMapsWithMapId(uint32 mapId, Worker&& worker)
     if (itr != _baseMaps.end())
     {
         Map* map = itr->second.get();
+        worker(map);
+
         if (auto* mapInstanced = map->ToMapInstanced())
         {
             for (auto& [__, instancePtr] : mapInstanced->GetInstances())

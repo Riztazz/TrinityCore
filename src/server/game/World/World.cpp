@@ -703,6 +703,8 @@ void World::LoadConfigSettings(bool reload)
     m_bool_configs[CONFIG_PRESERVE_CUSTOM_CHANNELS] = sConfigMgr->GetBoolDefault("PreserveCustomChannels", false);
     m_int_configs[CONFIG_PRESERVE_CUSTOM_CHANNEL_DURATION] = sConfigMgr->GetIntDefault("PreserveCustomChannelDuration", 14);
     m_int_configs[CONFIG_PRESERVE_CUSTOM_CHANNEL_INTERVAL] = sConfigMgr->GetIntDefault("PreserveCustomChannelInterval", 5);
+    m_bool_configs[CONFIG_BASEMAP_LOAD_GRIDS] = sConfigMgr->GetBoolDefault("BaseMapLoadAllGrids", false);
+    m_bool_configs[CONFIG_INSTANCEMAP_LOAD_GRIDS] = sConfigMgr->GetBoolDefault("InstanceMapLoadAllGrids", false);
     m_int_configs[CONFIG_INTERVAL_SAVE] = sConfigMgr->GetIntDefault("PlayerSaveInterval", 15 * MINUTE * IN_MILLISECONDS);
     m_int_configs[CONFIG_INTERVAL_DISCONNECT_TOLERANCE] = sConfigMgr->GetIntDefault("DisconnectToleranceInterval", 0);
     m_bool_configs[CONFIG_STATS_SAVE_ONLY_ON_LOGOUT] = sConfigMgr->GetBoolDefault("PlayerSave.Stats.SaveOnlyOnLogout", true);
@@ -2335,15 +2337,18 @@ void World::SetInitialWorldSettings()
     TC_LOG_INFO("server.loading", "Calculate guild limitation(s) reset time...");
     InitGuildResetTime();
 
-    // Preload all cells, required for the base maps
-    sMapMgr->DoForAllMaps([](Map* map)
+    // Preload all cells, if required for the base maps
+    if (sWorld->getBoolConfig(CONFIG_BASEMAP_LOAD_GRIDS))
     {
-        if (!map->Instanceable())
+        sMapMgr->DoForAllMaps([](Map* map)
         {
-            TC_LOG_INFO("server.loading", "Pre-loading base map data for map {}", map->GetId());
-            map->LoadAllCells();
-        }
-    });
+            if (!map->Instanceable())
+            {
+                TC_LOG_INFO("server.loading", "Pre-loading base map data for map {}", map->GetId());
+                map->LoadAllCells();
+            }
+        });
+    }
 
     uint32 startupDuration = GetMSTimeDiffToNow(startupBegin);
 
