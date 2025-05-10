@@ -3846,7 +3846,7 @@ template TC_GAME_API void Map::RemoveFromMap(DynamicObject*, bool);
 
 /* ******* Partition Maps ******* */
 
-PartitionMap::PartitionMap(uint32 id, uint32 partitionId, Map* parent): Map(id), _partitionId(partitionId), _parent(parent)
+PartitionMap::PartitionMap(uint32 id, uint32 partitionId, Map const* parent): Map(id), _partitionId(partitionId), _parent(parent)
 {
 }
 
@@ -3856,7 +3856,7 @@ PartitionMap::~PartitionMap()
 
 bool PartitionMap::IsInPartition(Position const& pos)
 {
-    auto parentPartitioned = static_cast<MapPartitioned const*>(_parent);
+    auto parentPartitioned = _parent->ToMapPartitioned();
     return parentPartitioned->CalculatePartitionId(pos) == _partitionId;
 }
 

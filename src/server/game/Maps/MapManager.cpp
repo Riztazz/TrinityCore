@@ -462,7 +462,7 @@ GridMap* MapManager::GetGridMap(uint32 mapId, int gx, int gy)
     grid[gx][gy] = new GridMap();
     if (grid[gx][gy]->loadData(fileName.c_str()))
     {
-        sScriptMgr->OnLoadGridMap(this, grid[gx][gy], gx, gy);
+        sScriptMgr->OnLoadGridMap(nullptr, grid[gx][gy], gx, gy);
         LoadVMap(mapId, gx, gy);
         LoadMMap(mapId, gx, gy);
     }
