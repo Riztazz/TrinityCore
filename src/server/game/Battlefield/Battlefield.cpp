@@ -777,6 +777,7 @@ bool BfGraveyard::HasNpc(ObjectGuid guid)
 Creature* Battlefield::SpawnCreature(uint32 entry, Position const& pos)
 {
     //Get map object
+    // FIXME: Are we spawning in a base map or a world map or an instance map?
     Map* map = sMapMgr->CreateMap(m_MapId, pos);
     if (!map)
     {
@@ -806,6 +807,7 @@ Creature* Battlefield::SpawnCreature(uint32 entry, Position const& pos)
 GameObject* Battlefield::SpawnGameObject(uint32 entry, Position const& pos, QuaternionData const& rot)
 {
     // Get map object
+    // FIXME: Are we spawning in a base map or a world map or an instance map?
     Map* map = sMapMgr->CreateMap(m_MapId, pos);
     if (!map)
         return nullptr;
