@@ -3854,7 +3854,7 @@ PartitionMap::~PartitionMap()
 {
 }
 
-bool PartitionMap::IsInPartition(Position const& pos)
+bool PartitionMap::IsInPartition(Position const& pos) const
 {
     auto parentPartitioned = _parent->ToMapPartitioned();
     return parentPartitioned->CalculatePartitionId(pos) == _partitionId;
