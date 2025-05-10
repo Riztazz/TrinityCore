@@ -712,6 +712,7 @@ void InstanceSaveManager::_ResetOrWarnAll(uint32 mapid, Difficulty difficulty, b
 
     for (auto& [_, map] : baseMap->ToMapInstanced()->GetInstances())
     {
+        InstanceMap* instanceMap = map->ToInstanceMap();
         if (warn)
         {
             if (now >= resetTime)
@@ -719,10 +720,10 @@ void InstanceSaveManager::_ResetOrWarnAll(uint32 mapid, Difficulty difficulty, b
             else
                 timeLeft = uint32(resetTime - now);
 
-            map->SendResetWarnings(timeLeft);
+            instanceMap->SendResetWarnings(timeLeft);
         }
         else
-            map->Reset(INSTANCE_RESET_GLOBAL);
+            instanceMap->Reset(INSTANCE_RESET_GLOBAL);
     }
 
     /// @todo delete creature/gameobject respawn times even if the maps are not loaded
