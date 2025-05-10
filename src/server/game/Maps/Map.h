@@ -645,8 +645,8 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
         void LoadVMap(int gx, int gy);
         void LoadMap(int gx, int gy);
         void LoadMMap(int gx, int gy);
-        GridMap* GetGrid(int gx, int gy);
-        GridMap* GetGrid(float x, float y);
+        GridMap* GetGrid(int gx, int gy) const;
+        GridMap* GetGrid(float x, float y) const;
 
         void SendInitSelf(Player* player);
 

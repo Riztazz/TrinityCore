@@ -2433,7 +2433,7 @@ inline ZLiquidStatus GridMap::GetLiquidStatus(float x, float y, float z, Optiona
     return LIQUID_MAP_ABOVE_WATER;
 }
 
-inline GridMap* Map::GetGrid(int gx, int gy)
+inline GridMap* Map::GetGrid(int gx, int gy) const
 {
     if (GetParent() != this)
         return GetParent()->GetGrid(gx, gy);
@@ -2441,7 +2441,7 @@ inline GridMap* Map::GetGrid(int gx, int gy)
     return GridMaps[gx][gy];
 }
 
-inline GridMap* Map::GetGrid(float x, float y)
+inline GridMap* Map::GetGrid(float x, float y) const
 {
     if (GetParent() != this)
         return GetParent()->GetGrid(x, y);
