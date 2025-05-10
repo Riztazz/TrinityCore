@@ -1655,7 +1655,7 @@ bool Map::GameObjectRespawnRelocation(GameObject* go, bool diffGridOnly)
     return false;
 }
 
-bool Map::UnloadGrid(NGridType& ngrid, bool unloadAll)
+void Map::UnloadGrid(NGridType& ngrid)
 {
     ZoneScopedNC("Map::UnloadGrid", WORLD_UPDATE_COLOR)
 
@@ -1663,39 +1663,7 @@ bool Map::UnloadGrid(NGridType& ngrid, bool unloadAll)
     const uint32 y = ngrid.getY();
 
     {
-        if (!unloadAll)
-        {
-            ZoneScopedNC("Map::UnloadGrid ngrid.GetWorldObjectCountInNGrid", WORLD_UPDATE_COLOR)
-
-            //pets, possessed creatures (must be active), transport passengers
-            if (ngrid.GetWorldObjectCountInNGrid<Creature>())
-                return false;
-
-            if (ActiveObjectsNearGrid(ngrid))
-                return false;
-        }
-
         TC_LOG_DEBUG("maps", "Unloading grid[{}, {}] for map {}", x, y, GetId());
-
-        if (!unloadAll)
-        {
-            ZoneScopedNC("Map::UnloadGrid MoveAllCreaturesInMoveList", WORLD_UPDATE_COLOR)
-
-            // Finish creature moves, remove and delete all creatures with delayed remove before moving to respawn grids
-            // Must know real mob position before move
-            MoveAllCreaturesInMoveList();
-            MoveAllGameObjectsInMoveList();
-
-            // move creatures to respawn grids if this is diff.grid or to remove list
-            ObjectGridEvacuator worker;
-            TypeContainerVisitor<ObjectGridEvacuator, GridTypeMapContainer> visitor(worker);
-            ngrid.VisitAllGrids(visitor);
-
-            // Finish creature moves, remove and delete all creatures with delayed remove before unload
-            MoveAllCreaturesInMoveList();
-            MoveAllGameObjectsInMoveList();
-        }
-
         {
             ZoneScopedNC("Map::UnloadGrid ngrid.VisitAllGrids", WORLD_UPDATE_COLOR)
 
@@ -1717,8 +1685,27 @@ bool Map::UnloadGrid(NGridType& ngrid, bool unloadAll)
         delete &ngrid;
         setNGrid(nullptr, x, y);
     }
+
+    int gx = (MAX_NUMBER_OF_GRIDS - 1) - x;
+    int gy = (MAX_NUMBER_OF_GRIDS - 1) - y;
+
+    if (GetParent() == this)
+    {
+        ZoneScopedNC("Map::UnloadGrid i_InstanceId == 0", WORLD_UPDATE_COLOR)
+
+        if (GridMaps[gx][gy])
+        {
+            GridMaps[gx][gy]->unloadData();
+            delete GridMaps[gx][gy];
+        }
+
+        VMAP::VMapFactory::createOrGetVMapManager()->unloadMap(GetId(), gx, gy);
+        MMAP::MMapFactory::createOrGetMMapManager()->unloadMap(GetId(), gx, gy);
+
+        GridMaps[gx][gy] = nullptr;
+    }
+
     TC_LOG_DEBUG("maps", "Unloading grid[{}, {}] for map {} finished", x, y, GetId());
-    return true;
 }
 
 void Map::RemoveAllPlayers()
@@ -1752,7 +1739,7 @@ void Map::UnloadAll()
     {
         NGridType &grid(*i->GetSource());
         ++i;
-        UnloadGrid(grid, true);       // deletes the grid and removes it from the GridRefManager
+        UnloadGrid(grid);
     }
 
     for (TransportsContainer::iterator itr = _transports.begin(); itr != _transports.end();)

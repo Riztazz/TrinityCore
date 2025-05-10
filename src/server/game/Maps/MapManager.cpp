@@ -295,13 +295,7 @@ void MapManager::UnloadAll()
 {
     // first unload base maps
     for (auto& [id, mapPtr] : _baseMaps)
-    {
-        // Unloads the base map and all child maps
         mapPtr->UnloadAll();
-
-        // Unload the map data
-        UnloadGridMaps(id);
-    }
 
     // then delete them
     _baseMaps.clear();
@@ -380,29 +374,4 @@ uint32 MapManager::GenerateInstanceId()
     }
 
     return newInstanceId;
-}
-
-void MapManager::UnloadGridMaps(uint32 mapId)
-{
-    auto it = _mapGrids.find(mapId);
-    if (it != _mapGrids.end())
-    {
-        auto& grid = it->second;
-        for (int gx = 0; gx < MAX_NUMBER_OF_GRIDS; ++gx)
-        {
-            for (int gy = 0; gy < MAX_NUMBER_OF_GRIDS; ++gy)
-            {
-                if (grid[gx][gy])
-                {
-                    sScriptMgr->OnUnloadGridMap(grid[gx][gy], gx, gy);
-                    grid[gx][gy]->unloadData();
-                    delete grid[gx][gy];
-                    grid[gx][gy] = nullptr;
-                    VMAP::VMapFactory::createOrGetVMapManager()->unloadMap(mapId, gx, gy);
-                    MMAP::MMapFactory::createOrGetMMapManager()->unloadMap(mapId, gx, gy);
-                }
-            }
-        }
-        _mapGrids.erase(it);
-    }
 }

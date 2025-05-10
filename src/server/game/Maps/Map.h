@@ -358,7 +358,7 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
 
         void LoadGrid(float x, float y);
         void LoadAllCells();
-        bool UnloadGrid(NGridType& ngrid, bool pForce);
+        void UnloadGrid(NGridType& ngrid);
         virtual void UnloadAll();
 
         uint32 GetId() const;
@@ -367,6 +367,9 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
         virtual uint8 GetSpawnMode() const { return REGULAR_DIFFICULTY; }
         virtual Map const* GetParent() const { return this; }
         virtual bool IsInPartition(Position const& pos) const { return true; }
+
+        static bool ExistMap(uint32 mapId, int gx, int gy);
+        static bool ExistVMap(uint32 mapId, int gx, int gy);
 
         void GetFullTerrainStatusForPosition(uint32 phaseMask, float x, float y, float z, PositionFullTerrainStatus& data, Optional<uint8> reqLiquidType = {}, float collisionHeight = 2.03128f) const; // DEFAULT_COLLISION_HEIGHT in Object.h
         ZLiquidStatus GetLiquidStatus(uint32 phaseMask, float x, float y, float z, Optional<uint8> ReqLiquidType, LiquidData* data = nullptr, float collisionHeight = 2.03128f) const; // DEFAULT_COLLISION_HEIGHT in Object.h
