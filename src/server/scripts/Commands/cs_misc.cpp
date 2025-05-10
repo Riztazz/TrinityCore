@@ -266,8 +266,8 @@ public:
         int gridX = (MAX_NUMBER_OF_GRIDS - 1) - gridCoord.x_coord;
         int gridY = (MAX_NUMBER_OF_GRIDS - 1) - gridCoord.y_coord;
 
-        uint32 haveMap = MapManager::ExistMap(mapId, gridX, gridY) ? 1 : 0;
-        uint32 haveVMap = MapManager::ExistVMap(mapId, gridX, gridY) ? 1 : 0;
+        uint32 haveMap = Map::ExistMap(mapId, gridX, gridY) ? 1 : 0;
+        uint32 haveVMap = Map::ExistVMap(mapId, gridX, gridY) ? 1 : 0;
         uint32 haveMMap = (DisableMgr::IsPathfindingEnabled(mapId) && MMAP::MMapFactory::createOrGetMMapManager()->GetNavMesh(handler->GetSession()->GetPlayer()->GetMapId())) ? 1 : 0;
 
         if (haveVMap)
