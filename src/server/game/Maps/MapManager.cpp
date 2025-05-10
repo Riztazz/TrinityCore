@@ -464,7 +464,7 @@ GridMap* MapManager::GetGridMap(uint32 mapId, int gx, int gy)
     grid[gx][gy] = new GridMap();
     if (grid[gx][gy]->loadData(fileName.c_str()))
     {
-        sScriptMgr->OnLoadGridMap(nullptr, grid[gx][gy], gx, gy);
+        sScriptMgr->OnLoadGridMap(grid[gx][gy], gx, gy);
         LoadVMap(mapId, gx, gy);
         LoadMMap(mapId, gx, gy);
     }
@@ -519,6 +519,7 @@ void MapManager::UnloadGridMaps(uint32 mapId)
             {
                 if (grid[gx][gy])
                 {
+                    sScriptMgr->OnUnloadGridMap(grid[gx][gy], gx, gy);
                     grid[gx][gy]->unloadData();
                     delete grid[gx][gy];
                     grid[gx][gy] = nullptr;
