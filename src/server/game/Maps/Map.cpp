@@ -2434,7 +2434,7 @@ inline GridMap* Map::GetGrid(int gx, int gy)
 inline GridMap* Map::GetGrid(float x, float y)
 {
     if (GetParent() != this)
-        return GetParent()->GetGrid(x, y);
+        return const_cast<Map*>(GetParent())->GetGrid(x, y);
 
     // half opt method
     // gx/gy go from N-1->0, whereas x/y go from -MapSize->MapSize
