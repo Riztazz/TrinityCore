@@ -92,7 +92,7 @@ Map* MapManager::CreateBaseMap(uint32 id)
         else
             map = new MapPartitioned(id);
 
-        std::unique_ptr<Map> ptr = std::make_unique<Map>(map);
+        std::unique_ptr<Map> ptr(map); 
         _baseMaps[id] = std::move(ptr);
 
         sScriptMgr->OnCreateMap(map);

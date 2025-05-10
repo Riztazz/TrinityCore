@@ -306,7 +306,6 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
     friend class MapReference;
     public:
         Map(uint32 id);
-        Map(uint32 id, time_t, uint32 InstanceId, uint8 SpawnMode, Map* _parent = nullptr) : Map(id) {}
         virtual ~Map();
 
         MapEntry const* GetEntry() const { return i_mapEntry; }
