@@ -81,6 +81,7 @@ class TC_GAME_API MapManager
         //void LoadGrid(int mapid, int instId, float x, float y, WorldObject const* obj, bool no_unload = false);
         void UnloadAll();
 
+        static bool ExistMapAndVMap(uint32 mapid, float x, float y);
         static bool IsValidMAP(uint32 mapid, bool startUp);
 
         static bool IsValidMapCoord(uint32 mapid, float x, float y)
@@ -158,8 +159,6 @@ class TC_GAME_API MapManager
 
         // atomic op counter for active scripts amount
         std::atomic<std::size_t> _scheduledScripts;
-
-        std::unordered_map<uint32, GridMapGrid> _mapGrids;
 };
 
 template<typename Worker>
