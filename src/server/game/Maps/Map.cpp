@@ -215,7 +215,9 @@ void Map::LoadMap(int gx, int gy)
 
 void Map::LoadMapAndVMap(int gx, int gy)
 {
-    ASSERT(GetParent() == this);
+    if (GetParent() != this)
+        return const_cast<Map*>(GetParent())->LoadMapAndVMap(gx, gy);
+
     if (GridMaps[gx][gy])
         return;
 
@@ -472,8 +474,7 @@ void Map::EnsureGridCreated_i(GridCoord const& p)
         int gx = (MAX_NUMBER_OF_GRIDS - 1) - p.x_coord;
         int gy = (MAX_NUMBER_OF_GRIDS - 1) - p.y_coord;
 
-        if (!GetGrid(gx, gy))
-            LoadMapAndVMap(gx, gy);
+        LoadMapAndVMap(gx, gy);
     }
 }
 
