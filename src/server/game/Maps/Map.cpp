@@ -2426,7 +2426,7 @@ inline ZLiquidStatus GridMap::GetLiquidStatus(float x, float y, float z, Optiona
 inline GridMap* Map::GetGrid(int gx, int gy)
 {
     if (GetParent() != this)
-        return GetParent()->GetGrid(gx, gy);
+        return const_cast<Map*>(GetParent())->GetGrid(gx, gy);
 
     return GridMaps[gx][gy];
 }
