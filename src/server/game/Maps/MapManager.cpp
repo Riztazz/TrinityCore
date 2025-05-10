@@ -60,8 +60,8 @@ void MapManager::Initialize()
 
 void MapManager::InitializeVisibilityDistanceInfo()
 {
-    for (BaseMaps::iterator iter = _baseMaps.begin(); iter != _baseMaps.end(); ++iter)
-        (*iter).second->InitVisibilityDistance();
+    for (auto& [_, mapPtr] : _baseMaps)
+        mapPtr->InitVisibilityDistance();
 }
 
 MapManager* MapManager::instance()
@@ -76,7 +76,7 @@ Map* MapManager::CreateBaseMap(uint32 id)
 {
     ZoneScopedNC("Map* MapManager::CreateBaseMap", WORLD_UPDATE_COLOR)
 
-    // BaseMaps are 'maps' that manage other maps.
+    // BaseMaps are maps that manage other maps.
     // MapInstanced manages its instances, and MapPartitioned manages its partitions.
     Map* map = FindBaseMap(id);
 
@@ -134,10 +134,6 @@ Map* MapManager::CreateMap(uint32 id, Position const& pos, Player* player, uint3
 
         uint32 partitionId = mapPartitioned->CalculatePartitionId(pos);
 
-        Map* partition = mapPartitioned->FindPartition(partitionId);
-        if (partition)
-            return partition;
-
         return mapPartitioned->CreatePartition(id, partitionId);
     }
 
@@ -157,7 +153,10 @@ Map* MapManager::FindMap(uint32 mapid, Position const& pos, uint32 instanceId) c
         if (!mapInstanced)
             return nullptr;
 
-        return mapInstanced->FindInstance(instanceId);
+        if (instanceId)
+            return mapInstanced->FindInstance(instanceId);
+
+        return mapInstanced;
     }
     else if (map->IsWorldMap())
     {
@@ -166,8 +165,10 @@ Map* MapManager::FindMap(uint32 mapid, Position const& pos, uint32 instanceId) c
             return nullptr;
 
         uint32 partitionId = mapPartitioned->CalculatePartitionId(pos);
+        if (partitionId != mapPartitioned->GetPartitionId())
+            return mapPartitioned->FindPartition(partitionId);
 
-        return mapPartitioned->FindPartition(partitionId);
+        return mapPartitioned;
     }
 
     return nullptr;

@@ -926,6 +926,10 @@ void Map::ProcessRelocationNotifies(const uint32 diff)
     {
         NGridType *grid = i->GetSource();
 
+        // We only process important visibility changes on update and batch send visibility changes
+        // on a per grid basis on a slower tick to reduce the amount of network traffic
+        // The grid timers are randomized to further spread the processing, though I would argue we
+        // should probably initialize with an equal distribution over the timer period
         grid->getRelocationTimer().TUpdate(diff);
         if (!grid->getRelocationTimer().TPassed())
             continue;
@@ -1085,20 +1089,6 @@ void Map::PlayerRelocation(Player* player, float x, float y, float z, float orie
     ZoneScopedN("Map::PlayerRelocation");
 
     ASSERT(player);
-
-    // FIXME
-    Map* checkMap = sMapMgr->CreateMap(GetId(), Position(x, y), player);
-    if (checkMap->GetPartitionId() != GetPartitionId())
-    {
-        RemovePlayerFromMap(player, false);
-        player->Relocate(x, y, z, orientation);
-        player->ResetMap();
-        player->SetMap(checkMap);
-        player->GetMap()->AddPlayerToMap(player);
-        player->UpdatePositionData();
-        player->UpdateObjectVisibility(false);
-        return;
-    }
 
     Cell old_cell(player->GetPositionX(), player->GetPositionY());
     Cell new_cell(x, y);

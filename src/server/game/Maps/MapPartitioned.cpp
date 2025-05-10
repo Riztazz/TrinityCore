@@ -31,8 +31,8 @@ MapPartitioned::MapPartitioned(uint32 id) : Map(id)
     // Create a single partition (partitionId = 1) that covers the whole map as a rectangle
     PartitionPolygon fullMapPolygon;
     fullMapPolygon.emplace_back(Position(-MAP_HALFSIZE, -MAP_HALFSIZE));
-    fullMapPolygon.emplace_back(Position( MAP_HALFSIZE, -MAP_HALFSIZE));
-    fullMapPolygon.emplace_back(Position( MAP_HALFSIZE,  MAP_HALFSIZE));
+    fullMapPolygon.emplace_back(Position( 0, -MAP_HALFSIZE));
+    fullMapPolygon.emplace_back(Position( 0,  MAP_HALFSIZE));
     fullMapPolygon.emplace_back(Position(-MAP_HALFSIZE,  MAP_HALFSIZE));
 
     _partitionBounds[1] = std::move(fullMapPolygon);
@@ -40,30 +40,31 @@ MapPartitioned::MapPartitioned(uint32 id) : Map(id)
 
 void MapPartitioned::InitVisibilityDistance()
 {
-    if (_partitions.empty())
-        return;
-    //initialize visibility distances for all partition maps
-    for (auto& kv : _partitions)
-    {
-        kv.second->InitVisibilityDistance();
-    }
+    for (auto& [_, partition] : _partitions)
+        partition->InitVisibilityDistance();
+
+    Map::InitVisibilityDistance();
 }
 
 void MapPartitioned::Update(uint32 t)
 {
-    for (auto& [partitionId, partition] : _partitions)
+    for (auto& [partitionId, partitionPtr] : _partitions)
     {
         if (sMapMgr->GetMapUpdater()->activated())
-            sMapMgr->GetMapUpdater()->schedule_update(*partition, t);
+            sMapMgr->GetMapUpdater()->schedule_update(*partitionPtr, t);
         else
-            partition->Update(t);
+            partitionPtr->Update(t);
     }
+
+    Map::Update(t);
 }
 
 void MapPartitioned::DelayedUpdate(uint32 diff)
 {
-    for (auto& [partitionId, partition] : _partitions)
-        partition->DelayedUpdate(diff);
+    for (auto& [partitionId, partitionPtr] : _partitions)
+        partitionPtr->DelayedUpdate(diff);
+
+    Map::DelayedUpdate(diff);
 }
 
 void MapPartitioned::UnloadAll()
@@ -77,7 +78,7 @@ void MapPartitioned::UnloadAll()
     // Clear this base map as well
     Map::UnloadAll();
 
-    sScriptMgr->OnDestroyMap(static_cast<Map*>(this));
+    sScriptMgr->OnDestroyMap(this);
 }
 
 bool MapPartitioned::IsPointInPolygon(Position const& pos, PartitionPolygon const& polygon)
@@ -106,15 +107,24 @@ uint32 MapPartitioned::CalculatePartitionId(Position const& pos) const
         if (IsPointInPolygon(pos, polygon))
             return partitionId;
     }
+
     return 0;
 }
 
 Map* MapPartitioned::CreatePartition(uint32 mapId, uint32 partitionId)
 {
-    ZoneScopedNC("Map* MapPartitioned::CreatePartition", WORLD_UPDATE_COLOR)
+    ASSERT(GetId() == mapId);
 
-    if (GetId() != mapId)
-        return nullptr;
+    // The base map will be used as fallback for all partitions, this
+    // just skips searching the partitions if the id matches
+    if (GetPartitionId() == partitionId)
+        return this;
+
+    Map* partition = FindPartition(partitionId);
+    if (partition)
+        return partition;
+
+    ZoneScopedNC("Map* MapPartitioned::CreatePartition", WORLD_UPDATE_COLOR)
 
     // load/create a map
     std::lock_guard<std::mutex> lock(_mapLock);

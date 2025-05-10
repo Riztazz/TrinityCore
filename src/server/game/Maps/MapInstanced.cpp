@@ -37,6 +37,8 @@ void MapInstanced::InitVisibilityDistance()
 {
     for (auto& [id, instancePtr] : _instances)
         instancePtr->InitVisibilityDistance();
+
+    Map::InitVisibilityDistance();
 }
 
 void MapInstanced::Update(uint32 t)
@@ -80,7 +82,7 @@ void MapInstanced::UnloadAll()
     // unload the base map
     Map::UnloadAll();
 
-    sScriptMgr->OnDestroyMap(static_cast<Map*>(this));
+    sScriptMgr->OnDestroyMap(this);
 }
 
 /*
