@@ -51,7 +51,6 @@
 #include "TSWorldPacket.h"
 #include "TSPlayer.h"
 #include "TSProfile.h"
-#include <cstddef>
 // @tswow-end
 
 // Trait which indicates whether this script type
@@ -1461,37 +1460,39 @@ void ScriptMgr::OnDestroyMap(Map* map)
     SCR_MAP_END;
 }
 
-void ScriptMgr::OnLoadGridMap(GridMap* gmap, uint32 gx, uint32 gy)
+void ScriptMgr::OnLoadGridMap(Map* map, GridMap* gmap, uint32 gx, uint32 gy)
 {
+    ASSERT(map);
     ASSERT(gmap);
 
-    SCR_MAP_BGN(WorldMapScript, nullptr, itr, end, entry, IsWorldMap);
-        itr->second->OnLoadGridMap(gmap, gx, gy);
+    SCR_MAP_BGN(WorldMapScript, map, itr, end, entry, IsWorldMap);
+        itr->second->OnLoadGridMap(map, gmap, gx, gy);
     SCR_MAP_END;
 
-    SCR_MAP_BGN(InstanceMapScript, nullptr, itr, end, entry, IsDungeon);
-        itr->second->OnLoadGridMap(gmap, gx, gy);
+    SCR_MAP_BGN(InstanceMapScript, map, itr, end, entry, IsDungeon);
+        itr->second->OnLoadGridMap((InstanceMap*)map, gmap, gx, gy);
     SCR_MAP_END;
 
-    SCR_MAP_BGN(BattlegroundMapScript, nullptr, itr, end, entry, IsBattleground);
-        itr->second->OnLoadGridMap(gmap, gx, gy);
+    SCR_MAP_BGN(BattlegroundMapScript, map, itr, end, entry, IsBattleground);
+        itr->second->OnLoadGridMap((BattlegroundMap*)map, gmap, gx, gy);
     SCR_MAP_END;
 }
 
-void ScriptMgr::OnUnloadGridMap(GridMap* gmap, uint32 gx, uint32 gy)
+void ScriptMgr::OnUnloadGridMap(Map* map, GridMap* gmap, uint32 gx, uint32 gy)
 {
+    ASSERT(map);
     ASSERT(gmap);
 
-    SCR_MAP_BGN(WorldMapScript, nullptr, itr, end, entry, IsWorldMap);
-        itr->second->OnUnloadGridMap(gmap, gx, gy);
+    SCR_MAP_BGN(WorldMapScript, map, itr, end, entry, IsWorldMap);
+        itr->second->OnUnloadGridMap(map, gmap, gx, gy);
     SCR_MAP_END;
 
-    SCR_MAP_BGN(InstanceMapScript, nullptr, itr, end, entry, IsDungeon);
-        itr->second->OnUnloadGridMap(gmap, gx, gy);
+    SCR_MAP_BGN(InstanceMapScript, map, itr, end, entry, IsDungeon);
+        itr->second->OnUnloadGridMap((InstanceMap*)map, gmap, gx, gy);
     SCR_MAP_END;
 
-    SCR_MAP_BGN(BattlegroundMapScript, nullptr, itr, end, entry, IsBattleground);
-        itr->second->OnUnloadGridMap(gmap, gx, gy);
+    SCR_MAP_BGN(BattlegroundMapScript, map, itr, end, entry, IsBattleground);
+        itr->second->OnUnloadGridMap((BattlegroundMap*)map, gmap, gx, gy);
     SCR_MAP_END;
 }
 

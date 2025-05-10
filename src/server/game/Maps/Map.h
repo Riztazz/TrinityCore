@@ -638,6 +638,11 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
         virtual std::string GetDebugInfo() const;
 
     private:
+        void LoadMapAndVMap(int gx, int gy);
+        void LoadVMap(int gx, int gy);
+        void LoadMap(int gx, int gy);
+        void LoadMMap(int gx, int gy);
+        GridMap* GetGrid(int gx, int gy);
         GridMap* GetGrid(float x, float y);
 
         void SendInitSelf(Player* player);
@@ -719,6 +724,7 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
         GameObject* _FindGameObject(WorldObject* pWorldObject, ObjectGuid::LowType guid) const;
 
         NGridType* i_grids[MAX_NUMBER_OF_GRIDS][MAX_NUMBER_OF_GRIDS];
+        GridMap* GridMaps[MAX_NUMBER_OF_GRIDS][MAX_NUMBER_OF_GRIDS];
         std::bitset<TOTAL_NUMBER_OF_CELLS_PER_MAP*TOTAL_NUMBER_OF_CELLS_PER_MAP> marked_cells;
 
         //these functions used to process player/mob aggro reactions and

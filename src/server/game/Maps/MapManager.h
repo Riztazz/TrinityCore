@@ -81,10 +81,6 @@ class TC_GAME_API MapManager
         //void LoadGrid(int mapid, int instId, float x, float y, WorldObject const* obj, bool no_unload = false);
         void UnloadAll();
 
-        static char const* GetMapName(uint32 mapid);
-        static bool ExistMapAndVMap(uint32 mapid, float x, float y);
-        static bool ExistMap(uint32 mapid, int gx, int gy);
-        static bool ExistVMap(uint32 mapid, int gx, int gy);
         static bool IsValidMAP(uint32 mapid, bool startUp);
 
         static bool IsValidMapCoord(uint32 mapid, float x, float y)
@@ -124,8 +120,6 @@ class TC_GAME_API MapManager
         uint32 GenerateInstanceId();
         void RegisterInstanceId(uint32 instanceId);
 
-        GridMap* GetGridMap(uint32 mapId, int gx, int gy);
-
         MapUpdater* GetMapUpdater() { return &m_updater; }
 
         template<typename Worker>
@@ -150,10 +144,6 @@ class TC_GAME_API MapManager
             BaseMaps::const_iterator iter = _baseMaps.find(mapId);
             return (iter == _baseMaps.end() ? nullptr : iter->second.get());
         }
-
-        void LoadVMap(uint32 mapId, int gx, int gy);
-        void LoadMMap(uint32 mapId, int gx, int gy);
-        void UnloadGridMaps(uint32 mapId);
 
         MapManager(MapManager const&) = delete;
         MapManager& operator=(MapManager const&) = delete;

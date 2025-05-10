@@ -111,6 +111,119 @@ Map::~Map()
     MMAP::MMapFactory::createOrGetMMapManager()->unloadMapInstance(GetId(), GetInstanceId());
 }
 
+bool Map::ExistMap(uint32 mapId, int gx, int gy)
+{
+    std::string fileName = Trinity::StringFormat("{}maps/{:03}{:02}{:02}.map", sWorld->GetDataPath(), mapId, gx, gy);
+
+    bool ret = false;
+    FILE* pf = fopen(fileName.c_str(), "rb");
+
+    if (!pf)
+    {
+        TC_LOG_ERROR("maps", "Map file '{}' does not exist!", fileName);
+        TC_LOG_ERROR("maps", "Please place MAP-files (*.map) in the appropriate directory ({}), or correct the DataDir setting in your worldserver.conf file.", (sWorld->GetDataPath()+"maps/"));
+    }
+    else
+    {
+        map_fileheader header;
+        if (fread(&header, sizeof(header), 1, pf) == 1)
+        {
+            if (header.mapMagic.asUInt != MapMagic.asUInt || header.versionMagic != MapVersionMagic)
+                TC_LOG_ERROR("maps", "Map file '{}' is from an incompatible map version (%.*s v{}), %.*s v{} is expected. Please pull your source, recompile tools and recreate maps using the updated mapextractor, then replace your old map files with new files. If you still have problems search on forum for error TCE00018.",
+                    fileName, 4, header.mapMagic.asChar, header.versionMagic, 4, MapMagic.asChar, MapVersionMagic);
+            else
+                ret = true;
+        }
+        fclose(pf);
+    }
+
+    return ret;
+}
+
+bool Map::ExistVMap(uint32 mapId, int gx, int gy)
+{
+    if (VMAP::IVMapManager* vmgr = VMAP::VMapFactory::createOrGetVMapManager())
+    {
+        if (vmgr->isMapLoadingEnabled())
+        {
+            VMAP::LoadResult result = vmgr->existsMap((sWorld->GetDataPath() + "vmaps").c_str(), mapId, gx, gy);
+            std::string name = vmgr->getDirFileName(mapId, gx, gy);
+            switch (result)
+            {
+                case VMAP::LoadResult::Success:
+                    break;
+                case VMAP::LoadResult::FileNotFound:
+                    TC_LOG_ERROR("maps", "VMap file '{}' does not exist", (sWorld->GetDataPath() + "vmaps/" + name));
+                    TC_LOG_ERROR("maps", "Please place VMAP files (*.vmtree and *.vmtile) in the vmap directory ({}), or correct the DataDir setting in your worldserver.conf file.", (sWorld->GetDataPath() + "vmaps/"));
+                    return false;
+                case VMAP::LoadResult::VersionMismatch:
+                    TC_LOG_ERROR("maps", "VMap file '{}' couldn't be loaded", (sWorld->GetDataPath() + "vmaps/" + name));
+                    TC_LOG_ERROR("maps", "This is because the version of the VMap file and the version of this module are different, please re-extract the maps with the tools compiled with this module.");
+                    return false;
+            }
+        }
+    }
+
+    return true;
+}
+
+void Map::LoadMMap(int gx, int gy)
+{
+    if (!DisableMgr::IsPathfindingEnabled(GetId()))
+        return;
+
+    bool mmapLoadResult = MMAP::MMapFactory::createOrGetMMapManager()->loadMap(sWorld->GetDataPath(), GetId(), gx, gy);
+
+    if (mmapLoadResult)
+        TC_LOG_DEBUG("mmaps.tiles", "MMAP loaded name:{}, id:{}, x:{}, y:{} (mmap rep.: x:{}, y:{})", GetMapName(), GetId(), gx, gy, gx, gy);
+    else
+        TC_LOG_WARN("mmaps.tiles", "Could not load MMAP name:{}, id:{}, x:{}, y:{} (mmap rep.: x:{}, y:{})", GetMapName(), GetId(), gx, gy, gx, gy);
+}
+
+void Map::LoadVMap(int gx, int gy)
+{
+    if (!VMAP::VMapFactory::createOrGetVMapManager()->isMapLoadingEnabled())
+        return;
+                                                            // x and y are swapped !!
+    int vmapLoadResult = VMAP::VMapFactory::createOrGetVMapManager()->loadMap((sWorld->GetDataPath()+ "vmaps").c_str(),  GetId(), gx, gy);
+    switch (vmapLoadResult)
+    {
+        case VMAP::VMAP_LOAD_RESULT_OK:
+            TC_LOG_DEBUG("maps", "VMAP loaded name:{}, id:{}, x:{}, y:{} (vmap rep.: x:{}, y:{})", GetMapName(), GetId(), gx, gy, gx, gy);
+            break;
+        case VMAP::VMAP_LOAD_RESULT_ERROR:
+            TC_LOG_ERROR("maps", "Could not load VMAP name:{}, id:{}, x:{}, y:{} (vmap rep.: x:{}, y:{})", GetMapName(), GetId(), gx, gy, gx, gy);
+            break;
+        case VMAP::VMAP_LOAD_RESULT_IGNORED:
+            TC_LOG_DEBUG("maps", "Ignored VMAP name:{}, id:{}, x:{}, y:{} (vmap rep.: x:{}, y:{})", GetMapName(), GetId(), gx, gy, gx, gy);
+            break;
+    }
+}
+
+void Map::LoadMap(int gx, int gy)
+{
+    // map file name
+    std::string fileName = Trinity::StringFormat("{}maps/{:03}{:02}{:02}.map", sWorld->GetDataPath(), GetId(), gx, gy);
+    TC_LOG_DEBUG("maps", "Loading map {}", fileName);
+    // loading data
+    GridMaps[gx][gy] = new GridMap();
+    if (!GridMaps[gx][gy]->loadData(fileName.c_str()))
+        TC_LOG_ERROR("maps", "Error loading map file: \n {}\n", fileName);
+
+    sScriptMgr->OnLoadGridMap(this, GridMaps[gx][gy], gx, gy);
+}
+
+void Map::LoadMapAndVMap(int gx, int gy)
+{
+    ASSERT(GetParent() == this);
+    if (GridMaps[gx][gy])
+        return;
+
+    LoadMap(gx, gy);
+    LoadVMap(gx, gy);
+    LoadMMap(gx, gy);
+}
+
 void Map::LoadAllCells()
 {
     for (uint32 cellX = 0; cellX < TOTAL_NUMBER_OF_CELLS_PER_MAP; cellX++)
@@ -358,7 +471,8 @@ void Map::EnsureGridCreated_i(GridCoord const& p)
         int gx = (MAX_NUMBER_OF_GRIDS - 1) - p.x_coord;
         int gy = (MAX_NUMBER_OF_GRIDS - 1) - p.y_coord;
 
-        sMapMgr->GetGridMap(GetId(), gx, gy);
+        if (!GetGrid(gx, gy))
+            LoadMapAndVMap(gx, gy);
     }
 }
 
@@ -2331,8 +2445,19 @@ inline ZLiquidStatus GridMap::GetLiquidStatus(float x, float y, float z, Optiona
     return LIQUID_MAP_ABOVE_WATER;
 }
 
+inline GridMap* Map::GetGrid(int gx, int gy)
+{
+    if (GetParent() != this)
+        return GetParent()->GetGrid(gx, gy);
+
+    return GridMaps[gx][gy];
+}
+
 inline GridMap* Map::GetGrid(float x, float y)
 {
+    if (GetParent() != this)
+        return GetParent()->GetGrid(x, y);
+
     // half opt method
     // gx/gy go from N-1->0, whereas x/y go from -MapSize->MapSize
     // This correctly scales, inverts and offsets our position
@@ -2343,7 +2468,7 @@ inline GridMap* Map::GetGrid(float x, float y)
     // GridCoords go from 0>N-1, so we need to invert gx/gy
     EnsureGridCreated(GridCoord((MAX_NUMBER_OF_GRIDS - 1) - gx, (MAX_NUMBER_OF_GRIDS - 1) - gy));
 
-    return sMapMgr->GetGridMap(GetId(), gx, gy);
+    return GridMaps[gx][gy];
 }
 
 float Map::GetWaterOrGroundLevel(uint32 phasemask, float x, float y, float z, float* ground /*= nullptr*/, bool /*swim = false*/, float collisionHeight /*= DEFAULT_COLLISION_HEIGHT*/) const
@@ -2824,7 +2949,7 @@ bool Map::CheckGridIntegrity(Creature* c, bool moved) const
 
 char const* Map::GetMapName() const
 {
-    return MapManager::GetMapName(GetId());
+    return i_mapEntry ? i_mapEntry->MapName[sWorld->GetDefaultDbcLocale()] : "UNNAMEDMAP\x0";
 }
 
 void Map::SendInitSelf(Player* player)
