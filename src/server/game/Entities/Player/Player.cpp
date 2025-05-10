@@ -14844,7 +14844,7 @@ void Player::PrepareQuestMenu(ObjectGuid guid)
     {
         //we should obtain map pointer from GetMap() in 99% of cases. Special case
         //only for quests which cast teleport spells on player
-        Map* _map = IsInWorld() ? GetMap() : sMapMgr->FindMap(GetMapId(), GetInstanceId());
+        Map* _map = IsInWorld() ? GetMap() : sMapMgr->FindMap(GetMapId(), GetPosition(), GetInstanceId());
         ASSERT(_map);
         GameObject* pGameObject = _map->GetGameObject(guid);
         if (pGameObject)
@@ -14984,7 +14984,7 @@ Quest const* Player::GetNextQuest(ObjectGuid guid, Quest const* quest) const
     {
         //we should obtain map pointer from GetMap() in 99% of cases. Special case
         //only for quests which cast teleport spells on player
-        Map* _map = IsInWorld() ? GetMap() : sMapMgr->FindMap(GetMapId(), GetInstanceId(), GetPositionX(), GetPositionY());
+        Map* _map = IsInWorld() ? GetMap() : sMapMgr->FindMap(GetMapId(), GetPosition(), GetInstanceId());
         ASSERT(_map);
         GameObject* pGameObject = _map->GetGameObject(guid);
         if (pGameObject)
@@ -20852,7 +20852,7 @@ void Player::ResetInstances(uint8 method, bool isRaid)
         }
 
         // if the map is loaded, reset it
-        Map* map = sMapMgr->FindMap(p->GetMapId(), p->GetInstanceId());
+        Map* map = sMapMgr->FindMap(p->GetMapId(), Position(), p->GetInstanceId());
         if (map && map->IsDungeon())
             if (!map->ToInstanceMap()->Reset(method))
             {

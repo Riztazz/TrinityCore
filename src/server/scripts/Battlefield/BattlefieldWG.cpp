@@ -413,7 +413,7 @@ bool BattlefieldWG::SetupBattlefield()
     m_BattleId = BATTLEFIELD_BATTLEID_WG;
     m_ZoneId = AREA_WINTERGRASP;
     m_MapId = BATTLEFIELD_WG_MAPID;
-    m_Map = sMapMgr->FindMap(m_MapId, 0);
+    m_Map = sMapMgr->FindMap(m_MapId, Position(), 0);
 
     InitStalker(BATTLEFIELD_WG_NPC_STALKER, WintergraspStalkerPos);
 

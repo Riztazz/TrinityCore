@@ -2189,7 +2189,7 @@ void Group::ResetInstances(uint8 method, bool isRaid, Player* SendMsgTo)
 
         bool isEmpty = true;
         // if the map is loaded, reset it
-        Map* map = sMapMgr->FindMap(instanceSave->GetMapId(), instanceSave->GetInstanceId());
+        Map* map = sMapMgr->FindMap(instanceSave->GetMapId(), Position(), instanceSave->GetInstanceId());
         if (map && map->IsDungeon() && !(method == INSTANCE_RESET_GROUP_DISBAND && !instanceSave->CanReset()))
         {
             if (instanceSave->CanReset())

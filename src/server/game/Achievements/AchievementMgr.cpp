@@ -1864,7 +1864,7 @@ bool AchievementMgr::RequirementsSatisfied(AchievementCriteriaEntry const* achie
             if (!miscValue1)
                 return false;
 
-            Map const* map = GetPlayer()->IsInWorld() ? GetPlayer()->GetMap() : sMapMgr->FindMap(GetPlayer()->GetMapId(), GetPlayer()->GetPosition(), GetPlayer()->GetInstanceId());
+            Map const* map = GetPlayer()->IsInWorld() ? GetPlayer()->GetMap() : sMapMgr->FindMap(GetPlayer()->GetMapId(), Position(), GetPlayer()->GetInstanceId());
             if (!map || !map->IsDungeon())
                 return false;
 

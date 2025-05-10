@@ -106,7 +106,7 @@ Map* MapInstanced::CreateInstanceForPlayer(uint32 mapId, Player* player, uint32 
         if (!newInstanceId)
             return nullptr;
 
-        map = sMapMgr->FindMap(mapId, newInstanceId);
+        map = sMapMgr->FindMap(mapId, Position(), newInstanceId);
         if (!map)
         {
             if (Battleground* bg = player->GetBattleground())

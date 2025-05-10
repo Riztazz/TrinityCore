@@ -231,7 +231,7 @@ Map::EnterState MapManager::PlayerCannotEnter(uint32 mapid, Player* player, bool
     {
         InstanceGroupBind* boundInstance = group->GetBoundInstance(entry);
         if (boundInstance && boundInstance->save)
-            if (Map* boundMap = sMapMgr->FindMap(mapid, boundInstance->save->GetInstanceId()))
+            if (Map* boundMap = sMapMgr->FindMap(mapid, Position(), boundInstance->save->GetInstanceId()))
                 if (Map::EnterState denyReason = boundMap->CannotEnter(player))
                     return denyReason;
     }

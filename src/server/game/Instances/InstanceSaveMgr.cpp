@@ -211,7 +211,7 @@ void InstanceSave::SaveToDB()
     std::string data;
     uint32 completedEncounters = 0;
 
-    Map* map = sMapMgr->FindMap(GetMapId(), m_instanceid);
+    Map* map = sMapMgr->FindMap(GetMapId(), Position(), m_instanceid);
     if (map)
     {
         ASSERT(map->IsDungeon());
@@ -268,7 +268,7 @@ bool InstanceSave::UnloadIfEmpty()
     if (m_playerList.empty() && m_groupList.empty())
     {
         // don't remove the save if there are still players inside the map
-        if (Map* map = sMapMgr->FindMap(GetMapId(), GetInstanceId()))
+        if (Map* map = sMapMgr->FindMap(GetMapId(), Position(), GetInstanceId()))
             if (map->HavePlayers())
                 return true;
 

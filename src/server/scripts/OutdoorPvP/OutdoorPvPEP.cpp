@@ -128,7 +128,7 @@ void OPvPCapturePointEP_EWT::ChangeState()
             break;
     }
 
-    Map* map = sMapMgr->FindMap(0, 0);
+    Map* map = sMapMgr->FindMap(0, Position(), 0);
     auto bounds = map->GetGameObjectBySpawnIdStore().equal_range(m_capturePointSpawnId);
     for (auto itr = bounds.first; itr != bounds.second; ++itr)
         itr->second->SetGoArtKit(artkit);
@@ -236,7 +236,7 @@ void OPvPCapturePointEP_NPT::ChangeState()
             break;
     }
 
-    Map* map = sMapMgr->FindMap(0, 0);
+    Map* map = sMapMgr->FindMap(0, Position(), 0);
     auto bounds = map->GetGameObjectBySpawnIdStore().equal_range(m_capturePointSpawnId);
     for (auto itr = bounds.first; itr != bounds.second; ++itr)
         itr->second->SetGoArtKit(artkit);
@@ -278,7 +278,7 @@ void OPvPCapturePointEP_NPT::SummonGO(uint32 team)
         DelObject(EP_NPT_BUFF);
         AddObject(EP_NPT_BUFF, EP_NPT_LordaeronShrine.entry, EP_NPT_LordaeronShrine.map, EP_NPT_LordaeronShrine.pos, EP_NPT_LordaeronShrine.rot);
 
-        Map* map = sMapMgr->FindMap(0, 0);
+        Map* map = sMapMgr->FindMap(0, Position(), 0);
         auto bounds = map->GetGameObjectBySpawnIdStore().equal_range(m_Objects[EP_NPT_BUFF]);
         for (auto itr = bounds.first; itr != bounds.second; ++itr)
             if (GameObject* go = itr->second)
@@ -331,7 +331,7 @@ void OPvPCapturePointEP_CGT::ChangeState()
             break;
     }
 
-    Map* map = sMapMgr->FindMap(0, 0);
+    Map* map = sMapMgr->FindMap(0, Position(), 0);
     auto bounds = map->GetGameObjectBySpawnIdStore().equal_range(m_capturePointSpawnId);
     for (auto itr = bounds.first; itr != bounds.second; ++itr)
         itr->second->SetGoArtKit(artkit);
@@ -430,7 +430,7 @@ void OPvPCapturePointEP_PWT::ChangeState()
             break;
     }
 
-    Map* map = sMapMgr->FindMap(0, 0);
+    Map* map = sMapMgr->FindMap(0, Position(), 0);
     auto bounds = map->GetGameObjectBySpawnIdStore().equal_range(m_capturePointSpawnId);
     for (auto itr = bounds.first; itr != bounds.second; ++itr)
         itr->second->SetGoArtKit(artkit);
