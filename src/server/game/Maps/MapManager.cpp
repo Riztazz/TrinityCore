@@ -114,8 +114,10 @@ Map* MapManager::CreateMap(uint32 id, Position const& pos, Player* player, uint3
 
     if (map->Instanceable())
     {
-        // Always provide the player for instanceable maps
-        ASSERT(player);
+        // For GameEventManager, Battlefield, Transports, when we spawn these in an instance map without a player they
+        // go into the base map - Im guessing they update the spawn tables and get replicated for new instances
+        if (!player)
+            return map;
 
         MapInstanced* mapInstanced = map->ToMapInstanced();
         if (!mapInstanced)
