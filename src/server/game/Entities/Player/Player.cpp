@@ -516,7 +516,7 @@ bool Player::Create(ObjectGuid::LowType guidlow, CharacterCreateInfo* createInfo
         return false;
     }
 
-    SetMap(sMapMgr->CreateMap(info->mapId, this));
+    SetMap(sMapMgr->CreateMap(info->mapId, GetPosition(), this));
 
     uint8 powertype = cEntry->DisplayPower;
 
@@ -14844,7 +14844,7 @@ void Player::PrepareQuestMenu(ObjectGuid guid)
     {
         //we should obtain map pointer from GetMap() in 99% of cases. Special case
         //only for quests which cast teleport spells on player
-        Map* _map = IsInWorld() ? GetMap() : sMapMgr->FindMap(GetMapId(), GetInstanceId(), GetPositionX(), GetPositionY());
+        Map* _map = IsInWorld() ? GetMap() : sMapMgr->FindMap(GetMapId(), GetInstanceId());
         ASSERT(_map);
         GameObject* pGameObject = _map->GetGameObject(guid);
         if (pGameObject)
@@ -17894,7 +17894,8 @@ bool Player::LoadFromDB(ObjectGuid guid, CharacterDatabaseQueryHolder const& hol
     // NOW player must have valid map
     // load the player's map here if it's not already loaded
     if (!map)
-        map = sMapMgr->CreateMap(mapId, this, instanceId);
+        map = sMapMgr->CreateMap(mapId, GetPosition(), this, instanceId);
+
     AreaTrigger const* areaTrigger = nullptr;
     bool check = false;
 
@@ -17945,7 +17946,7 @@ bool Player::LoadFromDB(ObjectGuid guid, CharacterDatabaseQueryHolder const& hol
             if (mapId != areaTrigger->target_mapId)
             {
                 mapId = areaTrigger->target_mapId;
-                map = sMapMgr->CreateMap(mapId, this);
+                map = sMapMgr->CreateMap(mapId, GetPosition(), this);
             }
         }
         else
@@ -17961,7 +17962,7 @@ bool Player::LoadFromDB(ObjectGuid guid, CharacterDatabaseQueryHolder const& hol
     {
         mapId = info->mapId;
         Relocate(info->positionX, info->positionY, info->positionZ, 0.0f);
-        map = sMapMgr->CreateMap(mapId, this);
+        map = sMapMgr->CreateMap(mapId, GetPosition(), this);
         if (!map)
         {
             TC_LOG_ERROR("entities.player.loading", "Player::LoadFromDB: Player '{}' ({}) Map: {}, X: {}, Y: {}, Z: {}, O: {}. Invalid default map coordinates or instance couldn't be created.",

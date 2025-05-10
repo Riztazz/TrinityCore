@@ -27,33 +27,33 @@ class TC_GAME_API MapInstanced : public Map
 {
     friend class MapManager;
     public:
-        typedef std::unordered_map<uint32, Trinity::unique_trackable_ptr<Map>> InstancedMaps;
+        typedef std::unordered_map<uint32, Trinity::unique_trackable_ptr<Map>> Instances;
 
         MapInstanced(uint32 id);
         ~MapInstanced() { }
 
         // functions overwrite Map versions
+        virtual void InitVisibilityDistance() override;
         void Update(uint32 diff) override;
         void DelayedUpdate(uint32 diff) override;
-        //void RelocationNotify();
         void UnloadAll() override;
         EnterState CannotEnter(Player* /*player*/) override;
 
         Map* CreateInstanceForPlayer(uint32 mapId, Player* player, uint32 loginInstanceId = 0);
-        Map* FindInstanceMap(uint32 instanceId) const
+        Map* FindInstance(uint32 instanceId) const
         {
-            InstancedMaps::const_iterator i = m_InstancedMaps.find(instanceId);
-            return(i == m_InstancedMaps.end() ? nullptr : i->second.get());
+            auto it = _instances.find(instanceId);
+            return (it != _instances.end()) ? it->second.get() : nullptr;
         }
-        bool DestroyInstance(InstancedMaps::iterator &itr);
+        bool DestroyInstance(Instances::iterator &itr);
 
-        InstancedMaps &GetInstancedMaps() { return m_InstancedMaps; }
-        virtual void InitVisibilityDistance() override;
+        Instances &GetInstances() { return _instances; }
+        
 
     private:
         InstanceMap* CreateInstance(uint32 InstanceId, InstanceSave* save, Difficulty difficulty, TeamId InstanceTeam);
         BattlegroundMap* CreateBattleground(uint32 InstanceId, Battleground* bg);
 
-        InstancedMaps m_InstancedMaps;
+        Instances _instances;
 };
 #endif

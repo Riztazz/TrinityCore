@@ -24,6 +24,7 @@
 #include "MoveSplineInit.h"
 #include "ObjectMgr.h"
 #include "Player.h"
+#include "Position.h"
 
 #define FLIGHT_TRAVEL_UPDATE 100
 #define TIMEDIFF_NEXT_WP 250
@@ -284,7 +285,7 @@ void FlightPathMovementGenerator::InitEndGridInfo()
 void FlightPathMovementGenerator::PreloadEndGrid()
 {
     // Used to preload the final grid where the flightmaster is
-    Map* endMap = sMapMgr->FindPartitionMap(_endMapId, _endGridX, _endGridY);
+    Map* endMap = sMapMgr->CreateMap(_endMapId, Position(_endGridX, _endGridY));
 
     // Load the grid
     if (endMap)

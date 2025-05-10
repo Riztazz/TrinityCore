@@ -20,14 +20,9 @@
 #include "Group.h"
 #include "Log.h"
 #include "MapManager.h"
-#include "MMapFactory.h"
 #include "ObjectMgr.h"
-#include "Player.h"
 #include "ScriptMgr.h"
-#include "VMapFactory.h"
-#include "VMapManager2.h"
 #include "TSProfile.h"
-#include "World.h"
 
 MapPartitioned::MapPartitioned(uint32 id) : Map(id)
 {
@@ -35,20 +30,20 @@ MapPartitioned::MapPartitioned(uint32 id) : Map(id)
     // since we need to determine the partition id before the map is loaded for the player
     // Create a single partition (partitionId = 1) that covers the whole map as a rectangle
     PartitionPolygon fullMapPolygon;
-    fullMapPolygon.emplace_back(-MAP_HALFSIZE, -MAP_HALFSIZE);
-    fullMapPolygon.emplace_back( MAP_HALFSIZE, -MAP_HALFSIZE);
-    fullMapPolygon.emplace_back( MAP_HALFSIZE,  MAP_HALFSIZE);
-    fullMapPolygon.emplace_back(-MAP_HALFSIZE,  MAP_HALFSIZE);
+    fullMapPolygon.emplace_back(Position(-MAP_HALFSIZE, -MAP_HALFSIZE));
+    fullMapPolygon.emplace_back(Position( MAP_HALFSIZE, -MAP_HALFSIZE));
+    fullMapPolygon.emplace_back(Position( MAP_HALFSIZE,  MAP_HALFSIZE));
+    fullMapPolygon.emplace_back(Position(-MAP_HALFSIZE,  MAP_HALFSIZE));
 
     _partitionBounds[1] = std::move(fullMapPolygon);
 }
 
 void MapPartitioned::InitVisibilityDistance()
 {
-    if (_partitionedMaps.empty())
+    if (_partitions.empty())
         return;
     //initialize visibility distances for all partition maps
-    for (auto& kv : _partitionedMaps)
+    for (auto& kv : _partitions)
     {
         kv.second->InitVisibilityDistance();
     }
@@ -56,38 +51,39 @@ void MapPartitioned::InitVisibilityDistance()
 
 void MapPartitioned::Update(uint32 t)
 {
-    // Dont think this is necessary
-    Map::Update(t);
-
-    for (auto& kv : _partitionedMaps)
+    for (auto& [partitionId, partition] : _partitions)
     {
         if (sMapMgr->GetMapUpdater()->activated())
-            sMapMgr->GetMapUpdater()->schedule_update(*kv.second, t);
+            sMapMgr->GetMapUpdater()->schedule_update(*partition, t);
         else
-            kv.second->Update(t);
+            partition->Update(t);
     }
 }
 
 void MapPartitioned::DelayedUpdate(uint32 diff)
 {
-    for (auto& kv : _partitionedMaps)
-        kv.second->DelayedUpdate(diff);
+    for (auto& [partitionId, partition] : _partitions)
+        partition->DelayedUpdate(diff);
 }
 
 void MapPartitioned::UnloadAll()
 {
-    for (auto& kv : _partitionedMaps)
-    {
-        kv.second->UnloadAll();
-        sScriptMgr->OnDestroyMap(kv.second.get());
-    }
-    _partitionedMaps.clear();
+    // Clear child maps
+    for (auto& [partitionId, partitionPtr] : _partitions)
+        partitionPtr->UnloadAll();
 
+    _partitions.clear();
+
+    // Clear this base map as well
     Map::UnloadAll();
+
+    sScriptMgr->OnDestroyMap(static_cast<Map*>(this));
 }
 
-static bool IsPointInPolygon(float x, float y, const std::vector<std::pair<float, float>>& polygon)
+static bool IsPointInPolygon(Position const& pos, const std::vector<std::pair<float, float>>& polygon)
 {
+    float x = pos.GetPositionX();
+    float y = pos.GetPositionY();
     bool inside = false;
     size_t n = polygon.size();
     if (n < 3)
@@ -103,17 +99,17 @@ static bool IsPointInPolygon(float x, float y, const std::vector<std::pair<float
     return inside;
 }
 
-uint32 MapPartitioned::CalculatePartitionId(float x, float y) const
+uint32 MapPartitioned::CalculatePartitionId(Position const& pos) const
 {
     for (const auto& [partitionId, polygon] : _partitionBounds)
     {
-        if (IsPointInPolygon(x, y, polygon))
+        if (IsPointInPolygon(pos, polygon))
             return partitionId;
     }
     return 0;
 }
 
-PartitionMap* MapPartitioned::CreatePartition(uint32 mapId, uint32 partitionId)
+Map* MapPartitioned::CreatePartition(uint32 mapId, uint32 partitionId)
 {
     ZoneScopedNC("Map* MapPartitioned::CreatePartition", WORLD_UPDATE_COLOR)
 
@@ -130,7 +126,7 @@ PartitionMap* MapPartitioned::CreatePartition(uint32 mapId, uint32 partitionId)
         TC_LOG_ERROR("maps", "CreatePartition: no entry for map {}", GetId());
         ABORT();
     }
-    // TODO lookup parition entry
+    // TODO lookup partition entry
     // PartitionTemplate const* pTemplate = sObjectMgr->GetPartitionTemplate(GetId(), partitionId);
     // if (!pTemplate)
     // {
@@ -140,16 +136,17 @@ PartitionMap* MapPartitioned::CreatePartition(uint32 mapId, uint32 partitionId)
 
     TC_LOG_DEBUG("maps", "MapPartitioned::CreatePartition: map partition {} for {} created", partitionId, GetId());
 
-    PartitionMap* map = new PartitionMap(GetId(), partitionId, this);
+    Map* map = new PartitionMap(GetId(), partitionId, this);
     ASSERT(map->IsWorldMap());
 
     map->LoadRespawnTimes();
     map->LoadCorpseData();
 
-    Trinity::unique_trackable_ptr<PartitionMap>& ptr = _partitionedMaps[partitionId];
+    Trinity::unique_trackable_ptr<Map>& ptr = _partitions[partitionId];
     ptr.reset(map);
     map->SetWeakPtr(ptr);
 
     sScriptMgr->OnCreateMap(map);
+
     return map;
 }

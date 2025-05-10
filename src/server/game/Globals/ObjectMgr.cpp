@@ -2452,7 +2452,7 @@ ObjectGuid::LowType ObjectMgr::AddGameObjectData(uint32 entry, uint32 mapId, Pos
     if (!goinfo)
         return 0;
 
-    Map* map = sMapMgr->CreateBaseMap(mapId);
+    Map* map = sMapMgr->CreateMap(mapId, pos);
     if (!map)
         return 0;
 
@@ -2501,7 +2501,7 @@ ObjectGuid::LowType ObjectMgr::AddCreatureData(uint32 entry, uint32 mapId, Posit
 
     uint32 level = cInfo->minlevel == cInfo->maxlevel ? cInfo->minlevel : urand(cInfo->minlevel, cInfo->maxlevel); // Only used for extracting creature base stats
     CreatureBaseStats const* stats = GetCreatureBaseStats(level, cInfo->unit_class);
-    Map* map = sMapMgr->CreateBaseMap(mapId);
+    Map* map = sMapMgr->CreateMap(mapId, pos);
     if (!map)
         return 0;
 

@@ -1389,7 +1389,7 @@ public:
         Map* map = nullptr;
         if (mapId)
         {
-            map = sMapMgr->FindPartitionMap(*mapId, x, y);
+            map = sMapMgr->CreateMap(*mapId, Position(x, y));
         }
         else if (Player* player = handler->GetPlayer())
         {

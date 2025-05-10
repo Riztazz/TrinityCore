@@ -170,7 +170,7 @@ void WorldSession::HandleCorpseQueryOpcode(WorldPacket & /*recvData*/)
             if (corpseMapEntry->IsDungeon() && corpseMapEntry->CorpseMapID >= 0)
             {
                 // if corpse map have entrance
-                if (Map const* entranceMap = sMapMgr->CreateBaseMap(corpseMapEntry->CorpseMapID))
+                if (Map const* entranceMap = sMapMgr->CreateMap(corpseMapEntry->CorpseMapID, corpseLocation.GetPosition()))
                 {
                     mapID = corpseMapEntry->CorpseMapID;
                     x = corpseMapEntry->Corpse.X;

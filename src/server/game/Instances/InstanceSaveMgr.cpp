@@ -626,7 +626,7 @@ void InstanceSaveManager::_ResetInstance(uint32 mapid, uint32 instanceId)
 
     DeleteInstanceFromDB(instanceId);                       // even if save not loaded
 
-    Map* iMap = ((MapInstanced*)map)->FindInstanceMap(instanceId);
+    Map* iMap = map->ToMapInstanced()->FindInstance(instanceId);
 
     if (iMap && iMap->IsDungeon())
         ((InstanceMap*)iMap)->Reset(INSTANCE_RESET_RESPAWN_DELAY);
@@ -710,9 +710,8 @@ void InstanceSaveManager::_ResetOrWarnAll(uint32 mapid, Difficulty difficulty, b
     Map* baseMap = sMapMgr->CreateBaseMap(mapid);            // _not_ include difficulty
     uint32 timeLeft;
 
-    for (auto& [_, map] : baseMap->ToMapInstanced()->GetInstancedMaps())
+    for (auto& [_, map] : baseMap->ToMapInstanced()->GetInstances())
     {
-        InstanceMap* instanceMap = map->ToInstanceMap();
         if (warn)
         {
             if (now >= resetTime)
@@ -720,10 +719,10 @@ void InstanceSaveManager::_ResetOrWarnAll(uint32 mapid, Difficulty difficulty, b
             else
                 timeLeft = uint32(resetTime - now);
 
-            instanceMap->SendResetWarnings(timeLeft);
+            map->SendResetWarnings(timeLeft);
         }
         else
-            instanceMap->Reset(INSTANCE_RESET_GLOBAL);
+            map->Reset(INSTANCE_RESET_GLOBAL);
     }
 
     /// @todo delete creature/gameobject respawn times even if the maps are not loaded

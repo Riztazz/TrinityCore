@@ -126,7 +126,6 @@ m_VisibilityNotifyPeriod(DEFAULT_VISIBILITY_NOTIFY_PERIOD),
 m_activeNonPlayersIter(m_activeNonPlayers.end()), _transportsUpdateIter(_transports.end()),
 i_scriptLock(false), _respawnTimes(std::make_unique<RespawnListContainer>()), _respawnCheckTimer(0)
 {
-    m_parentMap = (_parent ? _parent : this);
     for (unsigned int idx=0; idx < MAX_NUMBER_OF_GRIDS; ++idx)
     {
         for (unsigned int j=0; j < MAX_NUMBER_OF_GRIDS; ++j)
@@ -143,7 +142,6 @@ i_scriptLock(false), _respawnTimes(std::make_unique<RespawnListContainer>()), _r
 
     _weatherUpdateTimer.SetInterval(time_t(1 * IN_MILLISECONDS));
 
-    sScriptMgr->OnCreateMap(this);
     // @tswow-begin
     FIRE_ID(GetId(),Map,OnCreate,TSMap(this));
     FIRE_ID(GetId(),Map,OnReload,TSMap(this));
@@ -973,7 +971,8 @@ void Map::PlayerRelocation(Player* player, float x, float y, float z, float orie
 
     ASSERT(player);
 
-    Map* checkMap = sMapMgr->CreateMap(GetId(), player);
+    // FIXME
+    Map* checkMap = sMapMgr->CreateMap(GetId(), Position(x, y), player);
     if (checkMap->GetPartitionId() != GetPartitionId())
     {
         RemovePlayerFromMap(player, false);
@@ -1663,6 +1662,8 @@ void Map::UnloadAll()
     _corpsesByCell.clear();
     _corpsesByPlayer.clear();
     _corpseBones.clear();
+
+    sScriptMgr->OnDestroyMap(static_cast<Map*>(this));
 }
 
 // *****************************
@@ -3853,10 +3854,10 @@ PartitionMap::~PartitionMap()
 {
 }
 
-bool PartitionMap::IsInPartition(float x, float y)
+bool PartitionMap::IsInPartition(Position const& pos)
 {
     auto parentPartitioned = static_cast<MapPartitioned const*>(_parent);
-    return parentPartitioned->CalculatePartitionId(x, y) == _partitionId;
+    return parentPartitioned->CalculatePartitionId(pos) == _partitionId;
 }
 
 // TODO anything we need to override from map or additional functions

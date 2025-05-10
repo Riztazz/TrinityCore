@@ -22,47 +22,32 @@
 #include "InstanceSaveMgr.h"
 #include "Log.h"
 #include "MapManager.h"
-#include "MMapFactory.h"
 #include "ObjectMgr.h"
 #include "Player.h"
 #include "ScriptMgr.h"
-#include "VMapFactory.h"
-#include "VMapManager2.h"
 #include "TSProfile.h"
 #include "World.h"
 
 MapInstanced::MapInstanced(uint32 id) : Map(id)
 {
-    // This is the parent map for instance maps, don't need to do anything
+    // This is the parent map for instance maps
 }
 
 void MapInstanced::InitVisibilityDistance()
 {
-    if (m_InstancedMaps.empty())
-        return;
-    //initialize visibility distances for all instance copies
-    for (InstancedMaps::iterator i = m_InstancedMaps.begin(); i != m_InstancedMaps.end(); ++i)
-    {
-        (*i).second->InitVisibilityDistance();
-    }
+    for (auto& [id, instancePtr] : _instances)
+        instancePtr->InitVisibilityDistance();
 }
 
 void MapInstanced::Update(uint32 t)
 {
-    // take care of loaded GridMaps (when unused, unload it!)
-    Map::Update(t);
-
     // update the instanced maps
-    InstancedMaps::iterator i = m_InstancedMaps.begin();
-
-    while (i != m_InstancedMaps.end())
+    auto i = _instances.begin();
+    while (i != _instances.end())
     {
         if (i->second->CanUnload(t))
         {
-            if (!DestroyInstance(i))                             // iterator incremented
-            {
-                //m_unloadTimer
-            }
+            DestroyInstance(i); // iterator incremented
         }
         else
         {
@@ -78,34 +63,24 @@ void MapInstanced::Update(uint32 t)
 
 void MapInstanced::DelayedUpdate(uint32 diff)
 {
-    for (InstancedMaps::iterator i = m_InstancedMaps.begin(); i != m_InstancedMaps.end(); ++i)
-        i->second->DelayedUpdate(diff);
+    for (auto& [id, instancePtr] : _instances)
+        instancePtr->DelayedUpdate(diff);
 
-    Map::DelayedUpdate(diff); // this may be removed
+    Map::DelayedUpdate(diff);
 }
-
-/*
-void MapInstanced::RelocationNotify()
-{
-    for (InstancedMaps::iterator i = m_InstancedMaps.begin(); i != m_InstancedMaps.end(); ++i)
-        i->second->RelocationNotify();
-}
-*/
 
 void MapInstanced::UnloadAll()
 {
-    // Unload instanced maps
-    for (InstancedMaps::iterator i = m_InstancedMaps.begin(); i != m_InstancedMaps.end(); ++i)
-    {
-        i->second->UnloadAll();
+    // unload the child instances
+    for (auto& [id, instancePtr] : _instances)
+        instancePtr->UnloadAll();
 
-        sScriptMgr->OnDestroyMap(i->second.get());
-    }
+    _instances.clear();
 
-    m_InstancedMaps.clear();
-
-    // Unload own grids (just dummy(placeholder) grids, neccesary to unload GridMaps!)
+    // unload the base map
     Map::UnloadAll();
+
+    sScriptMgr->OnDestroyMap(static_cast<Map*>(this));
 }
 
 /*
@@ -157,7 +132,7 @@ Map* MapInstanced::CreateInstanceForPlayer(uint32 mapId, Player* player, uint32 
         {
             if (loginInstanceId) // if the player has a saved instance id on login, we either use this instance or relocate him out (return null)
             {
-                map = FindInstanceMap(loginInstanceId);
+                map = FindInstance(loginInstanceId);
                 if (!map && pSave && pSave->GetInstanceId() == loginInstanceId)
                     map = CreateInstance(loginInstanceId, pSave, pSave->GetDifficulty(), player->GetTeamId());
                 return map;
@@ -181,7 +156,7 @@ Map* MapInstanced::CreateInstanceForPlayer(uint32 mapId, Player* player, uint32 
         {
             // solo/perm/group
             newInstanceId = pSave->GetInstanceId();
-            map = FindInstanceMap(newInstanceId);
+            map = FindInstance(newInstanceId);
             // it is possible that the save exists but the map doesn't
             if (!map)
                 map = CreateInstance(newInstanceId, pSave, pSave->GetDifficulty(), player->GetTeamId());
@@ -194,8 +169,8 @@ Map* MapInstanced::CreateInstanceForPlayer(uint32 mapId, Player* player, uint32 
 
             Difficulty diff = player->GetGroup() ? player->GetGroup()->GetDifficulty(IsRaid()) : player->GetDifficulty(IsRaid());
             //Seems it is now possible, but I do not know if it should be allowed
-            //ASSERT(!FindInstanceMap(NewInstanceId));
-            map = FindInstanceMap(newInstanceId);
+            //ASSERT(!FindInstance(newInstanceId));
+            map = FindInstance(newInstanceId);
             if (!map)
                 map = CreateInstance(newInstanceId, nullptr, diff, player->GetTeamId());
         }
@@ -239,7 +214,7 @@ InstanceMap* MapInstanced::CreateInstance(uint32 InstanceId, InstanceSave* save,
     bool load_data = save != nullptr;
     map->CreateInstanceData(load_data);
 
-    Trinity::unique_trackable_ptr<Map>& ptr = m_InstancedMaps[InstanceId];
+    Trinity::unique_trackable_ptr<Map>& ptr = _instances[InstanceId];
     ptr.reset(map);
     map->SetWeakPtr(ptr);
 
@@ -268,7 +243,7 @@ BattlegroundMap* MapInstanced::CreateBattleground(uint32 InstanceId, Battlegroun
     map->SetBG(bg);
     bg->SetBgMap(map);
 
-    Trinity::unique_trackable_ptr<Map>& ptr = m_InstancedMaps[InstanceId];
+    Trinity::unique_trackable_ptr<Map>& ptr = _instances[InstanceId];
     ptr.reset(map);
     map->SetWeakPtr(ptr);
 
@@ -277,7 +252,7 @@ BattlegroundMap* MapInstanced::CreateBattleground(uint32 InstanceId, Battlegroun
 }
 
 // increments the iterator after erase
-bool MapInstanced::DestroyInstance(InstancedMaps::iterator &itr)
+bool MapInstanced::DestroyInstance(Instances::iterator &itr)
 {
     itr->second->RemoveAllPlayers();
     if (itr->second->HavePlayers())
@@ -289,7 +264,7 @@ bool MapInstanced::DestroyInstance(InstancedMaps::iterator &itr)
     itr->second->UnloadAll();
 
     // erase map
-    m_InstancedMaps.erase(itr++);
+    _instances.erase(itr++);
 
     return true;
 }

@@ -19,41 +19,41 @@
 #define TRINITY_MAP_PARTITIONED_H
 
 #include "Map.h"
+#include "Position.h"
 #include "UniqueTrackablePtr.h"
 
 class TC_GAME_API MapPartitioned : public Map
 {
     friend class MapManager;
     public:
-        typedef std::vector<std::pair<float, float>> PartitionPolygon;
+        typedef std::vector<Position> PartitionPolygon;
         typedef std::unordered_map<uint32, PartitionPolygon> PartitionBounds;
-        typedef std::unordered_map<uint32, Trinity::unique_trackable_ptr<PartitionMap>> PartitionedMaps;
+        typedef std::unordered_map<uint32, Trinity::unique_trackable_ptr<Map>> Partitions;
 
         MapPartitioned(uint32 id);
         ~MapPartitioned() { }
 
         // functions overwrite Map versions
+        virtual void InitVisibilityDistance() override;
         void Update(uint32 diff) override;
         void DelayedUpdate(uint32 diff) override;
-        virtual void InitVisibilityDistance() override;
-        //void RelocationNotify();
         void UnloadAll() override;
 
-        uint32 CalculatePartitionId(float x, float y) const;
-        PartitionMap* CreatePartition(uint32 mapId, uint32 partitionId);
-        PartitionMap* FindPartition(uint32 partitionId) const
+        uint32 CalculatePartitionId(Position const& pos) const;
+        Map* CreatePartition(uint32 mapId, uint32 partitionId);
+        Map* FindPartition(uint32 partitionId) const
         {
-            PartitionedMaps::const_iterator i = _partitionedMaps.find(partitionId);
-            return(i == _partitionedMaps.end() ? nullptr : i->second.get());
+            auto it = _partitions.find(partitionId);
+            return (it != _partitions.end()) ? it->second.get() : nullptr;
         }
-        bool DestroyPartition(PartitionedMaps::iterator &itr);
+        bool DestroyPartition(Partitions::iterator &itr);
 
-        PartitionedMaps &GetPartitionedMaps() { return _partitionedMaps; }
+        Partitions &GetPartitions() { return _partitions; }
         PartitionBounds &GetPartitionBounds() { return _partitionBounds; }
     private:
-        static bool IsPointInPolygon(float x, float y, const PartitionPolygon& polygon);
+        static bool IsPointInPolygon(Position const& pos, const PartitionPolygon& polygon);
 
-        PartitionedMaps _partitionedMaps;
+        Partitions _partitions;
         PartitionBounds _partitionBounds; // partitionId -> polygon
 };
 

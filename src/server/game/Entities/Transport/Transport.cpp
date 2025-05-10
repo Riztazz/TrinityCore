@@ -694,7 +694,7 @@ void Transport::DelayedTeleportTransport()
         return;
 
     _delayedTeleport = false;
-    Map* newMap = sMapMgr->CreateBaseMap(_nextFrame->Node->ContinentID);
+    Map* newMap = sMapMgr->CreateMap(_nextFrame->Node->ContinentID, GetPosition());
     GetMap()->RemoveFromMap<Transport>(this, false);
     SetMap(newMap);
 

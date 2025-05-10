@@ -40,9 +40,8 @@ class TC_GAME_API MapManager
         static MapManager* instance();
 
         Map* CreateBaseMap(uint32 mapId);
-        Map* FindPartitionMap(uint32 mapId, float x, float y) const;
-        Map* CreateMap(uint32 mapId, Player* player, uint32 loginInstanceId=0);
-        Map* FindMap(uint32 mapId, uint32 instanceId, float x = 0, float y = 0) const;
+        Map* CreateMap(uint32 mapId, Position const& pos, Player* player = nullptr, uint32 loginInstanceId = 0);
+        Map* FindMap(uint32 mapId, Position const& pos, uint32 instanceId = 0) const;
 
         uint32 GetAreaId(uint32 phaseMask, uint32 mapid, float x, float y, float z) const
         {
@@ -112,8 +111,6 @@ class TC_GAME_API MapManager
             return IsValidMapCoord(loc.GetMapId(), loc);
         }
 
-        void DoDelayedMovesAndRemoves();
-
         Map::EnterState PlayerCannotEnter(uint32 mapid, Player* player, bool loginCheck = false);
         void InitializeVisibilityDistanceInfo();
 
@@ -126,7 +123,7 @@ class TC_GAME_API MapManager
         uint32 GenerateInstanceId();
         void RegisterInstanceId(uint32 instanceId);
 
-        GridMap* GetGrid(uint32 mapId, int gx, int gy);
+        GridMap* GetGridMap(uint32 mapId, int gx, int gy);
 
         MapUpdater* GetMapUpdater() { return &m_updater; }
 
@@ -141,7 +138,7 @@ class TC_GAME_API MapManager
         void DecreaseScheduledScriptCount(std::size_t count) { _scheduledScripts -= count; }
         bool IsScriptScheduled() const { return _scheduledScripts > 0; }
     private:
-        typedef std::unordered_map<uint32, Trinity::unique_trackable_ptr<Map>> MapMapType;
+        typedef std::unordered_map<uint32, std::unique_ptr<Map>> BaseMaps;
         typedef boost::dynamic_bitset<size_t> InstanceIds;
 
         MapManager();
@@ -149,11 +146,10 @@ class TC_GAME_API MapManager
 
         Map* FindBaseMap(uint32 mapId) const
         {
-            MapMapType::const_iterator iter = i_maps.find(mapId);
-            return (iter == i_maps.end() ? nullptr : iter->second.get());
+            BaseMaps::const_iterator iter = _baseMaps.find(mapId);
+            return (iter == _baseMaps.end() ? nullptr : iter->second.get());
         }
 
-        GridMap* GetGridMap(uint32 mapId, int gx, int gy);
         void LoadVMap(uint32 mapId, int gx, int gy);
         void LoadMMap(uint32 mapId, int gx, int gy);
         void UnloadGridMaps(uint32 mapId);
@@ -162,7 +158,7 @@ class TC_GAME_API MapManager
         MapManager& operator=(MapManager const&) = delete;
 
         std::mutex _mapsLock;
-        MapMapType i_maps;
+        BaseMaps _baseMaps;
         IntervalTimer i_timer;
 
         InstanceIds _instanceIds;
@@ -180,20 +176,18 @@ void MapManager::DoForAllMaps(Worker&& worker)
 {
     std::lock_guard<std::mutex> lock(_mapsLock);
 
-    for (auto& mapPair : i_maps)
+    for (auto& [_, mapPtr] : _baseMaps)
     {
-        Map* map = mapPair.second.get();
-        if (MapInstanced* mapInstanced = map->ToMapInstanced())
+        Map* map = mapPtr.get();
+        if (auto* mapInstanced = map->ToMapInstanced())
         {
-            MapInstanced::InstancedMaps& instances = mapInstanced->GetInstancedMaps();
-            for (auto& instancePair : instances)
-                worker(instancePair.second.get());
+            for (auto& [__, instancePtr] : mapInstanced->GetInstances())
+                worker(instancePtr.get());
         }
-        else if (MapPartitioned* mapPartitioned = map->ToMapPartitioned())
+        else if (auto* mapPartitioned = map->ToMapPartitioned())
         {
-            MapPartitioned::PartitionedMaps& partitions = mapPartitioned->GetPartitionedMaps();
-            for (auto& p : partitions)
-                worker(p.second.get());
+            for (auto& [__, partitionPtr] : mapPartitioned->GetPartitions())
+                worker(partitionPtr.get());
         }
     }
 }
@@ -203,21 +197,19 @@ inline void MapManager::DoForAllMapsWithMapId(uint32 mapId, Worker&& worker)
 {
     std::lock_guard<std::mutex> lock(_mapsLock);
 
-    auto itr = i_maps.find(mapId);
-    if (itr != i_maps.end())
+    auto itr = _baseMaps.find(mapId);
+    if (itr != _baseMaps.end())
     {
         Map* map = itr->second.get();
-        if (MapInstanced* mapInstanced = map->ToMapInstanced())
+        if (auto* mapInstanced = map->ToMapInstanced())
         {
-            MapInstanced::InstancedMaps& instances = mapInstanced->GetInstancedMaps();
-            for (auto& p : instances)
-                worker(p.second.get());
+            for (auto& [__, instancePtr] : mapInstanced->GetInstances())
+                worker(instancePtr.get());
         }
-        else if (MapPartitioned* mapPartitioned = map->ToMapPartitioned())
+        else if (auto* mapPartitioned = map->ToMapPartitioned())
         {
-            MapPartitioned::PartitionedMaps& partitions = mapPartitioned->GetPartitionedMaps();
-            for (auto& p : partitions)
-                worker(p.second.get());
+            for (auto& [__, partitionPtr] : mapPartitioned->GetPartitions())
+                worker(partitionPtr.get());
         }
     }
 }

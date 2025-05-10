@@ -224,7 +224,7 @@ public:
         else
             player->SaveRecallPosition(); // save only in non-flight case
 
-        Map const* map = sMapMgr->CreateBaseMap(mapId);
+        Map const* map = sMapMgr->CreateMap(mapId, Position(x, y));
         float z = std::max(map->GetHeight(x, y, MAX_HEIGHT), map->GetWaterLevel(x, y));
 
         player->TeleportTo(mapId, x, y, z, player->GetOrientation());
@@ -275,7 +275,7 @@ public:
         AreaTableEntry const* zoneEntry = areaEntry->ParentAreaID ? sAreaTableStore.LookupEntry(areaEntry->ParentAreaID) : areaEntry;
         ASSERT(zoneEntry);
 
-        Map const* map = sMapMgr->CreateBaseMap(zoneEntry->ContinentID);
+        Map const* map = sMapMgr->CreateMap(zoneEntry->ContinentID, Position(x, y));
 
         if (map->Instanceable())
         {
@@ -327,7 +327,7 @@ public:
                 handler->SetSentErrorMessage(true);
                 return false;
             }
-            Map const* map = sMapMgr->CreateBaseMap(mapId);
+            Map const* map = sMapMgr->CreateMap(mapId, Position(x, y));
             z = std::max(map->GetHeight(x, y, MAX_HEIGHT), map->GetWaterLevel(x, y));
         }
 

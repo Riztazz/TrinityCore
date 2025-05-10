@@ -60,7 +60,7 @@ void MapManager::Initialize()
 
 void MapManager::InitializeVisibilityDistanceInfo()
 {
-    for (MapMapType::iterator iter = i_maps.begin(); iter != i_maps.end(); ++iter)
+    for (BaseMaps::iterator iter = _baseMaps.begin(); iter != _baseMaps.end(); ++iter)
         (*iter).second->InitVisibilityDistance();
 }
 
@@ -70,6 +70,8 @@ MapManager* MapManager::instance()
     return &instance;
 }
 
+// This should normally only be called indirectly via CreateMap, but can also be used to
+// create the base maps needed to query for instances or partitions.
 Map* MapManager::CreateBaseMap(uint32 id)
 {
     ZoneScopedNC("Map* MapManager::CreateBaseMap", WORLD_UPDATE_COLOR)
@@ -90,9 +92,8 @@ Map* MapManager::CreateBaseMap(uint32 id)
         else
             map = new MapPartitioned(id);
 
-        Trinity::unique_trackable_ptr<Map>& ptr = i_maps[id];
-        ptr.reset(map);
-        map->SetWeakPtr(ptr);
+        std::unique_ptr<Map> ptr = std::make_unique<Map>(map);
+        _baseMaps[id] = std::move(ptr);
 
         sScriptMgr->OnCreateMap(map);
     }
@@ -101,22 +102,9 @@ Map* MapManager::CreateBaseMap(uint32 id)
     return map;
 }
 
-Map* MapManager::FindPartitionMap(uint32 mapId, float x, float y) const
-{
-    Map* map = FindBaseMap(mapId);
-    if (!map || !map->IsWorldMap())
-        return nullptr;
-
-    MapPartitioned* mapPartitioned = map->ToMapPartitioned();
-    if (!mapPartitioned)
-        return nullptr;
-
-    uint32 partitionId = mapPartitioned->CalculatePartitionId(x, y);
-    return mapPartitioned->FindPartition(partitionId);
-}
-
-// Players are the primary instigator of map creation
-Map* MapManager::CreateMap(uint32 id, Player* player, uint32 loginInstanceId)
+// This is used for most of our uses cases, find the map if exists, create it if its not -
+// player is required if the map is instanceable
+Map* MapManager::CreateMap(uint32 id, Position const& pos, Player* player, uint32 loginInstanceId)
 {
     ZoneScopedNC("Map* MapManager::CreateMap", WORLD_UPDATE_COLOR)
 
@@ -126,6 +114,9 @@ Map* MapManager::CreateMap(uint32 id, Player* player, uint32 loginInstanceId)
 
     if (map->Instanceable())
     {
+        // Always provide the player for instanceable maps
+        ASSERT(player);
+
         MapInstanced* mapInstanced = map->ToMapInstanced();
         if (!mapInstanced)
             return nullptr;
@@ -139,7 +130,7 @@ Map* MapManager::CreateMap(uint32 id, Player* player, uint32 loginInstanceId)
         if (!mapPartitioned)
             return nullptr;
 
-        uint32 partitionId = mapPartitioned->CalculatePartitionId(player->GetPositionX(), player->GetPositionY());
+        uint32 partitionId = mapPartitioned->CalculatePartitionId(pos);
 
         Map* partition = mapPartitioned->FindPartition(partitionId);
         if (partition)
@@ -151,7 +142,8 @@ Map* MapManager::CreateMap(uint32 id, Player* player, uint32 loginInstanceId)
     return nullptr;
 }
 
-Map* MapManager::FindMap(uint32 mapid, uint32 instanceId, float x, float y) const
+// Use this for queries where we do not want to create the map directly
+Map* MapManager::FindMap(uint32 mapid, Position const& pos, uint32 instanceId) const
 {
     Map* map = FindBaseMap(mapid);
     if (!map)
@@ -163,7 +155,7 @@ Map* MapManager::FindMap(uint32 mapid, uint32 instanceId, float x, float y) cons
         if (!mapInstanced)
             return nullptr;
 
-        return mapInstanced->FindInstanceMap(instanceId);
+        return mapInstanced->FindInstance(instanceId);
     }
     else if (map->IsWorldMap())
     {
@@ -171,7 +163,7 @@ Map* MapManager::FindMap(uint32 mapid, uint32 instanceId, float x, float y) cons
         if (!mapPartitioned)
             return nullptr;
 
-        uint32 partitionId = mapPartitioned->CalculatePartitionId(x, y);
+        uint32 partitionId = mapPartitioned->CalculatePartitionId(pos);
 
         return mapPartitioned->FindPartition(partitionId);
     }
@@ -269,24 +261,21 @@ void MapManager::Update(uint32 diff)
     if (!i_timer.Passed())
         return;
 
-    MapMapType::iterator iter = i_maps.begin();
-    for (; iter != i_maps.end(); ++iter)
+    for (auto& [id, mapPtr] : _baseMaps)
     {
         if (m_updater.activated())
-            m_updater.schedule_update(*iter->second, uint32(i_timer.GetCurrent()));
+            m_updater.schedule_update(*mapPtr, uint32(i_timer.GetCurrent()));
         else
-            iter->second->Update(uint32(i_timer.GetCurrent()));
+            mapPtr->Update(uint32(i_timer.GetCurrent()));
     }
     if (m_updater.activated())
         m_updater.wait();
 
-    for (iter = i_maps.begin(); iter != i_maps.end(); ++iter)
-        iter->second->DelayedUpdate(uint32(i_timer.GetCurrent()));
+    for (auto& [id, mapPtr] : _baseMaps)
+        mapPtr->DelayedUpdate(uint32(i_timer.GetCurrent()));
 
     i_timer.SetCurrent(0);
 }
-
-void MapManager::DoDelayedMovesAndRemoves() { }
 
 char const* MapManager::GetMapName(uint32 mapid)
 {
@@ -374,18 +363,18 @@ bool MapManager::IsValidMAP(uint32 mapid, bool startUp)
 
 void MapManager::UnloadAll()
 {
-    // first unload maps
-    for (auto iter = i_maps.begin(); iter != i_maps.end(); ++iter)
+    // first unload base maps
+    for (auto& [id, mapPtr] : _baseMaps)
     {
-        iter->second->UnloadAll();
+        // Unloads the base map and all child maps
+        mapPtr->UnloadAll();
 
-        sScriptMgr->OnDestroyMap(iter->second.get());
-
-        UnloadGridMaps(iter->first);
+        // Unload the map data
+        UnloadGridMaps(id);
     }
 
     // then delete them
-    i_maps.clear();
+    _baseMaps.clear();
 
     if (m_updater.activated())
         m_updater.deactivate();
@@ -396,12 +385,12 @@ uint32 MapManager::GetNumInstances()
     std::lock_guard<std::mutex> lock(_mapsLock);
 
     uint32 ret = 0;
-    for (auto const& [_, map] : i_maps)
+    for (auto const& [_, map] : _baseMaps)
     {
         MapInstanced* mapInstanced = map->ToMapInstanced();
         if (!mapInstanced)
             continue;
-        ret += mapInstanced->GetInstancedMaps().size();
+        ret += mapInstanced->GetInstances().size();
     }
     return ret;
 }
@@ -411,13 +400,13 @@ uint32 MapManager::GetNumPlayersInInstances()
     std::lock_guard<std::mutex> lock(_mapsLock);
 
     uint32 ret = 0;
-    for (auto& [_, map] : i_maps)
+    for (auto& [_, map] : _baseMaps)
     {
         MapInstanced* mapInstanced = map->ToMapInstanced();
         if (!mapInstanced)
             continue;
-        MapInstanced::InstancedMaps& maps = mapInstanced->GetInstancedMaps();
-        ret += std::accumulate(maps.begin(), maps.end(), 0u, [](uint32 total, MapInstanced::InstancedMaps::value_type const& value) { return total + value.second->GetPlayers().getSize(); });
+        MapInstanced::Instances& maps = mapInstanced->GetInstances();
+        ret += std::accumulate(maps.begin(), maps.end(), 0u, [](uint32 total, MapInstanced::Instances::value_type const& value) { return total + value.second->GetPlayers().getSize(); });
     }
     return ret;
 }
