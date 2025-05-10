@@ -42,6 +42,7 @@ class TC_GAME_API MapManager
         Map* CreateBaseMap(uint32 mapId);
         Map* CreateMap(uint32 mapId, Position const& pos, Player* player = nullptr, uint32 loginInstanceId = 0);
         Map* FindMap(uint32 mapId, Position const& pos, uint32 instanceId = 0) const;
+        Map* FindMap(uint32 mapId, uint32 instanceId = 0) const { return FindMap(mapId, Position(), instanceId); }
 
         uint32 GetAreaId(uint32 phaseMask, uint32 mapid, float x, float y, float z) const
         {
