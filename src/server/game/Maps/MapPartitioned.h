@@ -51,7 +51,7 @@ class TC_GAME_API MapPartitioned : public Map
         Partitions &GetPartitions() { return _partitions; }
         PartitionBounds &GetPartitionBounds() { return _partitionBounds; }
     private:
-        static bool IsPointInPolygon(Position const& pos, const PartitionPolygon& polygon);
+        static bool IsPointInPolygon(Position const& pos, PartitionPolygon const& polygon);
 
         Partitions _partitions;
         PartitionBounds _partitionBounds; // partitionId -> polygon

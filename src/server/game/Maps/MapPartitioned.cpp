@@ -80,7 +80,7 @@ void MapPartitioned::UnloadAll()
     sScriptMgr->OnDestroyMap(static_cast<Map*>(this));
 }
 
-static bool IsPointInPolygon(Position const& pos, const std::vector<std::pair<float, float>>& polygon)
+bool MapPartitioned::IsPointInPolygon(Position const& pos, PartitionPolygon const& polygon)
 {
     float x = pos.GetPositionX();
     float y = pos.GetPositionY();
@@ -89,8 +89,8 @@ static bool IsPointInPolygon(Position const& pos, const std::vector<std::pair<fl
     if (n < 3)
         return false;
     for (size_t i = 0, j = n - 1; i < n; j = i++) {
-        float xi = polygon[i].first, yi = polygon[i].second;
-        float xj = polygon[j].first, yj = polygon[j].second;
+        float xi = polygon[i].GetPositionX(), yi = polygon[i].GetPositionY();
+        float xj = polygon[j].GetPositionX(), yj = polygon[j].GetPositionY();
         bool intersect = ((yi > y) != (yj > y)) &&
                          (x < (xj - xi) * (y - yi) / (yj - yi + 1e-12f) + xi);
         if (intersect)
