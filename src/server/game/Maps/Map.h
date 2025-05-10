@@ -887,7 +887,7 @@ class TC_GAME_API PartitionMap : public Map
 
         uint32 GetPartitionId() const override { return _partitionId; }
         Map const* GetParent() const override { return _parent; }
-        bool IsInPartition(Position const& pos) override;
+        bool IsInPartition(Position const& pos) const override;
     private:
         uint32 _partitionId;
         Map const* _parent;
