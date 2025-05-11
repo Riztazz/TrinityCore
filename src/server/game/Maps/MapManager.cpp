@@ -72,7 +72,7 @@ MapManager* MapManager::instance()
 
 void MapManager::VisualizePartitions(Unit* owner, Seconds duration)
 {
-    Map* map = FindBaseMap(owner->GetMap());
+    Map* map = FindBaseMap(owner->GetMapId());
     if (!map)
         return;
 

@@ -32,10 +32,10 @@ MapPartitioned::MapPartitioned(uint32 id) : Map(id)
     // since we need to determine the partition id before the map is loaded for the player
     // Create a single partition (partitionId = 1) that covers the whole map as a rectangle
     PartitionPolygon fullMapPolygon;
-    fullMapPolygon.emplace_back(Position(-MAP_HALFSIZE, -MAP_HALFSIZE));
-    fullMapPolygon.emplace_back(Position( 0, -MAP_HALFSIZE));
-    fullMapPolygon.emplace_back(Position( 0,  MAP_HALFSIZE));
-    fullMapPolygon.emplace_back(Position(-MAP_HALFSIZE,  MAP_HALFSIZE));
+    fullMapPolygon.emplace_back(Position(-1000, -1000));
+    fullMapPolygon.emplace_back(Position( 1000, -1000));
+    fullMapPolygon.emplace_back(Position( 1000,  1000));
+    fullMapPolygon.emplace_back(Position(-1000,  1000));
 
     _partitionBounds[1] = std::move(fullMapPolygon);
 }
