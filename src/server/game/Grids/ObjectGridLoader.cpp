@@ -28,6 +28,7 @@
 #include "ObjectMgr.h"
 #include "World.h"
 #include "ScriptMgr.h"
+#include "MapPartitioned.h"
 
 void ObjectGridEvacuator::Visit(CreatureMapType &m)
 {
