@@ -517,6 +517,8 @@ bool Map::AddPlayerToMap(Player* player)
         return false;
     }
 
+    TC_LOG_DEBUG("partitions", "AddPlayerToMap Player {} added to partition {} visibility count {} ", player->GetGUID(), GetPartitionId(), player->m_clientGUIDs.size());
+
     Cell cell(cellCoord);
     EnsureGridLoaded(cell);
     AddToGrid(player, cell);

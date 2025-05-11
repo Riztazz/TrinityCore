@@ -89,6 +89,7 @@ void ObjectGridLoader::SetObjectCell(MapObject* obj, CellCoord const& cellCoord)
 template <class T>
 void AddObjectHelper(CellCoord &cell, GridRefManager<T> &m, uint32 &count, Map* map, T *obj)
 {
+    TC_LOG_DEBUG("partitions", "AddObjectHelper Object {} added to partition {} ", obj->GetGUID(), map->GetPartitionId());
     obj->AddToGrid(m);
     ObjectGridLoader::SetObjectCell(obj, cell);
     obj->AddToWorld();
