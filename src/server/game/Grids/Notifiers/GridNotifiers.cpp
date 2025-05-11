@@ -245,11 +245,9 @@ void DelayedUnitRelocation::Visit(PlayerMapType &m)
             currentMap->RemovePlayerFromMap(player, false);
             player->ResetMap();
             player->SetMap(checkMap);
-            player->SendInitialPacketsBeforeAddToMap();
             checkMap->AddPlayerToMap(player);
-            player->SendInitialPacketsAfterAddToMap();
-            //player->UpdatePositionData();
-            //player->UpdateObjectVisibility(false);
+            player->UpdatePositionData();
+            player->UpdatePlayerVisibility();
             continue;
         }
 
