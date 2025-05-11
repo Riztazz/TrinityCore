@@ -235,7 +235,7 @@ void DelayedUnitRelocation::Visit(PlayerMapType &m)
     {
         Player* player = iter->GetSource();
 
-        // I am injection partition checks here as this is our slower/heavy update to updat visibility
+        // I am injecting partition checks here as this is our slower/heavier update to update visibility
         // so a great time to check if we need to change maps
         Map* currentMap = player->GetMap();
         Map* checkMap = sMapMgr->CreateMap(currentMap->GetId(), player->GetPosition(), player);

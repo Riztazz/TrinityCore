@@ -31,6 +31,7 @@
 MapInstanced::MapInstanced(uint32 id) : Map(id)
 {
     // This is the parent map for instance maps
+    TC_LOG_DEBUG("maps", "MapInstanced constructor called with id: {}", id);
 }
 
 void MapInstanced::InitVisibilityDistance()
@@ -43,7 +44,7 @@ void MapInstanced::InitVisibilityDistance()
 
 void MapInstanced::Update(uint32 t)
 {
-    // update the instanced maps
+    // update the instances
     auto i = _instances.begin();
     while (i != _instances.end())
     {
@@ -61,6 +62,8 @@ void MapInstanced::Update(uint32 t)
             ++i;
         }
     }
+
+    Map::Update(t);
 }
 
 void MapInstanced::DelayedUpdate(uint32 diff)
@@ -92,9 +95,13 @@ void MapInstanced::UnloadAll()
 */
 Map* MapInstanced::CreateInstanceForPlayer(uint32 mapId, Player* player, uint32 loginInstanceId /*= 0*/)
 {
+    ASSERT(GetId() == mapId);
+
     ZoneScopedNC("Map* MapInstanced::CreateInstanceForPlayer", WORLD_UPDATE_COLOR)
 
-    if (GetId() != mapId || !player)
+    TC_LOG_DEBUG("maps", "MapInstanced::CreateInstanceForPlayer called with mapId: {} player: {} loginInstanceId: {}", mapId, player, loginInstanceId);
+
+    if (!player)
         return nullptr;
 
     Map* map = nullptr;
@@ -185,6 +192,8 @@ InstanceMap* MapInstanced::CreateInstance(uint32 InstanceId, InstanceSave* save,
 {
     ZoneScopedNC("InstanceMap* MapInstanced::CreateInstance", WORLD_UPDATE_COLOR)
 
+    TC_LOG_DEBUG("maps", "MapInstanced::CreateInstance called with InstanceId: {} save: {} difficulty: {} InstanceTeam: {}", InstanceId, save, difficulty, InstanceTeam);
+
     // load/create a map
     std::lock_guard<std::mutex> lock(_mapLock);
 
@@ -229,10 +238,12 @@ InstanceMap* MapInstanced::CreateInstance(uint32 InstanceId, InstanceSave* save,
 
 BattlegroundMap* MapInstanced::CreateBattleground(uint32 InstanceId, Battleground* bg)
 {
-    // load/create a map
-    std::lock_guard<std::mutex> lock(_mapLock);
+    ZoneScopedNC("InstanceMap* MapInstanced::CreateBattleground", WORLD_UPDATE_COLOR)
 
     TC_LOG_DEBUG("maps", "MapInstanced::CreateBattleground: map bg {} for {} created.", InstanceId, GetId());
+
+    // load/create a map
+    std::lock_guard<std::mutex> lock(_mapLock);
 
     PvPDifficultyEntry const* bracketEntry = GetBattlegroundBracketByLevel(bg->GetMapId(), bg->GetMinLevel());
 
@@ -259,6 +270,8 @@ BattlegroundMap* MapInstanced::CreateBattleground(uint32 InstanceId, Battlegroun
 // increments the iterator after erase
 bool MapInstanced::DestroyInstance(Instances::iterator &itr)
 {
+    TC_LOG_DEBUG("maps", "MapInstanced::DestroyInstance: map {} for {} created.", InstanceId, GetId());
+
     itr->second->RemoveAllPlayers();
     if (itr->second->HavePlayers())
     {

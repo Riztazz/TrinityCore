@@ -100,6 +100,7 @@ void AddObjectHelper(CellCoord &cell, GridRefManager<T> &m, uint32 &count, Map* 
 template <class T>
 void LoadHelper(CellGuidSet const& guid_set, CellCoord &cell, GridRefManager<T> &m, uint32 &count, Map* map)
 {
+    MapPartitioned* mapPartitioned = map->ToMapPartitioned();
     for (CellGuidSet::const_iterator i_guid = guid_set.begin(); i_guid != guid_set.end(); ++i_guid)
     {
         // Don't spawn at all if there's a respawn timer
@@ -112,6 +113,9 @@ void LoadHelper(CellGuidSet const& guid_set, CellCoord &cell, GridRefManager<T> 
         {
             GameObjectData const* data = sObjectMgr->GetGameObjectData(guid);
             ASSERT(data);
+            // Here we skip objects that should be loaded in a different partition
+            if (mapPartitioned && mapPartitioned->CalculatePartitionId(data->spawnPoint) != map->GetPartitionId())
+                continue;
             obj = (T*)GameObject::CreateGameObject(data->id);
         }
         else

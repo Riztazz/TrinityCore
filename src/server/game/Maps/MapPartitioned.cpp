@@ -115,6 +115,8 @@ Map* MapPartitioned::CreatePartition(uint32 mapId, uint32 partitionId)
 {
     ASSERT(GetId() == mapId);
 
+    TC_LOG_DEBUG("maps", "MapPartitioned::CreatePartition called with mapId: {} partitionId: {}", mapId, partitionId);
+
     // The base map will be used as fallback for all partitions, this
     // just skips searching the partitions if the id matches
     if (GetPartitionId() == partitionId)
@@ -125,6 +127,8 @@ Map* MapPartitioned::CreatePartition(uint32 mapId, uint32 partitionId)
         return partition;
 
     ZoneScopedNC("Map* MapPartitioned::CreatePartition", WORLD_UPDATE_COLOR)
+
+    TC_LOG_DEBUG("maps", "Partition not found, actually creating it: {} partitionId: {}", mapId, partitionId);
 
     // load/create a map
     std::lock_guard<std::mutex> lock(_mapLock);
