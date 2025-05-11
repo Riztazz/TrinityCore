@@ -270,7 +270,7 @@ BattlegroundMap* MapInstanced::CreateBattleground(uint32 InstanceId, Battlegroun
 // increments the iterator after erase
 bool MapInstanced::DestroyInstance(Instances::iterator &itr)
 {
-    TC_LOG_DEBUG("maps", "MapInstanced::DestroyInstance: map {} for {} created.", InstanceId, GetId());
+    TC_LOG_DEBUG("maps", "MapInstanced::DestroyInstance: map {}", GetId());
 
     itr->second->RemoveAllPlayers();
     if (itr->second->HavePlayers())
