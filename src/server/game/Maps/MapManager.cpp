@@ -76,8 +76,6 @@ Map* MapManager::CreateBaseMap(uint32 id)
 {
     ZoneScopedNC("Map* MapManager::CreateBaseMap", WORLD_UPDATE_COLOR)
 
-    TC_LOG_DEBUG("maps", "CreateBaseMap called with id: {}", id);
-
     // BaseMaps are maps that manage other maps.
     // MapInstanced manages its instances, and MapPartitioned manages its partitions.
     Map* map = FindBaseMap(id);
@@ -111,43 +109,47 @@ Map* MapManager::CreateMap(uint32 id, Position const& pos, Player* player, uint3
 {
     ZoneScopedNC("Map* MapManager::CreateMap", WORLD_UPDATE_COLOR)
 
-    TC_LOG_DEBUG("maps", "CreateMap called with id: {} x: {} y: {} loginInstanceId: {}", id, pos.GetPositionX(), pos.GetPositionY(), loginInstanceId);
-
     Map* map = CreateBaseMap(id);
     if (!map)
         return nullptr;
 
-    if (map->Instanceable())
+    MapInstanced* mapInstanced = map->ToMapInstanced();
+    if (mapInstanced)
     {
-        TC_LOG_DEBUG("maps", "Map is Instanceable");
         // For GameEventManager, Battlefield, Transports, when we spawn these in an instance map without a player they
         // go into the base map - Im guessing they update the spawn tables and get replicated for new instances
         if (!player)
             return map;
 
-        MapInstanced* mapInstanced = map->ToMapInstanced();
-        if (!mapInstanced)
-            return nullptr;
-
         TC_LOG_DEBUG("maps", "Calling Create Instance for Player with id: {} loginInstanceId: {}", id, loginInstanceId);
+
         // Additional Logic to check for existing instance
         return mapInstanced->CreateInstanceForPlayer(id, player, loginInstanceId);
     }
-    else
-    {
-        TC_LOG_DEBUG("maps", "Map is Partitioned");
-        MapPartitioned* mapPartitioned = map->ToMapPartitioned();
-        if (!mapPartitioned)
-            return nullptr;
 
-        uint32 partitionId = mapPartitioned->CalculatePartitionId(pos);
+    MapPartitioned* mapPartitioned = map->ToMapPartitioned();
+    if (!mapPartitioned)
+        return nullptr;
 
-        TC_LOG_DEBUG("maps", "Calling Create Partition with id: {} partitionId: {}", id, partitionId);
+    uint32 partitionId = mapPartitioned->CalculatePartitionId(pos);
 
-        return mapPartitioned->CreatePartition(id, partitionId);
-    }
+    TC_LOG_DEBUG("maps", "Calling Create Partition with id: {} partitionId: {}", id, partitionId);
 
-    return nullptr;
+    // Additional logic to check for existing partition
+    return mapPartitioned->CreatePartition(id, partitionId);
+}
+
+uint32 MapManager::CalculatePartitionId(uint32 mapid, Position const& pos)
+{
+    Map* map = CreateBaseMap(mapid);
+    if (!map)
+        return 0;
+
+    MapPartitioned* mapPartitioned = map->ToMapPartitioned();
+    if (!mapPartitioned)
+        return 0;
+
+    return mapPartitioned->CalculatePartitionId(pos);
 }
 
 // Use this for queries where we do not want to create the map directly
@@ -157,30 +159,23 @@ Map* MapManager::FindMap(uint32 mapid, Position const& pos, uint32 instanceId) c
     if (!map)
         return nullptr;
 
-    if (map->Instanceable())
+    MapInstanced* mapInstanced = map->ToMapInstanced();
+    if (mapInstanced)
     {
-        MapInstanced* mapInstanced = map->ToMapInstanced();
-        if (!mapInstanced)
-            return nullptr;
-
         // FindMap does not return the base map for instances
         return mapInstanced->FindInstance(instanceId);
     }
-    else if (map->IsWorldMap())
-    {
-        MapPartitioned* mapPartitioned = map->ToMapPartitioned();
-        if (!mapPartitioned)
-            return nullptr;
 
-        uint32 partitionId = mapPartitioned->CalculatePartitionId(pos);
-        if (partitionId != mapPartitioned->GetPartitionId())
-            return mapPartitioned->FindPartition(partitionId);
-
-        // For partitions the base map is the default/fallback partition, so return it
+    MapPartitioned* mapPartitioned = map->ToMapPartitioned();
+    if (!mapPartitioned)
+        return nullptr;
+        
+    uint32 partitionId = mapPartitioned->CalculatePartitionId(pos);
+    // For partitions the base map is the default/fallback partition, so return it
+    if (partitionId == mapPartitioned->GetPartitionId())
         return mapPartitioned;
-    }
 
-    return nullptr;
+    return mapPartitioned->FindPartition(partitionId);
 }
 
 Map::EnterState MapManager::PlayerCannotEnter(uint32 mapid, Player* player, bool loginCheck)

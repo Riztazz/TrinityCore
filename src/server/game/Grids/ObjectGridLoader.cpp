@@ -24,11 +24,11 @@
 #include "Log.h"
 #include "GameObject.h"
 #include "GameTime.h"
+#include "MapManager.h"
 #include "ObjectAccessor.h"
 #include "ObjectMgr.h"
-#include "World.h"
 #include "ScriptMgr.h"
-#include "MapPartitioned.h"
+#include "World.h"
 
 void ObjectGridEvacuator::Visit(CreatureMapType &m)
 {
@@ -101,7 +101,6 @@ void AddObjectHelper(CellCoord &cell, GridRefManager<T> &m, uint32 &count, Map* 
 template <class T>
 void LoadHelper(CellGuidSet const& guid_set, CellCoord &cell, GridRefManager<T> &m, uint32 &count, Map* map)
 {
-    MapPartitioned* mapPartitioned = map->ToMapPartitioned();
     for (CellGuidSet::const_iterator i_guid = guid_set.begin(); i_guid != guid_set.end(); ++i_guid)
     {
         // Don't spawn at all if there's a respawn timer
@@ -115,7 +114,7 @@ void LoadHelper(CellGuidSet const& guid_set, CellCoord &cell, GridRefManager<T> 
             GameObjectData const* data = sObjectMgr->GetGameObjectData(guid);
             ASSERT(data);
             // Here we skip objects that should be loaded in a different partition
-            if (mapPartitioned && mapPartitioned->CalculatePartitionId(data->spawnPoint) != map->GetPartitionId())
+            if (sMapMgr->CalculatePartitionId(map->GetId(), data->spawnPoint) != map->GetPartitionId())
                 continue;
             obj = (T*)GameObject::CreateGameObject(data->id);
         }
