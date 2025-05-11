@@ -115,7 +115,14 @@ void LoadHelper(CellGuidSet const& guid_set, CellCoord &cell, GridRefManager<T> 
             ASSERT(data);
             // Here we skip objects that should be loaded in a different partition
             if (sMapMgr->CalculatePartitionId(map->GetId(), data->spawnPoint) != map->GetPartitionId())
+            {
+                TC_LOG_DEBUG("partitions", "Object {} NOT loaded in partition {} ", guid, map->GetPartitionId());
                 continue;
+            }
+            else
+            {
+                TC_LOG_DEBUG("partitions", "Object {} loaded in partition {} ", guid, map->GetPartitionId());
+            }
             obj = (T*)GameObject::CreateGameObject(data->id);
         }
         else

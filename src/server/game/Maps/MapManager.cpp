@@ -95,7 +95,6 @@ Map* MapManager::CreateBaseMap(uint32 id)
 
     if (map == nullptr)
     {
-        TC_LOG_DEBUG("maps", "Base Map Not Found, Creating called with id: {}", id);
         std::lock_guard<std::mutex> lock(_mapsLock);
 
         MapEntry const* entry = sMapStore.LookupEntry(id);
@@ -134,8 +133,6 @@ Map* MapManager::CreateMap(uint32 id, Position const& pos, Player* player, uint3
         if (!player)
             return map;
 
-        TC_LOG_DEBUG("maps", "Calling Create Instance for Player with id: {} loginInstanceId: {}", id, loginInstanceId);
-
         // Additional Logic to check for existing instance
         return mapInstanced->CreateInstanceForPlayer(id, player, loginInstanceId);
     }
@@ -145,8 +142,6 @@ Map* MapManager::CreateMap(uint32 id, Position const& pos, Player* player, uint3
         return nullptr;
 
     uint32 partitionId = mapPartitioned->CalculatePartitionId(pos);
-
-    TC_LOG_DEBUG("maps", "Calling Create Partition with id: {} partitionId: {}", id, partitionId);
 
     // Additional logic to check for existing partition
     return mapPartitioned->CreatePartition(id, partitionId);

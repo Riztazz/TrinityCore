@@ -31,7 +31,6 @@
 MapInstanced::MapInstanced(uint32 id) : Map(id)
 {
     // This is the parent map for instance maps
-    TC_LOG_DEBUG("maps", "MapInstanced constructor called with id: {}", id);
 }
 
 void MapInstanced::InitVisibilityDistance()
@@ -97,12 +96,10 @@ Map* MapInstanced::CreateInstanceForPlayer(uint32 mapId, Player* player, uint32 
 {
     ASSERT(GetId() == mapId);
 
-    ZoneScopedNC("Map* MapInstanced::CreateInstanceForPlayer", WORLD_UPDATE_COLOR)
-
-    TC_LOG_DEBUG("maps", "MapInstanced::CreateInstanceForPlayer called with mapId: {} loginInstanceId: {}", mapId, loginInstanceId);
-
     if (!player)
         return nullptr;
+
+    ZoneScopedNC("Map* MapInstanced::CreateInstanceForPlayer", WORLD_UPDATE_COLOR)
 
     Map* map = nullptr;
     uint32 newInstanceId = 0;                       // instanceId of the resulting map
@@ -192,8 +189,6 @@ InstanceMap* MapInstanced::CreateInstance(uint32 InstanceId, InstanceSave* save,
 {
     ZoneScopedNC("InstanceMap* MapInstanced::CreateInstance", WORLD_UPDATE_COLOR)
 
-    TC_LOG_DEBUG("maps", "MapInstanced::CreateInstance called with InstanceId: {} ", InstanceId);
-
     // load/create a map
     std::lock_guard<std::mutex> lock(_mapLock);
 
@@ -270,8 +265,6 @@ BattlegroundMap* MapInstanced::CreateBattleground(uint32 InstanceId, Battlegroun
 // increments the iterator after erase
 bool MapInstanced::DestroyInstance(Instances::iterator &itr)
 {
-    TC_LOG_DEBUG("maps", "MapInstanced::DestroyInstance: map {}", GetId());
-
     itr->second->RemoveAllPlayers();
     if (itr->second->HavePlayers())
     {

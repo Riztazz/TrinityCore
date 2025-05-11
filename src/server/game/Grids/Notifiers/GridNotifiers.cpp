@@ -241,6 +241,7 @@ void DelayedUnitRelocation::Visit(PlayerMapType &m)
         Map* checkMap = sMapMgr->CreateMap(currentMap->GetId(), player->GetPosition(), player);
         if (checkMap->GetPartitionId() != currentMap->GetPartitionId())
         {
+            TC_LOG_DEBUG("partitions", "Player {} Moving From Partition {} To Partition {} ", player->GetGUID(), currentMap->GetPartitionId(), checkMap->GetPartitionId());
             currentMap->RemovePlayerFromMap(player, false);
             player->ResetMap();
             player->SetMap(checkMap);
