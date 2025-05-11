@@ -111,7 +111,7 @@ Map* MapManager::CreateMap(uint32 id, Position const& pos, Player* player, uint3
 {
     ZoneScopedNC("Map* MapManager::CreateMap", WORLD_UPDATE_COLOR)
 
-    TC_LOG_DEBUG("maps", "CreateMap called with id: {} pos: {} player: {} loginInstanceId: {}", id, pos, player, loginInstanceId);
+    TC_LOG_DEBUG("maps", "CreateMap called with id: {} x: {} y: {} loginInstanceId: {}", id, pos.GetPositionX(), pos.GetPositionY(), loginInstanceId);
 
     Map* map = CreateBaseMap(id);
     if (!map)
@@ -129,7 +129,7 @@ Map* MapManager::CreateMap(uint32 id, Position const& pos, Player* player, uint3
         if (!mapInstanced)
             return nullptr;
 
-        TC_LOG_DEBUG("maps", "Calling Create Instance for Player with id: {} pos: {} player: {} loginInstanceId: {}", id, pos, player, loginInstanceId);
+        TC_LOG_DEBUG("maps", "Calling Create Instance for Player with id: {} loginInstanceId: {}", id, loginInstanceId);
         // Additional Logic to check for existing instance
         return mapInstanced->CreateInstanceForPlayer(id, player, loginInstanceId);
     }
