@@ -39,6 +39,9 @@ class TC_GAME_API MapManager
     public:
         static MapManager* instance();
 
+        // FOR DEBUGGING
+        void VisualizePartitions(Unit* owner, Seconds duration);
+
         Map* CreateBaseMap(uint32 mapId);
         Map* CreateMap(uint32 mapId, Position const& pos, Player* player = nullptr, uint32 loginInstanceId = 0);
         uint32 CalculatePartitionId(uint32 mapid, Position const& pos);

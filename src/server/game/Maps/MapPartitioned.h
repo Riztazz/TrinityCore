@@ -18,9 +18,11 @@
 #ifndef TRINITY_MAP_PARTITIONED_H
 #define TRINITY_MAP_PARTITIONED_H
 
+#include "Duration.h"
 #include "Map.h"
 #include "Position.h"
 #include "UniqueTrackablePtr.h"
+#include "Unit.h"
 
 class TC_GAME_API MapPartitioned : public Map
 {
@@ -32,6 +34,9 @@ class TC_GAME_API MapPartitioned : public Map
 
         MapPartitioned(uint32 id);
         ~MapPartitioned() { }
+
+        // DEBUG ONLY
+        void VisualizePartitions(Unit* owner, Seconds duration);
 
         // functions overwrite Map versions
         virtual void InitVisibilityDistance() override;

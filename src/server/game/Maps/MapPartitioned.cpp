@@ -20,8 +20,10 @@
 #include "Group.h"
 #include "Log.h"
 #include "MapManager.h"
+#include "ObjectDefines.h"
 #include "ObjectMgr.h"
 #include "ScriptMgr.h"
+#include "TemporarySummon.h"
 #include "TSProfile.h"
 
 MapPartitioned::MapPartitioned(uint32 id) : Map(id)
@@ -36,6 +38,50 @@ MapPartitioned::MapPartitioned(uint32 id) : Map(id)
     fullMapPolygon.emplace_back(Position(-MAP_HALFSIZE,  MAP_HALFSIZE));
 
     _partitionBounds[1] = std::move(fullMapPolygon);
+}
+
+static const uint32 BOUNDARY_VISUALIZE_CREATURE = 15425;
+static const float BOUNDARY_VISUALIZE_CREATURE_SCALE = 0.25f;
+static const int8 BOUNDARY_VISUALIZE_STEP_SIZE = 5;
+void MapPartitioned::VisualizePartitions(Unit* owner, Seconds duration)
+{
+    for (const auto& [partitionId, polygon] : _partitionBounds)
+    {
+        if (polygon.size() < 2)
+            continue; // Not a valid polygon
+
+        for (size_t i = 0; i < polygon.size(); ++i)
+        {
+            const Position& start = polygon[i];
+            const Position& end = polygon[(i + 1) % polygon.size()]; // Wrap to first point
+
+            float dx = end.GetPositionX() - start.GetPositionX();
+            float dy = end.GetPositionY() - start.GetPositionY();
+            float length = std::sqrt(dx * dx + dy * dy);
+
+            if (length < 1e-3f)
+                continue;
+
+            float stepCount = std::floor(length / BOUNDARY_VISUALIZE_STEP_SIZE);
+            float stepX = dx / length * BOUNDARY_VISUALIZE_STEP_SIZE;
+            float stepY = dy / length * BOUNDARY_VISUALIZE_STEP_SIZE;
+
+            for (int step = 0; step <= stepCount; ++step)
+            {
+                float x = start.GetPositionX() + step * stepX;
+                float y = start.GetPositionY() + step * stepY;
+                float z = GetHeight(0, x, y, owner->GetPositionZ(), true, 100.0f);
+
+                if (TempSummon* point = owner->SummonCreature(BOUNDARY_VISUALIZE_CREATURE, Position(x, y, z), TEMPSUMMON_TIMED_DESPAWN, duration))
+                {
+                    point->SetObjectScale(BOUNDARY_VISUALIZE_CREATURE_SCALE);
+                    point->SetUnitFlag(UNIT_FLAG_STUNNED);
+                    point->SetImmuneToAll(true);
+                    point->SetUnitFlag(UNIT_FLAG_UNINTERACTIBLE);
+                }
+            }
+        }
+    }
 }
 
 void MapPartitioned::InitVisibilityDistance()

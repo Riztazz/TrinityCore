@@ -70,6 +70,19 @@ MapManager* MapManager::instance()
     return &instance;
 }
 
+void MapManager::VisualizePartitions(Unit* owner, Seconds duration)
+{
+    Map* map = FindBaseMap(owner->GetMap());
+    if (!map)
+        return;
+
+    MapPartitioned* mapPartitioned = map->ToMapPartitioned();
+    if (!mapPartitioned)
+        return;
+
+    mapPartitioned->VisualizePartitions(owner, duration);
+}
+
 // This should normally only be called indirectly via CreateMap, but can also be used to
 // create the base maps needed to query for instances or partitions.
 Map* MapManager::CreateBaseMap(uint32 id)

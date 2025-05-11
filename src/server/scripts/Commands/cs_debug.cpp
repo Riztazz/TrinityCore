@@ -120,7 +120,8 @@ public:
             { "guidlimits",         HandleDebugGuidLimitsCommand,          rbac::RBAC_PERM_COMMAND_DEBUG,   Console::Yes },
             { "objectcount",        HandleDebugObjectCountCommand,         rbac::RBAC_PERM_COMMAND_DEBUG,   Console::Yes },
             { "questreset",         HandleDebugQuestResetCommand,          rbac::RBAC_PERM_COMMAND_DEBUG,   Console::Yes },
-            { "warden force",       HandleDebugWardenForce,                rbac::RBAC_PERM_COMMAND_DEBUG,   Console::Yes }
+            { "warden force",       HandleDebugWardenForce,                rbac::RBAC_PERM_COMMAND_DEBUG,   Console::Yes },
+            { "partitions",         HandleDebugPartitionsCommand,          rbac::RBAC_PERM_COMMAND_DEBUG,   Console::No }
         };
         static ChatCommandTable commandTable =
         {
@@ -1439,6 +1440,21 @@ public:
         int32 errMsg = target->AI()->VisualizeBoundary(duration, player, fill.has_value());
         if (errMsg > 0)
             handler->PSendSysMessage(errMsg);
+
+        return true;
+    }
+
+    static bool HandleDebugPartitionsCommand(ChatHandler* handler, Optional<uint32> durationArg)
+    {
+        Player* player = handler->GetPlayer();
+        if (!player)
+            return false;
+
+        Seconds duration = durationArg ? Seconds(*durationArg) : 0s;
+        if (duration <= 0s || duration >= 30min) // arbitrary upper limit
+            duration = 3min;
+
+        sMapMgr->VisualizePartitions(player, duration);
 
         return true;
     }
