@@ -242,11 +242,12 @@ void DelayedUnitRelocation::Visit(PlayerMapType &m)
         if (checkMap->GetPartitionId() != currentMap->GetPartitionId())
         {
             TC_LOG_DEBUG("partitions", "Player {} Moving From Partition {} To Partition {} ", player->GetGUID(), currentMap->GetPartitionId(), checkMap->GetPartitionId());
-            currentMap->RemovePlayerFromMap(player, false);
-            player->ResetMap();
-            player->SetMap(checkMap);
-            checkMap->AddPlayerToMap(player);
-            player->UpdateObjectVisibility(true);
+            player->TeleportTo(checkMap->GetId(), player->GetPositionX(), player->GetPositionY(), player->GetPositionZ(), player->GetOrientation());
+            //currentMap->RemovePlayerFromMap(player, false);
+            //player->ResetMap();
+            //player->SetMap(checkMap);
+            //checkMap->AddPlayerToMap(player);
+            //player->UpdateObjectVisibility(true);
             continue;
         }
 
