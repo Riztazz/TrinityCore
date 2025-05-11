@@ -22901,6 +22901,8 @@ void Player::UpdateVisibilityOf(WorldObject* target)
     {
         if (CanSeeOrDetect(target, false, true))
         {
+            TC_LOG_DEBUG("partitions", "Object {} in Map {} Partition {} is visible now to player {} in Map {} Partition {} at Distance = {}", target->GetGUID().ToString(), target->GetMapId(), target->GetPartitionId(), GetGUID().ToString(), GetMapId(), GetPartitionId(), GetDistance(target));
+
             target->SendUpdateToPlayer(this);
             m_clientGUIDs.insert(target->GetGUID());
 
