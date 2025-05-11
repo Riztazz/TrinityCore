@@ -89,7 +89,6 @@ void ObjectGridLoader::SetObjectCell(MapObject* obj, CellCoord const& cellCoord)
 template <class T>
 void AddObjectHelper(CellCoord &cell, GridRefManager<T> &m, uint32 &count, Map* map, T *obj)
 {
-    TC_LOG_DEBUG("partitions", "AddObjectHelper Object {} added to partition {} ", obj->GetGUID(), map->GetPartitionId());
     obj->AddToGrid(m);
     ObjectGridLoader::SetObjectCell(obj, cell);
     obj->AddToWorld();
@@ -131,17 +130,8 @@ void LoadHelper(CellGuidSet const& guid_set, CellCoord &cell, GridRefManager<T> 
             pos = obj->GetGameObjectData()->spawnPoint;
         else if constexpr (std::is_same_v<T, Creature>)
             pos = obj->GetCreatureData()->spawnPoint;
-        
         if (sMapMgr->CalculatePartitionId(map->GetId(), pos) != map->GetPartitionId())
-        {
-            TC_LOG_DEBUG("partitions", "Object {} NOT loaded in partition {} ", guid, map->GetPartitionId());
             continue;
-        }
-        else
-        {
-            TC_LOG_DEBUG("partitions", "Object {} loaded in partition {} ", guid, map->GetPartitionId());
-            continue;
-        }
 
         AddObjectHelper(cell, m, count, map, obj);
     }

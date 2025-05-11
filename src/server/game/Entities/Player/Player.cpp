@@ -22886,8 +22886,6 @@ void Player::UpdateVisibilityOf(WorldObject* target)
     {
         if (!CanSeeOrDetect(target, false, true))
         {
-            TC_LOG_DEBUG("partitions", "Object {} in Map {} Partition {} is NOT VISIBLE now to player {} in Map {} Partition {} at Distance = {}", target->GetGUID().ToString(), target->GetMapId(), target->GetMap()->GetPartitionId(), GetGUID().ToString(), GetMapId(), GetMap()->GetPartitionId(), GetDistance(target));
-        
             if (target->GetTypeId() == TYPEID_UNIT)
                 BeforeVisibilityDestroy<Creature>(target->ToCreature(), this);
 
@@ -22903,8 +22901,6 @@ void Player::UpdateVisibilityOf(WorldObject* target)
     {
         if (CanSeeOrDetect(target, false, true))
         {
-            TC_LOG_DEBUG("partitions", "Object {} in Map {} Partition {} is VISIBLE now to player {} in Map {} Partition {} at Distance = {}", target->GetGUID().ToString(), target->GetMapId(), target->GetMap()->GetPartitionId(), GetGUID().ToString(), GetMapId(), GetMap()->GetPartitionId(), GetDistance(target));
-
             target->SendUpdateToPlayer(this);
             m_clientGUIDs.insert(target->GetGUID());
 
