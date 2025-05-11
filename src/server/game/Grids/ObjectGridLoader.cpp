@@ -122,6 +122,7 @@ void LoadHelper(CellGuidSet const& guid_set, CellCoord &cell, GridRefManager<T> 
             else
             {
                 TC_LOG_DEBUG("partitions", "Object {} loaded in partition {} ", guid, map->GetPartitionId());
+                continue;
             }
             obj = (T*)GameObject::CreateGameObject(data->id);
         }
