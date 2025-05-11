@@ -41,7 +41,7 @@ MapPartitioned::MapPartitioned(uint32 id) : Map(id)
 }
 
 static const uint32 BOUNDARY_VISUALIZE_CREATURE = 15425;
-static const float BOUNDARY_VISUALIZE_CREATURE_SCALE = 0.25f;
+static const float BOUNDARY_VISUALIZE_CREATURE_SCALE = 0.5f;
 static const int8 BOUNDARY_VISUALIZE_STEP_SIZE = 5;
 void MapPartitioned::VisualizePartitions(Unit* owner, Seconds duration)
 {
