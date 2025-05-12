@@ -26496,6 +26496,59 @@ void Player::SetMap(Map* map)
     m_mapRef.link(map, this);
 }
 
+void Player::SetMapPartition(Map* map)
+{
+    // Should only SetMapParition if we are currently in a map
+    ASSERT(GetMap())
+    ASSERT(map);
+    if (GetMap() == map)
+        return;
+
+    TC_LOG_DEBUG("partitions", "Player {} Moving From Partition {} To Partition {} ", GetGUID(), GetMap()->GetPartitionId(), map->GetPartitionId());
+
+    // Experiment with all of the things we should set off when we cross partitions, these are taken from teleport
+    DuelComplete(DUEL_FLED);
+    SetSelection(ObjectGuid::Empty);
+    CombatStop();
+    ResetContestedPvP();
+    // For now these can't come with player, we resummon in new map
+    if (GetPet())
+        UnsummonPetTemporaryIfAny();
+    // For now these can't come with player
+    RemoveAllDynObjects();
+    if (IsNonMeleeSpellCast(true))
+        InterruptNonMeleeSpells(true);
+    RemoveAurasWithInterruptFlags(AURA_INTERRUPT_FLAG_CHANGE_MAP | AURA_INTERRUPT_FLAG_MOVE | AURA_INTERRUPT_FLAG_TURNING);
+
+    // TODO work out whatever changes we need here
+    GetMap()->RemovePlayerFromMap(this, false);
+
+    // Delete all existing visible objects, we don't have an existing function that does this
+    // since usually we send teleport packets for changing maps
+    UpdateData deleteData;
+    for (auto it = m_clientGUIDs.begin(); it != m_clientGUIDs.end(); ++it)
+        deleteData.AddOutOfRangeGUID(*it);
+    if (deleteData.HasData())
+    {
+        WorldPacket packet;
+        deleteData.BuildPacket(&packet);
+        SendDirectMessage(&packet);
+    }
+
+    // Set the new map
+    ResetMap();
+    SetMap(map);
+    map->AddPlayerToMap(this);
+
+    // We might not need this force (AddPlayerToMap calls it as well)
+    //UpdateObjectVisibility(true);
+
+    ResummonPetTemporaryUnSummonedIfAny();
+
+    // idk if we need this either
+    ProcessDelayedOperations();
+}
+
 void Player::_LoadGlyphs(PreparedQueryResult result)
 {
     // SELECT talentGroup, glyph1, glyph2, glyph3, glyph4, glyph5, glyph6 from character_glyphs WHERE guid = '%u'

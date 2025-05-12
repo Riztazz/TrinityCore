@@ -240,44 +240,9 @@ void DelayedUnitRelocation::Visit(PlayerMapType &m)
         // so a great time to check if we need to change maps
         Map* currentMap = player->GetMap();
         Map* checkMap = sMapMgr->CreateMap(currentMap->GetId(), player->GetPosition(), player);
-        if (checkMap->GetPartitionId() != currentMap->GetPartitionId())
+        if (checkMap != currentMap)
         {
-            TC_LOG_DEBUG("partitions", "Player {} Moving From Partition {} To Partition {} ", player->GetGUID(), currentMap->GetPartitionId(), checkMap->GetPartitionId());
-            //player->TeleportTo(checkMap->GetId(), player->GetPositionX(), player->GetPositionY(), player->GetPositionZ(), player->GetOrientation());
-            // TODO move to new PlayerMethod
-            player->DuelComplete(DUEL_FLED);
-            player->SetSelection(ObjectGuid::Empty);
-            player->CombatStop();
-            player->ResetContestedPvP();
-            // For now these can't come with player, we resummon in new map
-            if (player->GetPet())
-                player->UnsummonPetTemporaryIfAny();
-            // For now these can't come with player
-            player->RemoveAllDynObjects();
-            if (player->IsNonMeleeSpellCast(true))
-                player->InterruptNonMeleeSpells(true);
-            player->RemoveAurasWithInterruptFlags(AURA_INTERRUPT_FLAG_CHANGE_MAP | AURA_INTERRUPT_FLAG_MOVE | AURA_INTERRUPT_FLAG_TURNING);
-
-            // TODO work out whatever changes we need here
-            currentMap->RemovePlayerFromMap(player, false);
-            // Delete all existing visible objects, we don't have an existing function that does this
-            // since usually we send teleport packets for changing maps
-            UpdateData deleteData;
-            for (auto it = player->m_clientGUIDs.begin(); it != player->m_clientGUIDs.end(); ++it)
-                deleteData.AddOutOfRangeGUID(*it);
-            if (deleteData.HasData())
-            {
-                WorldPacket packet;
-                deleteData.BuildPacket(&packet);
-                player->SendDirectMessage(&packet);
-            }
-            // Set the new map
-            player->ResetMap();
-            player->SetMap(checkMap);
-            checkMap->AddPlayerToMap(player);
-            player->UpdateObjectVisibility(true);
-            player->ResummonPetTemporaryUnSummonedIfAny();
-            player->ProcessDelayedOperations();
+            player->SetMapPartition(checkMap);
             continue;
         }
 
