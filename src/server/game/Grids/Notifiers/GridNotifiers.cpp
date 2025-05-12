@@ -248,20 +248,23 @@ void DelayedUnitRelocation::Visit(PlayerMapType &m)
             player->SetSelection(ObjectGuid::Empty);
             player->CombatStop();
             player->ResetContestedPvP();
+            // For now these can't come with player, we resummon in new map
             if (player->GetPet())
                 player->UnsummonPetTemporaryIfAny();
+            // For now these can't come with player
             player->RemoveAllDynObjects();
             if (player->IsNonMeleeSpellCast(true))
                 player->InterruptNonMeleeSpells(true);
             player->RemoveAurasWithInterruptFlags(AURA_INTERRUPT_FLAG_CHANGE_MAP | AURA_INTERRUPT_FLAG_MOVE | AURA_INTERRUPT_FLAG_TURNING);
+
+            // TODO work out whatever changes we need here
             currentMap->RemovePlayerFromMap(player, false);
-            player->PurgeAndApplyPendingMovementChanges(false);
+            player->UpdateObjectVisibility(true); // Try this here as well, if doesn't work try iterating all vis objects and send destroy packets
+
             player->ResetMap();
             player->SetMap(checkMap);
-            player->SendInitialPacketsBeforeAddToMap();
             checkMap->AddPlayerToMap(player);
             player->UpdateObjectVisibility(true); // Normal AddToMap doesn't force it, but since we aren't getting a loading screen I think we need to
-            player->SendInitialPacketsAfterAddToMap();
             player->ResummonPetTemporaryUnSummonedIfAny();
             player->ProcessDelayedOperations();
             continue;
