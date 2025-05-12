@@ -244,6 +244,7 @@ void DelayedUnitRelocation::Visit(PlayerMapType &m)
         {
             TC_LOG_DEBUG("partitions", "Player {} Moving From Partition {} To Partition {} ", player->GetGUID(), currentMap->GetPartitionId(), checkMap->GetPartitionId());
             //player->TeleportTo(checkMap->GetId(), player->GetPositionX(), player->GetPositionY(), player->GetPositionZ(), player->GetOrientation());
+            // TODO move to new PlayerMethod
             player->DuelComplete(DUEL_FLED);
             player->SetSelection(ObjectGuid::Empty);
             player->CombatStop();
@@ -259,12 +260,22 @@ void DelayedUnitRelocation::Visit(PlayerMapType &m)
 
             // TODO work out whatever changes we need here
             currentMap->RemovePlayerFromMap(player, false);
-            player->UpdateObjectVisibility(true); // Try this here as well, if doesn't work try iterating all vis objects and send destroy packets
-
+            // Delete all existing visible objects, we don't have an existing function that does this
+            // since usually we send teleport packets for changing maps
+            UpdateData deleteData;
+            for (auto it = player->m_clientGUIDs.begin(); it != player->m_clientGUIDs.end(); ++it)
+                deleteData.AddOutOfRangeGUID(*it);
+            if (deleteData.HasData())
+            {
+                WorldPacket packet;
+                deleteData.BuildPacket(&packet);
+                player->SendDirectMessage(&packet);
+            }
+            // Set the new map
             player->ResetMap();
             player->SetMap(checkMap);
             checkMap->AddPlayerToMap(player);
-            player->UpdateObjectVisibility(true); // Normal AddToMap doesn't force it, but since we aren't getting a loading screen I think we need to
+            player->UpdateObjectVisibility(true);
             player->ResummonPetTemporaryUnSummonedIfAny();
             player->ProcessDelayedOperations();
             continue;
