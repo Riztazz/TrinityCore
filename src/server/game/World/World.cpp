@@ -1703,7 +1703,7 @@ void World::SetInitialWorldSettings()
     mmmgr->InitializeThreadUnsafe(mapIds);
 
     TC_LOG_INFO("server.loading", "Loading Map Partitions...");
-    //sObjectMgr->LoadMapPartitions();
+    sObjectMgr->LoadMapPartitions();
 
     TC_LOG_INFO("server.loading", "Initializing PlayerDump tables...");
     PlayerDump::InitializeTables();
