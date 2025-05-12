@@ -1678,8 +1678,6 @@ uint8 Player::GetChatTag() const
 
 bool Player::TeleportTo(uint32 mapid, float x, float y, float z, float orientation, uint32 options)
 {
-    Map* targetMap = sMapMgr->CreateMap(mapid, Position(x, y), this);
-
     if (!MapManager::IsValidMapCoord(mapid, x, y, z, orientation))
     {
         TC_LOG_ERROR("maps", "Player::TeleportTo: Invalid map ({}) or invalid coordinates (X: {}, Y: {}, Z: {}, O: {}) given when teleporting player '{}' ({}, MapID: {}, X: {}, Y: {}, Z: {}, O: {}).",
@@ -1742,10 +1740,10 @@ bool Player::TeleportTo(uint32 mapid, float x, float y, float z, float orientati
     // The player was ported to another map and loses the duel immediately.
     // We have to perform this check before the teleport, otherwise the
     // ObjectAccessor won't find the flag.
-    if (duel && GetMap() != targetMap && GetMap()->GetGameObject(GetGuidValue(PLAYER_DUEL_ARBITER)))
+    if (duel && GetMapId() != mapid && GetMap()->GetGameObject(GetGuidValue(PLAYER_DUEL_ARBITER)))
         DuelComplete(DUEL_FLED);
 
-    if (GetMap() == targetMap)
+    if (GetMapId() == mapid)
     {
         //lets reset far teleport flag if it wasn't reset during chained teleport
         SetSemaphoreTeleportFar(false);
@@ -1805,6 +1803,11 @@ bool Player::TeleportTo(uint32 mapid, float x, float y, float z, float orientati
         if (sMapMgr->PlayerCannotEnter(mapid, this, false))
             return false;
 
+        //I think this always returns true. Correct me if I am wrong.
+        // If the map is not created, assume it is possible to enter it.
+        // It will be created in the WorldPortAck.
+        //Map* map = sMapMgr->FindBaseNonInstanceMap(mapid);
+        //if (!map || map->CanEnter(this))
         {
             //lets reset near teleport flag if it wasn't reset during chained teleports
             SetSemaphoreTeleportNear(false);
@@ -27966,6 +27969,11 @@ bool Player::TeleportToInstanceId(uint32 mapid, float x, float y, float z, float
         if (sMapMgr->PlayerCannotEnter(mapid, this, false))
             return false;
 
+        //I think this always returns true. Correct me if I am wrong.
+        // If the map is not created, assume it is possible to enter it.
+        // It will be created in the WorldPortAck.
+        //Map* map = sMapMgr->FindBaseNonInstanceMap(mapid);
+        //if (!map || map->CanEnter(this))
         {
             //lets reset near teleport flag if it wasn't reset during chained teleports
             SetSemaphoreTeleportNear(false);
