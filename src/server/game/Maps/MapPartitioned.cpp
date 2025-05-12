@@ -28,10 +28,13 @@
 
 MapPartitioned::MapPartitioned(uint32 id) : Map(id)
 {
-    std::vector<MapPartition> const* partitions = sObjectMgr->GetMapPartitions(id);
-    if (partitions && !partitions->empty())
-        for (const MapPartition& partition : *partitions)
-            _partitionBounds[partition.partitionId] = partition.polygon;
+    PartitionEntries entries = sObjectMgr->GetMapPartitions(id);
+    
+    std::sort(entries.begin(), entries.end(), [](const MapPartition& a, const MapPartition& b) {
+        return a.priority > b.priority;
+    });
+
+    _partitionEntries = std::move(entries);
 }
 
 static const uint32 BOUNDARY_VISUALIZE_CREATURE = 15425;
@@ -41,15 +44,15 @@ static const float BOUNDARY_VISUALIZE_HEIGHT_OFFSET = 50.0f;
 static const float BOUNDARY_VISUALIZE_HEIGHT_SEARCH = 100.0f;
 void MapPartitioned::VisualizePartitions(Unit* owner, Seconds duration)
 {
-    for (const auto& [partitionId, polygon] : _partitionBounds)
+    for (const auto& partition : _partitionEntries)
     {
-        if (polygon.size() < 2)
+        if (partition.polygon.size() < 2)
             continue; // Not a valid polygon
 
-        for (size_t i = 0; i < polygon.size(); ++i)
+        for (size_t i = 0; i < partition.polygon.size(); ++i)
         {
-            const Position& start = polygon[i];
-            const Position& end = polygon[(i + 1) % polygon.size()]; // Wrap to first point
+            const Position& start = partition.polygon[i];
+            const Position& end = partition.polygon[(i + 1) % partition.polygon.size()]; // Wrap to first point
 
             float dx = end.GetPositionX() - start.GetPositionX();
             float dy = end.GetPositionY() - start.GetPositionY();
@@ -150,10 +153,10 @@ bool MapPartitioned::IsPointInPolygon(Position const& pos, PartitionPolygon cons
 
 uint32 MapPartitioned::CalculatePartitionId(Position const& pos) const
 {
-    for (const auto& [partitionId, polygon] : _partitionBounds)
+    for (const auto& partition : _partitionEntries)
     {
-        if (IsPointInPolygon(pos, polygon))
-            return partitionId;
+        if (IsPointInPolygon(pos, partition.polygon))
+            return partition.partitionId;
     }
 
     return 0;

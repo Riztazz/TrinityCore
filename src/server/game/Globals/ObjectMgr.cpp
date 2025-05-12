@@ -11385,8 +11385,9 @@ void ObjectMgr::LoadMapPartitions()
         partition.id = fields[0].GetUInt32();
         partition.mapId  = fields[1].GetUInt32();
         partition.partitionId   = fields[2].GetUInt32();
+        partition.priority = fields[3].GetUInt32();
 
-        std::string polygon = fields[3].GetString();
+        std::string polygon = fields[4].GetString();
         std::vector<Position> points;
         try {
             json j = json::parse(polygon);

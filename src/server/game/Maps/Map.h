@@ -274,6 +274,7 @@ struct TC_GAME_API MapPartition
     uint32 id;
     uint32 mapId;
     uint32 partitionId;
+    uint32 priority;
     std::vector<Position> polygon;
 };
 

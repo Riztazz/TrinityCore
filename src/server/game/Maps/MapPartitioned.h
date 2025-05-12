@@ -29,7 +29,7 @@ class TC_GAME_API MapPartitioned : public Map
     friend class MapManager;
     public:
         typedef std::vector<Position> PartitionPolygon;
-        typedef std::unordered_map<uint32, PartitionPolygon> PartitionBounds;
+        typedef std::vector<MapPartition> PartitionEntries;
         typedef std::unordered_map<uint32, Trinity::unique_trackable_ptr<Map>> Partitions;
 
         MapPartitioned(uint32 id);
@@ -54,12 +54,12 @@ class TC_GAME_API MapPartitioned : public Map
         bool DestroyPartition(Partitions::iterator &itr);
 
         Partitions &GetPartitions() { return _partitions; }
-        PartitionBounds &GetPartitionBounds() { return _partitionBounds; }
+        PartitionEntries &GetPartitionEntries() { return _partitionEntries; }
     private:
         static bool IsPointInPolygon(Position const& pos, PartitionPolygon const& polygon);
 
-        Partitions _partitions;
-        PartitionBounds _partitionBounds; // partitionId -> polygon
+        Partitions _partitions; // The actual maps
+        PartitionEntries _partitionEntries; // The database entries
 };
 
 #endif // TRINITY_MAP_PARTITIONED_H
