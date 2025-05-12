@@ -24,6 +24,7 @@
 #include "UpdateData.h"
 #include "Transport.h"
 #include "ObjectAccessor.h"
+#include "SpellDefines.h"
 
 // @tswow-begin
 #include "TSUnit.h"
@@ -242,12 +243,27 @@ void DelayedUnitRelocation::Visit(PlayerMapType &m)
         if (checkMap->GetPartitionId() != currentMap->GetPartitionId())
         {
             TC_LOG_DEBUG("partitions", "Player {} Moving From Partition {} To Partition {} ", player->GetGUID(), currentMap->GetPartitionId(), checkMap->GetPartitionId());
-            player->TeleportTo(checkMap->GetId(), player->GetPositionX(), player->GetPositionY(), player->GetPositionZ(), player->GetOrientation());
-            //currentMap->RemovePlayerFromMap(player, false);
-            //player->ResetMap();
-            //player->SetMap(checkMap);
-            //checkMap->AddPlayerToMap(player);
-            //player->UpdateObjectVisibility(true);
+            //player->TeleportTo(checkMap->GetId(), player->GetPositionX(), player->GetPositionY(), player->GetPositionZ(), player->GetOrientation());
+            player->DuelComplete(DUEL_FLED);
+            player->SetDelayedTeleportFlag(false);
+            player->SetSelection(ObjectGuid::Empty);
+            player->CombatStop();
+            player->ResetContestedPvP();
+            if (player->GetPet())
+                player->UnsummonPetTemporaryIfAny();
+            player->RemoveAllDynObjects();
+            if (player->IsNonMeleeSpellCast(true))
+                player->InterruptNonMeleeSpells(true);
+            player->RemoveAurasWithInterruptFlags(AURA_INTERRUPT_FLAG_CHANGE_MAP | AURA_INTERRUPT_FLAG_MOVE | AURA_INTERRUPT_FLAG_TURNING);
+            currentMap->RemovePlayerFromMap(player, false);
+            player->PurgeAndApplyPendingMovementChanges(false);
+            player->ResetMap();
+            player->SetMap(checkMap);
+            player->SendInitialPacketsBeforeAddToMap();
+            checkMap->AddPlayerToMap(player);
+            player->SendInitialPacketsAfterAddToMap();
+            player->ResummonPetTemporaryUnSummonedIfAny();
+            player->ProcessDelayedOperations();
             continue;
         }
 

@@ -43,6 +43,7 @@ MapPartitioned::MapPartitioned(uint32 id) : Map(id)
 static const uint32 BOUNDARY_VISUALIZE_CREATURE = 15425;
 static const float BOUNDARY_VISUALIZE_CREATURE_SCALE = 0.5f;
 static const int8 BOUNDARY_VISUALIZE_STEP_SIZE = 5;
+static const float BOUNDARY_VISUALIZE_HEIGHT_SEARCH = 100.0f;
 void MapPartitioned::VisualizePartitions(Unit* owner, Seconds duration)
 {
     for (const auto& [partitionId, polygon] : _partitionBounds)
@@ -65,12 +66,13 @@ void MapPartitioned::VisualizePartitions(Unit* owner, Seconds duration)
             float stepCount = std::floor(length / BOUNDARY_VISUALIZE_STEP_SIZE);
             float stepX = dx / length * BOUNDARY_VISUALIZE_STEP_SIZE;
             float stepY = dy / length * BOUNDARY_VISUALIZE_STEP_SIZE;
+            float lastZ = owner->GetPositionZ();
 
             for (int step = 0; step <= stepCount; ++step)
             {
                 float x = start.GetPositionX() + step * stepX;
                 float y = start.GetPositionY() + step * stepY;
-                float z = GetHeight(0, x, y, owner->GetPositionZ(), true, 100.0f);
+                float z = GetHeight(0, x, y, lastZ + BOUNDARY_VISUALIZE_HEIGHT_SEARCH/2, true, BOUNDARY_VISUALIZE_HEIGHT_SEARCH);
 
                 if (TempSummon* point = owner->SummonCreature(BOUNDARY_VISUALIZE_CREATURE, Position(x, y, z), TEMPSUMMON_TIMED_DESPAWN, duration))
                 {
@@ -78,6 +80,11 @@ void MapPartitioned::VisualizePartitions(Unit* owner, Seconds duration)
                     point->SetUnitFlag(UNIT_FLAG_STUNNED);
                     point->SetImmuneToAll(true);
                     point->SetUnitFlag(UNIT_FLAG_UNINTERACTIBLE);
+                    lastZ = z;
+                }
+                else
+                {
+                    lastZ = owner->GetPositionZ();
                 }
             }
         }
