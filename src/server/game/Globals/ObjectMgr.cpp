@@ -64,6 +64,7 @@
 #include "World.h"
 #include "DBCStores.h"
 #include <nlohmann/json.hpp>
+using json = nlohmann::json;
 
 ScriptMapMap sSpellScripts;
 ScriptMapMap sEventScripts;
