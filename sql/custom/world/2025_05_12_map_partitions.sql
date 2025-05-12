@@ -1,4 +1,4 @@
-CREATE TABLE `map_partitions`  (
+CREATE TABLE IF NOT EXISTS `map_partitions`  (
   `id` INT NOT NULL AUTO_INCREMENT,
   `mapId` INT NOT NULL,
   `partitionId` INT NOT NULL,
