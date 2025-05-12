@@ -600,8 +600,7 @@ bool Map::AddToMap(T* obj)
 
     if (obj->isActiveObject())
         AddToActive(obj);
-
-    if (obj->IsCreature() && obj->ToCreature()->GetWaypointPath() != 0)
+    else if (obj->IsCreature() && obj->ToCreature()->GetWaypointPath() != 0)
     {
         TC_LOG_DEBUG("partitions", "Map::AddToMap: AddToWaypointCreatures {}", obj->GetName());
         AddToWaypointCreatures(obj->ToCreature());
@@ -870,18 +869,18 @@ void Map::Update(uint32 t_diff)
                     continue;
 
                 // Manually update the creature and its formation members
-                if (creature->IsFormationLeader())
-                {
-                    for (auto itr = creature->GetFormation()->GetMembersBegin(); itr != creature->GetFormation()->GetMembersEnd(); ++itr)
-                    {
-                        itr->first->Update(t_diff);
-                    }
-                }
-                // Don't update formation members, they are updated by the leader
-                else if (!creature->GetFormation())
-                {
+                // if (creature->IsFormationLeader())
+                // {
+                //     for (auto itr = creature->GetFormation()->GetMembersBegin(); itr != creature->GetFormation()->GetMembersEnd(); ++itr)
+                //     {
+                //         itr->first->Update(t_diff);
+                //     }
+                // }
+                // // Don't update formation members, they are updated by the leader
+                // else if (!creature->GetFormation())
+                // {
                     creature->Update(t_diff);
-                }
+                // }
             }
         }
     }
@@ -1079,8 +1078,7 @@ void Map::RemoveFromMap(T *obj, bool remove)
 
     if (obj->isActiveObject())
         RemoveFromActive(obj);
-
-    if (obj->IsCreature() && obj->ToCreature()->GetWaypointPath() != 0)
+    else if (obj->IsCreature() && obj->ToCreature()->GetWaypointPath() != 0)
     {
         TC_LOG_DEBUG("partitions", "Map::RemoveFromMap: RemoveFromWaypointCreatures {}", obj->GetName());
         RemoveFromWaypointCreatures(obj->ToCreature());
