@@ -602,7 +602,11 @@ bool Map::AddToMap(T* obj)
         AddToActive(obj);
 
     if (obj->IsCreature() && obj->ToCreature()->GetWaypointPath() != 0)
+    {
+        TC_LOG_DEBUG("partitions", "Map::AddToMap: AddToWaypointCreatures {}", obj->GetName());
         AddToWaypointCreatures(obj->ToCreature());
+    }
+        
 
     //something, such as vehicle, needs to be update immediately
     //also, trigger needs to cast spell, if not update, cannot see visual
@@ -1077,7 +1081,10 @@ void Map::RemoveFromMap(T *obj, bool remove)
         RemoveFromActive(obj);
 
     if (obj->IsCreature() && obj->ToCreature()->GetWaypointPath() != 0)
+    {
+        TC_LOG_DEBUG("partitions", "Map::RemoveFromMap: RemoveFromWaypointCreatures {}", obj->GetName());
         RemoveFromWaypointCreatures(obj->ToCreature());
+    }
 
     if (!inWorld) // if was in world, RemoveFromWorld() called DestroyForNearbyPlayers()
         obj->DestroyForNearbyPlayers(); // previous obj->UpdateObjectVisibility(true)
@@ -1506,6 +1513,7 @@ bool Map::CreatureCellRelocation(Creature* c, Cell new_cell)
         #endif
 
         c->RemoveFromGrid();
+        EnsureGridCreated(GridCoord(new_cell.GridX(), new_cell.GridY()));
         AddToGrid(c, new_cell);
 
         return true;
@@ -1565,6 +1573,7 @@ bool Map::GameObjectCellRelocation(GameObject* go, Cell new_cell)
 #endif
 
         go->RemoveFromGrid();
+        EnsureGridCreated(GridCoord(new_cell.GridX(), new_cell.GridY()));
         AddToGrid(go, new_cell);
 
         return true;
@@ -1624,6 +1633,7 @@ bool Map::DynamicObjectCellRelocation(DynamicObject* go, Cell new_cell)
 #endif
 
         go->RemoveFromGrid();
+        EnsureGridCreated(GridCoord(new_cell.GridX(), new_cell.GridY()));
         AddToGrid(go, new_cell);
 
         return true;
