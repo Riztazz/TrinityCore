@@ -26499,7 +26499,7 @@ void Player::SetMap(Map* map)
 void Player::SetMapPartition(Map* map)
 {
     // Should only SetMapParition if we are currently in a map
-    ASSERT(GetMap())
+    ASSERT(GetMap());
     ASSERT(map);
     if (GetMap() == map)
         return;
