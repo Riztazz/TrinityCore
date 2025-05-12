@@ -28,13 +28,18 @@
 
 MapPartitioned::MapPartitioned(uint32 id) : Map(id)
 {
-    PartitionEntries entries = sObjectMgr->GetMapPartitions(id);
-    
-    std::sort(entries.begin(), entries.end(), [](const MapPartition& a, const MapPartition& b) {
-        return a.priority > b.priority;
-    });
+    PartitionEntries const* entries = sObjectMgr->GetMapPartitions(id);
 
-    _partitionEntries = std::move(entries);
+    if (entries && !entries->empty())
+    {
+        PartitionEntries sortedEntries = *entries;
+
+        std::sort(sortedEntries.begin(), sortedEntries.end(), [](const MapPartition& a, const MapPartition& b) {
+            return a.priority > b.priority;
+        });
+
+        _partitionEntries = std::move(sortedEntries);
+    }
 }
 
 static const uint32 BOUNDARY_VISUALIZE_CREATURE = 15425;
