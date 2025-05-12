@@ -245,7 +245,6 @@ void DelayedUnitRelocation::Visit(PlayerMapType &m)
             TC_LOG_DEBUG("partitions", "Player {} Moving From Partition {} To Partition {} ", player->GetGUID(), currentMap->GetPartitionId(), checkMap->GetPartitionId());
             //player->TeleportTo(checkMap->GetId(), player->GetPositionX(), player->GetPositionY(), player->GetPositionZ(), player->GetOrientation());
             player->DuelComplete(DUEL_FLED);
-            player->SetDelayedTeleportFlag(false);
             player->SetSelection(ObjectGuid::Empty);
             player->CombatStop();
             player->ResetContestedPvP();
