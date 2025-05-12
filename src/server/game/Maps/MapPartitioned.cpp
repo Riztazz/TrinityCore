@@ -37,6 +37,7 @@ MapPartitioned::MapPartitioned(uint32 id) : Map(id)
 static const uint32 BOUNDARY_VISUALIZE_CREATURE = 15425;
 static const float BOUNDARY_VISUALIZE_CREATURE_SCALE = 0.5f;
 static const int8 BOUNDARY_VISUALIZE_STEP_SIZE = 5;
+static const float BOUNDARY_VISUALIZE_HEIGHT_OFFSET = 5.0f;
 static const float BOUNDARY_VISUALIZE_HEIGHT_SEARCH = 100.0f;
 void MapPartitioned::VisualizePartitions(Unit* owner, Seconds duration)
 {
@@ -66,7 +67,7 @@ void MapPartitioned::VisualizePartitions(Unit* owner, Seconds duration)
             {
                 float x = start.GetPositionX() + step * stepX;
                 float y = start.GetPositionY() + step * stepY;
-                float z = GetHeight(0, x, y, lastZ + BOUNDARY_VISUALIZE_HEIGHT_SEARCH/2, true, BOUNDARY_VISUALIZE_HEIGHT_SEARCH);
+                float z = GetHeight(0, x, y, lastZ + BOUNDARY_VISUALIZE_HEIGHT_OFFSET, true, BOUNDARY_VISUALIZE_HEIGHT_SEARCH);
 
                 if (TempSummon* point = owner->SummonCreature(BOUNDARY_VISUALIZE_CREATURE, Position(x, y, z), TEMPSUMMON_TIMED_DESPAWN, duration))
                 {
