@@ -4003,12 +4003,6 @@ PartitionMap::~PartitionMap()
 {
 }
 
-bool PartitionMap::IsInPartition(Position const& pos) const
-{
-    auto parentPartitioned = _parent->ToMapPartitioned();
-    return parentPartitioned->CalculatePartitionId(pos) == _partitionId;
-}
-
 // TODO anything we need to override from map or additional functions
 
 /* ******* Dungeon Instance Maps ******* */

@@ -268,6 +268,15 @@ struct ZoneDynamicInfo
 #define MIN_UNLOAD_DELAY      1                             // immediate unload
 #define MAP_INVALID_ZONE      0xFFFFFFFF
 
+// from `map_partitions` table
+struct TC_GAME_API MapPartition
+{
+    uint32 id;
+    uint32 mapId;
+    uint32 partitionId;
+    std::vector<Position> polygon;
+};
+
 struct RespawnInfo; // forward declaration
 struct CompareRespawnInfo
 {
@@ -366,7 +375,6 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
         virtual uint32 GetInstanceId() const { return 0; }
         virtual uint8 GetSpawnMode() const { return REGULAR_DIFFICULTY; }
         virtual Map const* GetParent() const { return this; }
-        virtual bool IsInPartition(Position const& pos) const { return true; }
 
         static bool ExistMap(uint32 mapId, int gx, int gy);
         static bool ExistVMap(uint32 mapId, int gx, int gy);
@@ -927,7 +935,6 @@ class TC_GAME_API PartitionMap : public Map
 
         uint32 GetPartitionId() const override { return _partitionId; }
         Map const* GetParent() const override { return _parent; }
-        bool IsInPartition(Position const& pos) const override;
     private:
         uint32 _partitionId;
         Map const* _parent;

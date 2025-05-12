@@ -260,6 +260,7 @@ void DelayedUnitRelocation::Visit(PlayerMapType &m)
             player->SetMap(checkMap);
             player->SendInitialPacketsBeforeAddToMap();
             checkMap->AddPlayerToMap(player);
+            player->UpdateObjectVisibility(true); // Normal AddToMap doesn't force it, but since we aren't getting a loading screen I think we need to
             player->SendInitialPacketsAfterAddToMap();
             player->ResummonPetTemporaryUnSummonedIfAny();
             player->ProcessDelayedOperations();

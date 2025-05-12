@@ -28,16 +28,10 @@
 
 MapPartitioned::MapPartitioned(uint32 id) : Map(id)
 {
-    // TODO lookup partition entry data and keep parition bounds here - we do this here since we
-    // since we need to determine the partition id before the map is loaded for the player
-    // Create a single partition (partitionId = 1) that covers the whole map as a rectangle
-    PartitionPolygon fullMapPolygon;
-    fullMapPolygon.emplace_back(Position(-1000, -1000));
-    fullMapPolygon.emplace_back(Position( 1000, -1000));
-    fullMapPolygon.emplace_back(Position( 1000,  1000));
-    fullMapPolygon.emplace_back(Position(-1000,  1000));
-
-    _partitionBounds[1] = std::move(fullMapPolygon);
+    std::vector<MapPartition> const* partitions = sObjectMgr->GetMapPartitions(id);
+    if (partitions && !partitions->empty())
+        for (const MapPartition& partition : *partitions)
+            _partitionBounds[partition.partitionId] = partition.polygon;
 }
 
 static const uint32 BOUNDARY_VISUALIZE_CREATURE = 15425;

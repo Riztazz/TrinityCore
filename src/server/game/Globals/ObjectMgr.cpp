@@ -47,6 +47,7 @@
 #include "ObjectAccessor.h"
 #include "Player.h"
 #include "PoolMgr.h"
+#include "Position.h"
 #include "QueryPackets.h"
 #include "Random.h"
 #include "ReputationMgr.h"
@@ -62,6 +63,7 @@
 #include "Vehicle.h"
 #include "World.h"
 #include "DBCStores.h"
+#include <nlohmann/json.hpp>
 
 ScriptMapMap sSpellScripts;
 ScriptMapMap sEventScripts;
@@ -11360,6 +11362,51 @@ void ObjectMgr::LoadCreatureQuestItems()
     while (result->NextRow());
 
     TC_LOG_INFO("server.loading", ">> Loaded {} creature quest items in {} ms", count, GetMSTimeDiffToNow(oldMSTime));
+}
+
+void ObjectMgr::LoadMapPartitions()
+{
+    uint32 oldMSTime = getMSTime();
+
+    //                                                    0     1        2          3
+    QueryResult result = WorldDatabase.Query("SELECT id, mapId, partitionId, polygon FROM map_partition ORDER BY id ASC");
+    if (!result)
+    {
+        TC_LOG_INFO("server.loading", ">> Loaded 0 map partitions. DB table `map_partitions` is empty.");
+        return;
+    }
+
+    uint32 count = 0;
+    do
+    {
+        MapPartition partition;
+        Field* fields = result->Fetch();
+        partition.id = fields[0].GetUInt32();
+        partition.mapId  = fields[1].GetUInt32();
+        partition.partitionId   = fields[2].GetUInt32();
+
+        std::string polygon = fields[3].GetString();
+        std::vector<Position> points;
+        try {
+            json j = json::parse(polygon);
+            for (const auto& pt : j) {
+                float x = pt.at("x").get<float>();
+                float y = pt.at("y").get<float>();
+                points.emplace_back(x, y);
+            }
+        } catch (const std::exception& e) {
+            TC_LOG_ERROR("server.loading", "Failed to parse polygon JSON for map partition {}: {}", partition.id, e.what());
+        }
+        partition.polygon = points;
+
+        std::vector<MapPartition>& mapPartitions = _mapPartitionsStore[partition.mapId];
+        mapPartitions.push_back(partition);
+
+        ++count;
+    }
+    while (result->NextRow());
+
+    TC_LOG_INFO("server.loading", ">> Loaded {} map partitions in {} ms", count, GetMSTimeDiffToNow(oldMSTime));
 }
 
 void ObjectMgr::InitializeQueriesData(QueryDataGroup mask)

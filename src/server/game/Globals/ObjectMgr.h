@@ -29,6 +29,7 @@
 #include "GameObjectData.h"
 #include "ItemTemplate.h"
 #include "IteratorPair.h"
+#include "Map.h"
 #include "NPCHandler.h"
 #include "ObjectDefines.h"
 #include "ObjectGuid.h"
@@ -570,6 +571,7 @@ typedef std::unordered_map<uint32, QuestRequestItemsLocale> QuestRequestItemsLoc
 typedef std::unordered_map<uint32, NpcTextLocale> NpcTextLocaleContainer;
 typedef std::unordered_map<uint32, PageTextLocale> PageTextLocaleContainer;
 typedef std::unordered_map<uint32, VehicleSeatAddon> VehicleSeatAddonContainer;
+typedef std::unordered_map<uint32, std::vector<MapPartition>> MapPartitionsContainer;
 
 struct GossipMenuItemsLocale
 {
@@ -1662,6 +1664,16 @@ class TC_GAME_API ObjectMgr
             return &itr->second;
         }
 
+        void LoadMapPartitions();
+        std::vector<MapPartition> const* GetMapPartitions(uint32 mapId) const
+        {
+            MapPartitionsContainer::const_iterator itr = _mapPartitionsStore.find(mapId);
+            if (itr != _mapPartitionsStore.end())
+                return &itr->second;
+            return nullptr;
+        }
+        MapPartitionsContainer const* GetMapPartitionsMap() const { return &_mapPartitionsStore; }
+
     private:
         // first free id for selected id type
         uint32 _auctionId;
@@ -1832,6 +1844,7 @@ class TC_GAME_API ObjectMgr
 
         PlayerTotemModelMap _playerTotemModel;
         VehicleSeatAddonContainer _vehicleSeatAddonStore;
+        MapPartitionsContainer _mapPartitionsStore;
 };
 
 #define sObjectMgr ObjectMgr::instance()
