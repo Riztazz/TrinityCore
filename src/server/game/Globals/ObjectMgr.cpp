@@ -11369,8 +11369,8 @@ void ObjectMgr::LoadMapPartitions()
 {
     uint32 oldMSTime = getMSTime();
 
-    //                                                    0     1        2          3
-    QueryResult result = WorldDatabase.Query("SELECT id, mapId, partitionId, polygon FROM map_partitions ORDER BY id ASC");
+    //                                                    0     1        2           3         4
+    QueryResult result = WorldDatabase.Query("SELECT id, mapId, partitionId, priority, polygon FROM map_partitions ORDER BY id ASC");
     if (!result)
     {
         TC_LOG_INFO("server.loading", ">> Loaded 0 map partitions. DB table `map_partitions` is empty.");
