@@ -469,7 +469,6 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
         // must called with RemoveFromWorld
         void RemoveFromActive(WorldObject* obj);
 
-        // Unlike ActiveObjects we do not need to lock the respawn position grid, as this option is only available when Grid Unloading is disabled
         // must called with AddToWorld
         void AddToWaypointCreatures(Creature* creature)
         {
