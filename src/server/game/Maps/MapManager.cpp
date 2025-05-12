@@ -16,7 +16,6 @@
  */
 
 #include "MapManager.h"
-#include "DisableMgr.h"
 #include "InstanceSaveMgr.h"
 #include "DatabaseEnv.h"
 #include "Log.h"
@@ -37,9 +36,6 @@
 #include "Opcodes.h"
 #include "TSProfile.h"
 #include "ScriptMgr.h"
-#include "VMapFactory.h"
-#include "VMapManager2.h"
-#include "MMapFactory.h"
 #include <numeric>
 
 MapManager::MapManager()
