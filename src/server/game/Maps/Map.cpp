@@ -600,12 +600,8 @@ bool Map::AddToMap(T* obj)
 
     if (obj->isActiveObject())
         AddToActive(obj);
-    else if (obj->IsCreature() && obj->ToCreature()->GetWaypointPath() != 0)
-    {
-        TC_LOG_DEBUG("partitions", "Map::AddToMap: AddToWaypointCreatures {}", obj->GetName());
+    if (obj->IsCreature() && obj->ToCreature()->IsWaypointAlwaysUpdate())
         AddToWaypointCreatures(obj->ToCreature());
-    }
-        
 
     //something, such as vehicle, needs to be update immediately
     //also, trigger needs to cast spell, if not update, cannot see visual
@@ -851,7 +847,6 @@ void Map::Update(uint32 t_diff)
             }
         }
 
-        if (sWorld->getBoolConfig(CONFIG_ALWAYS_UPDATE_WAYPOINT_CREATURES))
         {
             ZoneScopedNC("EntityUpdates(Source:Waypoint Creatures)", MAP_UPDATE_COLOR);
             // waypoint creatures, increasing iterator in the loop in case of object removal
@@ -868,19 +863,7 @@ void Map::Update(uint32 t_diff)
                 if (isCellMarked(cellCoord.GetId()))
                     continue;
 
-                // Manually update the creature and its formation members
-                // if (creature->IsFormationLeader())
-                // {
-                //     for (auto itr = creature->GetFormation()->GetMembersBegin(); itr != creature->GetFormation()->GetMembersEnd(); ++itr)
-                //     {
-                //         itr->first->Update(t_diff);
-                //     }
-                // }
-                // // Don't update formation members, they are updated by the leader
-                // else if (!creature->GetFormation())
-                // {
-                    creature->Update(t_diff);
-                // }
+                creature->Update(t_diff);
             }
         }
     }
@@ -1078,11 +1061,8 @@ void Map::RemoveFromMap(T *obj, bool remove)
 
     if (obj->isActiveObject())
         RemoveFromActive(obj);
-    else if (obj->IsCreature() && obj->ToCreature()->GetWaypointPath() != 0)
-    {
-        TC_LOG_DEBUG("partitions", "Map::RemoveFromMap: RemoveFromWaypointCreatures {}", obj->GetName());
+    if (obj->IsCreature() && obj->ToCreature()->IsWaypointAlwaysUpdate())
         RemoveFromWaypointCreatures(obj->ToCreature());
-    }
 
     if (!inWorld) // if was in world, RemoveFromWorld() called DestroyForNearbyPlayers()
         obj->DestroyForNearbyPlayers(); // previous obj->UpdateObjectVisibility(true)
@@ -1497,7 +1477,7 @@ bool Map::CreatureCellRelocation(Creature* c, Cell new_cell)
         return true;
     }
 
-    if (c->GetWaypointPath() != 0 && sWorld->getBoolConfig(CONFIG_ALWAYS_UPDATE_WAYPOINT_CREATURES))
+    if (c->IsWaypointAlwaysUpdate())
         EnsureGridLoaded(new_cell);
 
     if (c->GetCharmerOrOwnerGUID().IsPlayer())
