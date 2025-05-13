@@ -676,14 +676,16 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
 
         virtual std::string GetDebugInfo() const;
 
-    private:
+    protected:
         virtual void LoadMapAndVMap(int gx, int gy);
         virtual void LoadVMap(int gx, int gy);
         virtual void LoadMap(int gx, int gy);
         virtual void LoadMMap(int gx, int gy);
         virtual GridMap* GetGrid(int gx, int gy);
         virtual GridMap* GetGrid(float x, float y);
+        virtual void UpdateWeather(uint32 t_diff);
 
+    private:
         void SendInitSelf(Player* player);
 
         bool CreatureCellRelocation(Creature* creature, Cell new_cell);
@@ -770,7 +772,6 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
         GridMap* GridMaps[MAX_NUMBER_OF_GRIDS][MAX_NUMBER_OF_GRIDS];
         std::bitset<TOTAL_NUMBER_OF_CELLS_PER_MAP*TOTAL_NUMBER_OF_CELLS_PER_MAP> marked_cells;
 
-        virtual void UpdateWeather(uint32 t_diff);
         //these functions used to process player/mob aggro reactions and
         //visibility calculations. Highly optimized for massive calculations
         void ProcessRelocationNotifies(const uint32 diff);
@@ -963,7 +964,8 @@ class TC_GAME_API PartitionMap : public Map
         {
             return _parent->SetZoneOverrideLight(zoneId, areaLightId, overrideLightId, transitionTime);
         }
-    private:
+
+    protected:
         void LoadMapAndVMap(int gx, int gy) override { _parent->LoadMapAndVMap(gx, gy); }
         void LoadVMap(int gx, int gy) override { _parent->LoadVMap(gx, gy); }
         void LoadMap(int gx, int gy) override { _parent->LoadMap(gx, gy); }
@@ -972,6 +974,7 @@ class TC_GAME_API PartitionMap : public Map
         GridMap* GetGrid(float x, float y) override { return _parent->GetGrid(x, y); }
         void UpdateWeather(uint32 t_diff) override { /* do nothing, parent updates weather */ }
 
+    private:
         uint32 _partitionId;
         Map* _parent;
 };
@@ -1012,7 +1015,8 @@ class TC_GAME_API InstanceMap : public Map
         virtual void InitVisibilityDistance() override;
 
         std::string GetDebugInfo() const override;
-    private:
+
+    protected:
         void LoadMapAndVMap(int gx, int gy) override { _parent->LoadMapAndVMap(gx, gy); }
         void LoadVMap(int gx, int gy) override { _parent->LoadVMap(gx, gy); }
         void LoadMap(int gx, int gy) override { _parent->LoadMap(gx, gy); }
@@ -1020,6 +1024,7 @@ class TC_GAME_API InstanceMap : public Map
         GridMap* GetGrid(int gx, int gy) override { return _parent->GetGrid(gx, gy); }
         GridMap* GetGrid(float x, float y) override { return _parent->GetGrid(x, y); }
 
+    private:
         uint32 _instanceId;
         uint8 _spawnMode;
         Map* _parent;
@@ -1050,6 +1055,15 @@ class TC_GAME_API BattlegroundMap : public Map
         virtual void InitVisibilityDistance() override;
         Battleground* GetBG() { return m_bg; }
         void SetBG(Battleground* bg) { m_bg = bg; }
+
+    protected:
+        void LoadMapAndVMap(int gx, int gy) override { _parent->LoadMapAndVMap(gx, gy); }
+        void LoadVMap(int gx, int gy) override { _parent->LoadVMap(gx, gy); }
+        void LoadMap(int gx, int gy) override { _parent->LoadMap(gx, gy); }
+        void LoadMMap(int gx, int gy) override { _parent->LoadMMap(gx, gy); }
+        GridMap* GetGrid(int gx, int gy) override { return _parent->GetGrid(gx, gy); }
+        GridMap* GetGrid(float x, float y) override { return _parent->GetGrid(x, y); }
+
     private:
         uint32 _instanceId;
         uint8 _spawnMode;
