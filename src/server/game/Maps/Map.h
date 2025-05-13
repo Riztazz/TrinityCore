@@ -933,7 +933,7 @@ enum InstanceResetMethod
 class TC_GAME_API PartitionMap : public Map
 {
     public:
-        PartitionMap(uint32 id, uint32 partitionId, Map const* parent);
+        PartitionMap(uint32 id, uint32 partitionId, Map* parent);
         ~PartitionMap();
 
         uint32 GetPartitionId() const override { return _partitionId; }
