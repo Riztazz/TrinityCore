@@ -203,6 +203,9 @@ void Map::LoadVMap(int gx, int gy)
 
 void Map::LoadMap(int gx, int gy)
 {
+    if (GridMaps[gx][gy])
+        return;
+
     // map file name
     std::string fileName = Trinity::StringFormat("{}maps/{:03}{:02}{:02}.map", sWorld->GetDataPath(), GetId(), gx, gy);
     TC_LOG_DEBUG("maps", "Loading map {}", fileName);
@@ -216,9 +219,6 @@ void Map::LoadMap(int gx, int gy)
 
 void Map::LoadMapAndVMap(int gx, int gy)
 {
-    if (GetParent() != this)
-        return const_cast<Map*>(GetParent())->LoadMapAndVMap(gx, gy);
-
     if (GridMaps[gx][gy])
         return;
 
@@ -896,16 +896,7 @@ void Map::Update(uint32 t_diff)
         i_scriptLock = false;
     }
 
-    _weatherUpdateTimer.Update(t_diff);
-    if (_weatherUpdateTimer.Passed())
-    {
-        ZoneScopedNC("Update Weather", MAP_UPDATE_COLOR)
-        for (auto&& zoneInfo : _zoneDynamicInfo)
-            if (zoneInfo.second.DefaultWeather && !zoneInfo.second.DefaultWeather->Update(_weatherUpdateTimer.GetInterval()))
-                zoneInfo.second.DefaultWeather.reset();
-
-        _weatherUpdateTimer.Reset();
-    }
+    UpdateWeather(t_diff);
 
     {
         ZoneScopedNC("MoveWorldObjects", MAP_UPDATE_COLOR)
@@ -934,6 +925,22 @@ void Map::Update(uint32 t_diff)
 }
 // @tswow-end tracy
 
+// Partitions should override this and do nothing, only the base map
+// updates the weather and partitions will get their weather from the base map
+void Map::UpdateWeather(uint32 t_diff)
+{
+    _weatherUpdateTimer.Update(t_diff);
+    if (!_weatherUpdateTimer.Passed())
+        return;
+
+    ZoneScopedNC("Update Weather", MAP_UPDATE_COLOR)
+    for (auto&& zoneInfo : _zoneDynamicInfo)
+        if (zoneInfo.second.DefaultWeather && !zoneInfo.second.DefaultWeather->Update(_weatherUpdateTimer.GetInterval()))
+            zoneInfo.second.DefaultWeather.reset();
+
+    _weatherUpdateTimer.Reset();
+}
+
 struct ResetNotifier
 {
     template<class T>inline void resetNotify(GridRefManager<T> &m)
@@ -946,6 +953,8 @@ struct ResetNotifier
     void Visit(PlayerMapType &m) { resetNotify<Player>(m);}
 };
 
+// TODO revisit this process, it seems like there could be a lot of overlap with the update process and possibly
+// we could notify and reset notifies in the same loop.
 void Map::ProcessRelocationNotifies(const uint32 diff)
 {
     for (GridRefManager<NGridType>::iterator i = GridRefManager<NGridType>::begin(); i != GridRefManager<NGridType>::end(); ++i)
@@ -2459,17 +2468,11 @@ inline ZLiquidStatus GridMap::GetLiquidStatus(float x, float y, float z, Optiona
 
 inline GridMap* Map::GetGrid(int gx, int gy)
 {
-    if (GetParent() != this)
-        return const_cast<Map*>(GetParent())->GetGrid(gx, gy);
-
     return GridMaps[gx][gy];
 }
 
 inline GridMap* Map::GetGrid(float x, float y)
 {
-    if (GetParent() != this)
-        return const_cast<Map*>(GetParent())->GetGrid(x, y);
-
     // half opt method
     // gx/gy go from N-1->0, whereas x/y go from -MapSize->MapSize
     // This correctly scales, inverts and offsets our position

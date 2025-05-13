@@ -627,16 +627,16 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
 
         void SendInitTransports(Player* player);
         void SendRemoveTransports(Player* player);
-        void SendZoneDynamicInfo(uint32 zoneId, Player* player) const;
-        void SendZoneWeather(uint32 zoneId, Player* player) const;
+        virtual void SendZoneDynamicInfo(uint32 zoneId, Player* player) const;
+        virtual void SendZoneWeather(uint32 zoneId, Player* player) const;
         void SendZoneWeather(ZoneDynamicInfo const& zoneDynamicInfo, Player* player) const;
         uint32 GetWeatherZoneParent(uint32 zoneId) const;
         void SendZoneText(uint32 zoneId, const char* text, WorldSession const* self = nullptr, uint32 team = 0) const;
 
-        void SetZoneMusic(uint32 zoneId, uint32 musicId);
-        Weather* GetOrGenerateZoneDefaultWeather(uint32 zoneId);
-        void SetZoneWeather(uint32 zoneId, WeatherState weatherId, float intensity);
-        void SetZoneOverrideLight(uint32 zoneId, uint32 areaLightId, uint32 overrideLightId, Milliseconds transitionTime);
+        virtual void SetZoneMusic(uint32 zoneId, uint32 musicId);
+        virtual Weather* GetOrGenerateZoneDefaultWeather(uint32 zoneId);
+        virtual void SetZoneWeather(uint32 zoneId, WeatherState weatherId, float intensity);
+        virtual void SetZoneOverrideLight(uint32 zoneId, uint32 areaLightId, uint32 overrideLightId, Milliseconds transitionTime);
 
         void UpdateAreaDependentAuras();
 
@@ -677,12 +677,12 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
         virtual std::string GetDebugInfo() const;
 
     private:
-        void LoadMapAndVMap(int gx, int gy);
-        void LoadVMap(int gx, int gy);
-        void LoadMap(int gx, int gy);
-        void LoadMMap(int gx, int gy);
-        GridMap* GetGrid(int gx, int gy);
-        GridMap* GetGrid(float x, float y);
+        virtual void LoadMapAndVMap(int gx, int gy);
+        virtual void LoadVMap(int gx, int gy);
+        virtual void LoadMap(int gx, int gy);
+        virtual void LoadMMap(int gx, int gy);
+        virtual GridMap* GetGrid(int gx, int gy);
+        virtual GridMap* GetGrid(float x, float y);
 
         void SendInitSelf(Player* player);
 
@@ -770,9 +770,11 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
         GridMap* GridMaps[MAX_NUMBER_OF_GRIDS][MAX_NUMBER_OF_GRIDS];
         std::bitset<TOTAL_NUMBER_OF_CELLS_PER_MAP*TOTAL_NUMBER_OF_CELLS_PER_MAP> marked_cells;
 
+        virtual void UpdateWeather(uint32 t_diff);
         //these functions used to process player/mob aggro reactions and
         //visibility calculations. Highly optimized for massive calculations
         void ProcessRelocationNotifies(const uint32 diff);
+        
 
         bool i_scriptLock;
         std::set<WorldObject*> i_objectsToRemove;
@@ -936,7 +938,40 @@ class TC_GAME_API PartitionMap : public Map
 
         uint32 GetPartitionId() const override { return _partitionId; }
         Map const* GetParent() const override { return _parent; }
+       
+        void SendZoneDynamicInfo(uint32 zoneId, Player* player) const override
+        {
+            return _parent->SendZoneDynamicInfo(zoneId, player);
+        }
+        void SendZoneWeather(uint32 zoneId, Player* player) const override
+        {
+            return _parent->SendZoneWeather(zoneId, player);
+        }
+        void SetZoneMusic(uint32 zoneId, uint32 musicId) override
+        {
+            return _parent->SetZoneMusic(zoneId, musicId);
+        }
+        Weather* GetOrGenerateZoneDefaultWeather(uint32 zoneId) override
+        {
+            return _parent->GetOrGenerateZoneDefaultWeather(zoneId);
+        }
+        void SetZoneWeather(uint32 zoneId, WeatherState weatherId, float intensity) override
+        {
+            return _parent->SetZoneWeather(zoneId, weatherId, intensity);
+        }
+        void SetZoneOverrideLight(uint32 zoneId, uint32 areaLightId, uint32 overrideLightId, Milliseconds transitionTime) override
+        {
+            return _parent->SetZoneOverrideLight(zoneId, areaLightId, overrideLightId, transitionTime);
+        }
     private:
+        void LoadMapAndVMap(int gx, int gy) override { _parent->LoadMapAndVMap(gx, gy); }
+        void LoadVMap(int gx, int gy) override { _parent->LoadVMap(gx, gy); }
+        void LoadMap(int gx, int gy) override { _parent->LoadMap(gx, gy); }
+        void LoadMMap(int gx, int gy) override { _parent->LoadMMap(gx, gy); }
+        GridMap* GetGrid(int gx, int gy) override { return _parent->GetGrid(gx, gy); }
+        GridMap* GetGrid(float x, float y) override { return _parent->GetGrid(x, y); }
+        void UpdateWeather(uint32 t_diff) override { /* do nothing, parent updates weather */ }
+
         uint32 _partitionId;
         Map const* _parent;
 };
@@ -978,6 +1013,13 @@ class TC_GAME_API InstanceMap : public Map
 
         std::string GetDebugInfo() const override;
     private:
+        void LoadMapAndVMap(int gx, int gy) override { _parent->LoadMapAndVMap(gx, gy); }
+        void LoadVMap(int gx, int gy) override { _parent->LoadVMap(gx, gy); }
+        void LoadMap(int gx, int gy) override { _parent->LoadMap(gx, gy); }
+        void LoadMMap(int gx, int gy) override { _parent->LoadMMap(gx, gy); }
+        GridMap* GetGrid(int gx, int gy) override { return _parent->GetGrid(gx, gy); }
+        GridMap* GetGrid(float x, float y) override { return _parent->GetGrid(x, y); }
+
         uint32 _instanceId;
         uint8 _spawnMode;
         Map const* _parent;
