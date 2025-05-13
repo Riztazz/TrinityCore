@@ -375,7 +375,14 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
         virtual uint32 GetPartitionId() const { return 0; }
         virtual uint32 GetInstanceId() const { return 0; }
         virtual uint8 GetSpawnMode() const { return REGULAR_DIFFICULTY; }
-        virtual Map* GetParent() const { return this; }
+        virtual Map* GetParent() const { return static_cast<Map*>(this); }
+        virtual void LoadMapAndVMap(int gx, int gy);
+        virtual void LoadVMap(int gx, int gy);
+        virtual void LoadMap(int gx, int gy);
+        virtual void LoadMMap(int gx, int gy);
+        virtual GridMap* GetGrid(int gx, int gy);
+        virtual GridMap* GetGrid(float x, float y);
+        virtual void UpdateWeather(uint32 t_diff);
 
         static bool ExistMap(uint32 mapId, int gx, int gy);
         static bool ExistVMap(uint32 mapId, int gx, int gy);
@@ -676,15 +683,6 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
 
         virtual std::string GetDebugInfo() const;
 
-    protected:
-        virtual void LoadMapAndVMap(int gx, int gy);
-        virtual void LoadVMap(int gx, int gy);
-        virtual void LoadMap(int gx, int gy);
-        virtual void LoadMMap(int gx, int gy);
-        virtual GridMap* GetGrid(int gx, int gy);
-        virtual GridMap* GetGrid(float x, float y);
-        virtual void UpdateWeather(uint32 t_diff);
-
     private:
         void SendInitSelf(Player* player);
 
@@ -939,6 +937,13 @@ class TC_GAME_API PartitionMap : public Map
 
         uint32 GetPartitionId() const override { return _partitionId; }
         Map* GetParent() const override { return _parent; }
+        void LoadMapAndVMap(int gx, int gy) override { _parent->LoadMapAndVMap(gx, gy); }
+        void LoadVMap(int gx, int gy) override { _parent->LoadVMap(gx, gy); }
+        void LoadMap(int gx, int gy) override { _parent->LoadMap(gx, gy); }
+        void LoadMMap(int gx, int gy) override { _parent->LoadMMap(gx, gy); }
+        GridMap* GetGrid(int gx, int gy) override { return _parent->GetGrid(gx, gy); }
+        GridMap* GetGrid(float x, float y) override { return _parent->GetGrid(x, y); }
+        void UpdateWeather(uint32 t_diff) override { /* do nothing, parent updates weather */ }
        
         void SendZoneDynamicInfo(uint32 zoneId, Player* player) const override
         {
@@ -965,15 +970,6 @@ class TC_GAME_API PartitionMap : public Map
             return _parent->SetZoneOverrideLight(zoneId, areaLightId, overrideLightId, transitionTime);
         }
 
-    protected:
-        void LoadMapAndVMap(int gx, int gy) override { _parent->LoadMapAndVMap(gx, gy); }
-        void LoadVMap(int gx, int gy) override { _parent->LoadVMap(gx, gy); }
-        void LoadMap(int gx, int gy) override { _parent->LoadMap(gx, gy); }
-        void LoadMMap(int gx, int gy) override { _parent->LoadMMap(gx, gy); }
-        GridMap* GetGrid(int gx, int gy) override { return _parent->GetGrid(gx, gy); }
-        GridMap* GetGrid(float x, float y) override { return _parent->GetGrid(x, y); }
-        void UpdateWeather(uint32 t_diff) override { /* do nothing, parent updates weather */ }
-
     private:
         uint32 _partitionId;
         Map* _parent;
@@ -988,6 +984,12 @@ class TC_GAME_API InstanceMap : public Map
         uint32 GetInstanceId() const override { return _instanceId; }
         uint8 GetSpawnMode() const override { return _spawnMode; }
         Map* GetParent() const override { return _parent; }
+        void LoadMapAndVMap(int gx, int gy) override { _parent->LoadMapAndVMap(gx, gy); }
+        void LoadVMap(int gx, int gy) override { _parent->LoadVMap(gx, gy); }
+        void LoadMap(int gx, int gy) override { _parent->LoadMap(gx, gy); }
+        void LoadMMap(int gx, int gy) override { _parent->LoadMMap(gx, gy); }
+        GridMap* GetGrid(int gx, int gy) override { return _parent->GetGrid(gx, gy); }
+        GridMap* GetGrid(float x, float y) override { return _parent->GetGrid(x, y); }
 
         bool AddPlayerToMap(Player*) override;
         void RemovePlayerFromMap(Player*, bool) override;
@@ -1016,14 +1018,6 @@ class TC_GAME_API InstanceMap : public Map
 
         std::string GetDebugInfo() const override;
 
-    protected:
-        void LoadMapAndVMap(int gx, int gy) override { _parent->LoadMapAndVMap(gx, gy); }
-        void LoadVMap(int gx, int gy) override { _parent->LoadVMap(gx, gy); }
-        void LoadMap(int gx, int gy) override { _parent->LoadMap(gx, gy); }
-        void LoadMMap(int gx, int gy) override { _parent->LoadMMap(gx, gy); }
-        GridMap* GetGrid(int gx, int gy) override { return _parent->GetGrid(gx, gy); }
-        GridMap* GetGrid(float x, float y) override { return _parent->GetGrid(x, y); }
-
     private:
         uint32 _instanceId;
         uint8 _spawnMode;
@@ -1044,6 +1038,12 @@ class TC_GAME_API BattlegroundMap : public Map
         uint32 GetInstanceId() const override { return _instanceId; }
         uint8 GetSpawnMode() const override { return _spawnMode; }
         Map* GetParent() const override { return _parent; }
+        void LoadMapAndVMap(int gx, int gy) override { _parent->LoadMapAndVMap(gx, gy); }
+        void LoadVMap(int gx, int gy) override { _parent->LoadVMap(gx, gy); }
+        void LoadMap(int gx, int gy) override { _parent->LoadMap(gx, gy); }
+        void LoadMMap(int gx, int gy) override { _parent->LoadMMap(gx, gy); }
+        GridMap* GetGrid(int gx, int gy) override { return _parent->GetGrid(gx, gy); }
+        GridMap* GetGrid(float x, float y) override { return _parent->GetGrid(x, y); }
 
         bool AddPlayerToMap(Player*) override;
         void RemovePlayerFromMap(Player*, bool) override;
@@ -1055,14 +1055,6 @@ class TC_GAME_API BattlegroundMap : public Map
         virtual void InitVisibilityDistance() override;
         Battleground* GetBG() { return m_bg; }
         void SetBG(Battleground* bg) { m_bg = bg; }
-
-    protected:
-        void LoadMapAndVMap(int gx, int gy) override { _parent->LoadMapAndVMap(gx, gy); }
-        void LoadVMap(int gx, int gy) override { _parent->LoadVMap(gx, gy); }
-        void LoadMap(int gx, int gy) override { _parent->LoadMap(gx, gy); }
-        void LoadMMap(int gx, int gy) override { _parent->LoadMMap(gx, gy); }
-        GridMap* GetGrid(int gx, int gy) override { return _parent->GetGrid(gx, gy); }
-        GridMap* GetGrid(float x, float y) override { return _parent->GetGrid(x, y); }
 
     private:
         uint32 _instanceId;
