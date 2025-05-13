@@ -678,6 +678,7 @@ bool Transport::TeleportTransport(uint32 newMapid, float x, float y, float z, fl
                 (*itr)->m_movementInfo.transport.pos.GetPosition(destX, destY, destZ, destO);
                 TransportBase::CalculatePassengerPosition(destX, destY, destZ, &destO, x, y, z, o);
 
+                TC_LOG_DEBUG("partitions", "Teleporting Player from Transport::TeleportTransport: %s to %s", (*itr)->ToPlayer()->GetName().c_str(), (*itr)->ToPlayer()->GetMap()->GetName().c_str());
                 (*itr)->ToPlayer()->TeleportTo(newMapid, destX, destY, destZ, destO,
                     TELE_TO_NOT_LEAVE_TRANSPORT | TELE_TO_NOT_LEAVE_COMBAT | TELE_TO_NOT_UNSUMMON_PET | TELE_TO_TRANSPORT_TELEPORT);
             }
@@ -719,6 +720,7 @@ void Transport::DelayedTeleportTransport()
         switch (obj->GetTypeId())
         {
             case TYPEID_PLAYER:
+                TC_LOG_DEBUG("partitions", "Teleporting Player from Transport::DelayedTeleportTransport: %s to %s", obj->ToPlayer()->GetName().c_str(), obj->ToPlayer()->GetMap()->GetName().c_str());
                 if (!obj->ToPlayer()->TeleportTo(_nextFrame->Node->ContinentID, destX, destY, destZ, destO, TELE_TO_NOT_LEAVE_TRANSPORT))
                     RemovePassenger(obj);
                 break;
