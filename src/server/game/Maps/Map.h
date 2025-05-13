@@ -375,7 +375,8 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
         virtual uint32 GetPartitionId() const { return 0; }
         virtual uint32 GetInstanceId() const { return 0; }
         virtual uint8 GetSpawnMode() const { return REGULAR_DIFFICULTY; }
-        virtual Map* GetParent() const { return static_cast<Map*>(this); }
+        virtual const Map* GetParent() const { return this; }
+        virtual Map* GetParent() { return this; }
         virtual void LoadMapAndVMap(int gx, int gy);
         virtual void LoadVMap(int gx, int gy);
         virtual void LoadMap(int gx, int gy);
@@ -936,7 +937,8 @@ class TC_GAME_API PartitionMap : public Map
         ~PartitionMap();
 
         uint32 GetPartitionId() const override { return _partitionId; }
-        Map* GetParent() const override { return _parent; }
+        const Map* GetParent() const override { return _parent; }
+        Map* GetParent() override { return _parent; }
         void LoadMapAndVMap(int gx, int gy) override { _parent->LoadMapAndVMap(gx, gy); }
         void LoadVMap(int gx, int gy) override { _parent->LoadVMap(gx, gy); }
         void LoadMap(int gx, int gy) override { _parent->LoadMap(gx, gy); }
@@ -983,7 +985,8 @@ class TC_GAME_API InstanceMap : public Map
 
         uint32 GetInstanceId() const override { return _instanceId; }
         uint8 GetSpawnMode() const override { return _spawnMode; }
-        Map* GetParent() const override { return _parent; }
+        const Map* GetParent() const override { return _parent; }
+        Map* GetParent() override { return _parent; }
         void LoadMapAndVMap(int gx, int gy) override { _parent->LoadMapAndVMap(gx, gy); }
         void LoadVMap(int gx, int gy) override { _parent->LoadVMap(gx, gy); }
         void LoadMap(int gx, int gy) override { _parent->LoadMap(gx, gy); }
@@ -1037,7 +1040,8 @@ class TC_GAME_API BattlegroundMap : public Map
 
         uint32 GetInstanceId() const override { return _instanceId; }
         uint8 GetSpawnMode() const override { return _spawnMode; }
-        Map* GetParent() const override { return _parent; }
+        const Map* GetParent() const override { return _parent; }
+        Map* GetParent() override { return _parent; }
         void LoadMapAndVMap(int gx, int gy) override { _parent->LoadMapAndVMap(gx, gy); }
         void LoadVMap(int gx, int gy) override { _parent->LoadVMap(gx, gy); }
         void LoadMap(int gx, int gy) override { _parent->LoadMap(gx, gy); }
