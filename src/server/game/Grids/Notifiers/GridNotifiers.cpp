@@ -221,14 +221,17 @@ void DelayedUnitRelocation::Visit(CreatureMapType &m)
 
         // I am injecting partition checks here as this is our slower/heavier update to update visibility
         // so a great time to check if we need to change maps
-        Map* currentMap = unit->GetMap();
-        Map* checkMap = sMapMgr->CreateMap(currentMap->GetId(), unit->GetPosition());
-        if (checkMap != currentMap)
+        // TODO see who else I need to exclude
+        if (!unit->IsPet() && !unit->ToTempSummon())
         {
-            unit->SetMapPartition(checkMap);
-            if (unit->IsVehicle())
-                unit->GetVehicleKit()->SetPassengersMapPartition(checkMap);
-            continue;
+            Map* currentMap = unit->GetMap();
+            Map* checkMap = sMapMgr->CreateMap(currentMap->GetId(), unit->GetPosition());
+            if (checkMap != currentMap)
+            {
+                unit->SetMapPartition(checkMap);
+                if (unit->IsVehicle())
+                    unit->GetVehicleKit()->SetPassengersMapPartition(checkMap);
+            }
         }
 
         if (!unit->isNeedNotify(NOTIFY_VISIBILITY_CHANGED))
