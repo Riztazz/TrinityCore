@@ -25,6 +25,7 @@
 #include "Transport.h"
 #include "ObjectAccessor.h"
 #include "SpellDefines.h"
+#include "Vehicle.h"
 
 // @tswow-begin
 #include "TSUnit.h"
