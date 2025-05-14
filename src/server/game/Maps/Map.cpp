@@ -1050,6 +1050,7 @@ void Map::RemovePlayerFromMap(Player* player, bool remove)
     player->RemoveFromWorld();
     SendRemoveTransports(player);
 
+    // note: RemoveFromWorld does this for inWorld objects
     if (!inWorld) // if was in world, RemoveFromWorld() called DestroyForNearbyPlayers()
         player->DestroyForNearbyPlayers(); // previous player->UpdateObjectVisibility(true)
 
@@ -1073,6 +1074,7 @@ void Map::RemoveFromMap(T *obj, bool remove)
     if (obj->IsCreature() && obj->ToCreature()->IsWaypointAlwaysUpdate())
         RemoveFromWaypointCreatures(obj->ToCreature());
 
+    // note: RemoveFromWorld does this for inWorld objects
     if (!inWorld) // if was in world, RemoveFromWorld() called DestroyForNearbyPlayers()
         obj->DestroyForNearbyPlayers(); // previous obj->UpdateObjectVisibility(true)
 

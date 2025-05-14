@@ -3813,10 +3813,10 @@ void Creature::SetMapPartition(Map* map)
     RemoveAurasWithInterruptFlags(AURA_INTERRUPT_FLAG_CHANGE_MAP | AURA_INTERRUPT_FLAG_MOVE | AURA_INTERRUPT_FLAG_TURNING);
 
     // TODO work out whatever changes we need here
-    GetMap()->RemoveFromMap(this);
+    GetMap()->RemoveFromMap(this, false);
 
     // Set the new map
     ResetMap();
     SetMap(map);
-    map->AddCreatureToMap(this);
+    map->AddToMap(this);
 }
