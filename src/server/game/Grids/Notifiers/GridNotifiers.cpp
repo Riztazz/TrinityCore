@@ -217,6 +217,19 @@ void DelayedUnitRelocation::Visit(CreatureMapType &m)
     for (CreatureMapType::iterator iter = m.begin(); iter != m.end(); ++iter)
     {
         Creature* unit = iter->GetSource();
+
+        // I am injecting partition checks here as this is our slower/heavier update to update visibility
+        // so a great time to check if we need to change maps
+        Map* currentMap = unit->GetMap();
+        Map* checkMap = sMapMgr->CreateMap(currentMap->GetId(), unit->GetPosition());
+        if (checkMap != currentMap)
+        {
+            unit->SetMapPartition(checkMap);
+            if (unit->IsVehicle())
+                unit->GetVehicleKit()->SetPassengersMapPartition(checkMap);
+            continue;
+        }
+
         if (!unit->isNeedNotify(NOTIFY_VISIBILITY_CHANGED))
             continue;
 
@@ -243,6 +256,8 @@ void DelayedUnitRelocation::Visit(PlayerMapType &m)
         if (checkMap != currentMap)
         {
             player->SetMapPartition(checkMap);
+            if (player->IsVehicle())
+                player->GetVehicleKit()->SetPassengersMapPartition(checkMap);
             continue;
         }
 

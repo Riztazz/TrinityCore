@@ -3793,3 +3793,30 @@ uint32 Creature::GetModelID() const
 
     return display->ModelID;
 }
+
+void Creature::SetMapPartition(Map* map)
+{
+    // Should only SetMapParition if we are currently in a map
+    ASSERT(GetMap());
+    ASSERT(map);
+    if (GetMap() == map)
+        return;
+
+    TC_LOG_DEBUG("partitions", "Creature {} Moving From Partition {} To Partition {} ", GetGUID(), GetMap()->GetPartitionId(), map->GetPartitionId());
+
+    // Experiment with all of the things we should set off when we cross partitions, these are taken from teleport
+    CombatStop();
+    // For now these can't come with player
+    RemoveAllDynObjects();
+    if (IsNonMeleeSpellCast(true))
+        InterruptNonMeleeSpells(true);
+    RemoveAurasWithInterruptFlags(AURA_INTERRUPT_FLAG_CHANGE_MAP | AURA_INTERRUPT_FLAG_MOVE | AURA_INTERRUPT_FLAG_TURNING);
+
+    // TODO work out whatever changes we need here
+    GetMap()->RemoveFromMap(this);
+
+    // Set the new map
+    ResetMap();
+    SetMap(map);
+    map->AddCreatureToMap(this);
+}

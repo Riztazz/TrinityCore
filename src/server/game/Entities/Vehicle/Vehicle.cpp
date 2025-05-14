@@ -624,6 +624,14 @@ void Vehicle::TeleportPassengers(uint32 mapId, float x, float y, float z, float 
     }
 }
 
+void Vehicle::SetPassengersMapPartition(Map* map)
+{
+    for (SeatMap::const_iterator itr = Seats.begin(); itr != Seats.end(); ++itr)
+        if (Unit* passenger = ObjectAccessor::GetUnit(*GetBase(), itr->second.Passenger.Guid))
+            if (passenger->IsPlayer())
+                passenger->ToPlayer()->SetMapPartition(map);
+}
+
 /**
  * @fn void Vehicle::RelocatePassengers()
  *
