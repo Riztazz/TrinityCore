@@ -60,7 +60,7 @@ class TC_GAME_API Vehicle : public TransportBase
         bool IsVehicleInUse() const;
         bool IsControllableVehicle() const;
         void TeleportPassengers(uint32 mapId, float x, float y, float z, float o);
-        void SetPassengersMapPartition(Map* map);
+        //void SetPassengersMapPartition(Map* map);
 
         SeatMap Seats;                                      ///< The collection of all seats on the vehicle. Including vacant ones.
 

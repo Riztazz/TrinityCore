@@ -219,24 +219,20 @@ void DelayedUnitRelocation::Visit(CreatureMapType &m)
     {
         Creature* unit = iter->GetSource();
 
-        // I am injecting partition checks here as this is our slower/heavier update to update visibility
-        // so a great time to check if we need to change maps
-        // TODO see who else I need to exclude
-        if (!unit->IsPet() && !unit->ToTempSummon())
-        {
-            Map* currentMap = unit->GetMap();
-            Map* checkMap = sMapMgr->CreateMap(currentMap->GetId(), unit->GetPosition());
-            if (checkMap != currentMap)
-            {
-                TC_LOG_DEBUG("grid.notifier", "Unit {} moved to map {}", unit->GetGUID().ToString(), checkMap->GetId());
-                unit->SetMapPartition(checkMap);
-                if (unit->IsVehicle())
-                {
-                    TC_LOG_DEBUG("grid.notifier", "Unit {} is vehicle, setting passengers map to {}", unit->GetGUID().ToString(), checkMap->GetId());
-                    unit->GetVehicleKit()->SetPassengersMapPartition(checkMap);
-                }
-            }
-        }
+        // Disabled until we can solve nuances of creatures moving between maps
+        // if (!unit->IsPet() && !unit->ToTempSummon())
+        // {
+        //     Map* currentMap = unit->GetMap();
+        //     Map* checkMap = sMapMgr->CreateMap(currentMap->GetId(), unit->GetPosition());
+        //     if (checkMap != currentMap)
+        //     {
+        //         unit->SetMapPartition(checkMap);
+        //         if (unit->IsVehicle())
+        //         {
+        //             unit->GetVehicleKit()->SetPassengersMapPartition(checkMap);
+        //         }
+        //     }
+        // }
 
         if (!unit->isNeedNotify(NOTIFY_VISIBILITY_CHANGED))
             continue;
@@ -263,13 +259,12 @@ void DelayedUnitRelocation::Visit(PlayerMapType &m)
         Map* checkMap = sMapMgr->CreateMap(currentMap->GetId(), player->GetPosition(), player);
         if (checkMap != currentMap)
         {
-            TC_LOG_DEBUG("grid.notifier", "Player {} moved to map {}", player->GetGUID().ToString(), checkMap->GetId());
             player->SetMapPartition(checkMap);
-            if (player->IsVehicle())
-            {
-                TC_LOG_DEBUG("grid.notifier", "Player Is Vehicle {} moved to map {}", player->GetGUID().ToString(), checkMap->GetId());
-                player->GetVehicleKit()->SetPassengersMapPartition(checkMap);
-            }
+            // Disabled until we can solve nuances player vehicle moving between maps
+            // if (player->IsVehicle())
+            // {
+            //     player->GetVehicleKit()->SetPassengersMapPartition(checkMap);
+            // }
             continue;
         }
 
