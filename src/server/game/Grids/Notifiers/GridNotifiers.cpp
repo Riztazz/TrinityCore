@@ -228,9 +228,13 @@ void DelayedUnitRelocation::Visit(CreatureMapType &m)
             Map* checkMap = sMapMgr->CreateMap(currentMap->GetId(), unit->GetPosition());
             if (checkMap != currentMap)
             {
+                TC_LOG_DEBUG("grid.notifier", "Unit {} moved to map {}", unit->GetGUID().ToString(), checkMap->GetId());
                 unit->SetMapPartition(checkMap);
                 if (unit->IsVehicle())
+                {
+                    TC_LOG_DEBUG("grid.notifier", "Unit {} is vehicle, setting passengers map to {}", unit->GetGUID().ToString(), checkMap->GetId());
                     unit->GetVehicleKit()->SetPassengersMapPartition(checkMap);
+                }
             }
         }
 
@@ -259,9 +263,13 @@ void DelayedUnitRelocation::Visit(PlayerMapType &m)
         Map* checkMap = sMapMgr->CreateMap(currentMap->GetId(), player->GetPosition(), player);
         if (checkMap != currentMap)
         {
+            TC_LOG_DEBUG("grid.notifier", "Player {} moved to map {}", player->GetGUID().ToString(), checkMap->GetId());
             player->SetMapPartition(checkMap);
             if (player->IsVehicle())
+            {
+                TC_LOG_DEBUG("grid.notifier", "Player Is Vehicle {} moved to map {}", player->GetGUID().ToString(), checkMap->GetId());
                 player->GetVehicleKit()->SetPassengersMapPartition(checkMap);
+            }
             continue;
         }
 

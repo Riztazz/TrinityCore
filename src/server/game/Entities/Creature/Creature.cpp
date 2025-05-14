@@ -3816,7 +3816,6 @@ void Creature::SetMapPartition(Map* map)
     GetMap()->RemoveFromMap(this, false);
 
     // Set the new map
-    ResetMap();
     SetMap(map);
     map->AddToMap(this);
 }
