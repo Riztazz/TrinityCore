@@ -20,7 +20,6 @@
 
 #include "Object.h"
 #include "GridObject.h"
-#include "MapObject.h"
 
 class Unit;
 class Aura;
@@ -33,7 +32,7 @@ enum DynamicObjectType
     DYNAMIC_OBJECT_FARSIGHT_FOCUS   = 0x2
 };
 
-class TC_GAME_API DynamicObject : public WorldObject, public GridObject<DynamicObject>, public MapObject
+class TC_GAME_API DynamicObject : public WorldObject, public GridObject<DynamicObject>
 {
     public:
         DynamicObject(bool isWorldObject);

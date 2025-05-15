@@ -25,7 +25,6 @@
 #include "Duration.h"
 #include "Loot.h"
 #include "GridObject.h"
-#include "MapObject.h"
 #include <list>
 
 class CreatureOutfit;
@@ -61,7 +60,7 @@ typedef std::list<VendorItemCount> VendorItemCounts;
 typedef std::vector<uint8> CreatureTextRepeatIds;
 typedef std::unordered_map<uint8, CreatureTextRepeatIds> CreatureTextRepeatGroup;
 
-class TC_GAME_API Creature : public Unit, public GridObject<Creature>, public MapObject
+class TC_GAME_API Creature : public Unit, public GridObject<Creature>
 {
     public:
         explicit Creature(bool isWorldObject = false);
@@ -220,6 +219,7 @@ class TC_GAME_API Creature : public Unit, public GridObject<Creature>, public Ma
 
         void setDeathState(DeathState s) override;                   // override virtual Unit::setDeathState
 
+        // FIXME ulmetrs: remove addToMap responsibility from LoadFromDB
         bool LoadFromDB(ObjectGuid::LowType spawnId, Map* map, bool addToMap, bool allowDuplicate);
         void SaveToDB();
                                                             // overriden in Pet

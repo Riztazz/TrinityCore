@@ -22,7 +22,6 @@
 #include "GridObject.h"
 #include "GameObjectData.h"
 #include "Loot.h"
-#include "MapObject.h"
 #include "SharedDefines.h"
 
 class GameObjectAI;
@@ -89,7 +88,7 @@ enum LootState
 // 5 sec for bobber catch
 #define FISHING_BOBBER_READY_TIME 5
 
-class TC_GAME_API GameObject : public WorldObject, public GridObject<GameObject>, public MapObject
+class TC_GAME_API GameObject : public WorldObject, public GridObject<GameObject>
 {
     public:
         explicit GameObject();

@@ -116,7 +116,7 @@ QuaternionData QuaternionData::fromEulerAnglesZYX(float Z, float Y, float X)
     return QuaternionData(quat.x, quat.y, quat.z, quat.w);
 }
 
-GameObject::GameObject() : WorldObject(false), MapObject(),
+GameObject::GameObject() : WorldObject(false),
     m_model(nullptr), m_goValue(), m_AI(nullptr), m_respawnCompatibilityMode(false)
 {
     m_objectType |= TYPEMASK_GAMEOBJECT;
@@ -669,7 +669,7 @@ void GameObject::Update(uint32 diff)
                         if (poolid)
                             sPoolMgr->UpdatePool<GameObject>(poolid, GetSpawnId());
                         else
-                            GetMap()->AddToMap(this);
+                            GetMap()->AddToMap(this); // FIXME ulmetrs: why is this called? Update is ticked by the map, so we are already in a map
                     }
                 }
             }

@@ -403,18 +403,8 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
         bool IsInWater(uint32 phaseMask, float x, float y, float z, LiquidData* data = nullptr) const;
         bool IsUnderWater(uint32 phaseMask, float x, float y, float z) const;
 
-        void MoveAllCreaturesInMoveList();
-        void MoveAllGameObjectsInMoveList();
-        void MoveAllDynamicObjectsInMoveList();
         void RemoveAllObjectsInRemoveList();
         virtual void RemoveAllPlayers();
-
-        // used only in MoveAllCreaturesInMoveList and ObjectGridUnloader
-        bool CreatureRespawnRelocation(Creature* c, bool diffGridOnly);
-        bool GameObjectRespawnRelocation(GameObject* go, bool diffGridOnly);
-
-        // assert print helper
-        bool CheckGridIntegrity(Creature* c, bool moved) const;
 
         Trinity::unique_weak_ptr<Map> GetWeakPtr() const { return m_weakRef; }
         void SetWeakPtr(Trinity::unique_weak_ptr<Map> weakRef) { m_weakRef = std::move(weakRef); }
@@ -686,27 +676,6 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
 
     private:
         void SendInitSelf(Player* player);
-
-        bool CreatureCellRelocation(Creature* creature, Cell new_cell);
-        bool GameObjectCellRelocation(GameObject* go, Cell new_cell);
-        bool DynamicObjectCellRelocation(DynamicObject* go, Cell new_cell);
-
-        template<class T> void InitializeObject(T* obj);
-        void AddCreatureToMoveList(Creature* c, float x, float y, float z, float ang);
-        void RemoveCreatureFromMoveList(Creature* c);
-        void AddGameObjectToMoveList(GameObject* go, float x, float y, float z, float ang);
-        void RemoveGameObjectFromMoveList(GameObject* go);
-        void AddDynamicObjectToMoveList(DynamicObject* go, float x, float y, float z, float ang);
-        void RemoveDynamicObjectFromMoveList(DynamicObject* go);
-
-        bool _creatureToMoveLock;
-        std::vector<Creature*> _creaturesToMove;
-
-        bool _gameObjectsToMoveLock;
-        std::vector<GameObject*> _gameObjectsToMove;
-
-        bool _dynamicObjectsToMoveLock;
-        std::vector<DynamicObject*> _dynamicObjectsToMove;
 
         bool IsGridLoaded(GridCoord const&) const;
         void EnsureGridCreated(GridCoord const&);

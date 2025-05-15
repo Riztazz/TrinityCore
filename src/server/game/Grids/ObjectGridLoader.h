@@ -23,7 +23,6 @@
 #include "GridDefines.h"
 #include "Cell.h"
 
-class MapObject;
 class ObjectWorldLoader;
 
 class TC_GAME_API ObjectGridLoader
@@ -42,8 +41,6 @@ class TC_GAME_API ObjectGridLoader
 
         void LoadN(void);
 
-        static void SetObjectCell(MapObject* obj, CellCoord const& cellCoord);
-
     private:
         Cell i_cell;
         NGridType &i_grid;
@@ -51,23 +48,6 @@ class TC_GAME_API ObjectGridLoader
         uint32 i_gameObjects;
         uint32 i_creatures;
         uint32 i_corpses;
-};
-
-//Stop the creatures before unloading the NGrid
-class TC_GAME_API ObjectGridStoper
-{
-    public:
-        void Visit(CreatureMapType &m);
-        template<class T> void Visit(GridRefManager<T> &) { }
-};
-
-//Move the foreign creatures back to respawn positions before unloading the NGrid
-class TC_GAME_API ObjectGridEvacuator
-{
-    public:
-        void Visit(CreatureMapType &m);
-        void Visit(GameObjectMapType &m);
-        template<class T> void Visit(GridRefManager<T> &) { }
 };
 
 //Clean up and remove from world
