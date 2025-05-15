@@ -880,7 +880,7 @@ void GenericTransport::UpdatePassengerPositions(PassengerSet& passengers)
             case TYPEID_UNIT:
             {
                 Creature* creature = passenger->ToCreature();
-                GetMap()->CreatureRelocation(creature, x, y, z, o, false);
+                GetMap()->CreatureRelocation(creature, x, y, z, o);
                 creature->GetTransportHomePosition(x, y, z, o);
                 CalculatePassengerPosition(x, y, z, &o);
                 creature->SetHomePosition(x, y, z, o);
@@ -895,7 +895,7 @@ void GenericTransport::UpdatePassengerPositions(PassengerSet& passengers)
                 }
                 break;
             case TYPEID_GAMEOBJECT:
-                GetMap()->GameObjectRelocation(passenger->ToGameObject(), x, y, z, o, false);
+                GetMap()->GameObjectRelocation(passenger->ToGameObject(), x, y, z, o);
                 passenger->ToGameObject()->RelocateStationaryPosition(x, y, z, o);
                 break;
             case TYPEID_DYNAMICOBJECT:

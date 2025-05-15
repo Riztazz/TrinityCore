@@ -1252,10 +1252,6 @@ void Map::UnloadAll()
 {
     ZoneScopedN("Map::UnloadAll");
 
-    // clear all delayed moves, useless anyway do this moves before map unload.
-    _creaturesToMove.clear();
-    _gameObjectsToMove.clear();
-
     for (GridRefManager<NGridType>::iterator i = GridRefManager<NGridType>::begin(); i != GridRefManager<NGridType>::end();)
     {
         NGridType &grid(*i->GetSource());

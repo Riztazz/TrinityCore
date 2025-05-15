@@ -355,8 +355,8 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
         virtual void InitVisibilityDistance();
 
         void PlayerRelocation(Player*, float x, float y, float z, float orientation);
-        void CreatureRelocation(Creature* creature, float x, float y, float z, float ang, bool respawnRelocationOnFail = true);
-        void GameObjectRelocation(GameObject* go, float x, float y, float z, float orientation, bool respawnRelocationOnFail = true);
+        void CreatureRelocation(Creature* creature, float x, float y, float z, float orientation);
+        void GameObjectRelocation(GameObject* go, float x, float y, float z, float orientation);
         void DynamicObjectRelocation(DynamicObject* go, float x, float y, float z, float orientation);
 
         template<class T, class CONTAINER>
