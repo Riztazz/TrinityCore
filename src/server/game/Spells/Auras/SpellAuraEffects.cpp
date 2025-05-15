@@ -34,6 +34,7 @@
 #include "Player.h"
 #include "ReputationMgr.h"
 #include "ScriptMgr.h"
+#include "SharedDefines.h"
 #include "Spell.h"
 #include "SpellHistory.h"
 #include "SpellMgr.h"
@@ -512,7 +513,7 @@ int32 AuraEffect::CalculateAmount(Unit* caster)
             case SPELL_AURA_PERIODIC_DAMAGE:
             case SPELL_AURA_PERIODIC_LEECH:
                 if (GetBase()->GetType() == UNIT_AURA_TYPE)
-                    amount = caster->SpellDamageBonusDone(GetBase()->GetUnitOwner(), GetSpellInfo(), amount, DOT, GetTotalTicks(), GetSpellEffectInfo(), GetBase()->GetDonePct());
+                    amount = caster->SpellDamageBonusDone(GetBase()->GetUnitOwner(), GetSpellInfo(), GetSpellInfo()->GetSchoolMask(), amount, DOT, GetTotalTicks(), GetSpellEffectInfo(), GetBase()->GetDonePct());
                 break;
             case SPELL_AURA_PERIODIC_HEAL:
                 if (GetBase()->GetType() == UNIT_AURA_TYPE)
@@ -1570,6 +1571,16 @@ void AuraEffect::HandleSpiritOfRedemption(AuraApplication const* aurApp, uint8 m
         }
 
         target->SetHealth(1);
+
+        // Copied from sanctuary to fix in flight spells stun/sleep/killing priest
+        target->InterruptSpellsCastedOnMe(true);
+        target->InterruptAttacksOnMe(0.0f);
+        // makes spells cast before this time fizzle
+        target->m_lastSanctuaryTime = GameTime::GetGameTimeMS();
+
+        // Since these immunities must be missing from the spell itself, we can add them manually
+        target->ApplySpellImmune(0, IMMUNITY_SCHOOL, SPELL_SCHOOL_MASK_ALL, true);
+        target->ApplySpellImmune(0, IMMUNITY_MECHANIC, IMMUNE_TO_MOVEMENT_IMPAIRMENT_AND_LOSS_CONTROL_MASK, true);
     }
     // die at aura end
     else if (target->IsAlive())
@@ -4269,6 +4280,11 @@ void AuraEffect::HandleModDamagePercentDone(AuraApplication const* aurApp, uint8
     if (GetMiscValue() & SPELL_SCHOOL_MASK_NORMAL)
         target->UpdateAllDamagePctDoneMods();
 
+    // similar to the above, damage percent will be calculated on the fly in Unit::SpellDamageBonusDone
+    // This is so that we can check that the spell used is eligible for the aura (wand specialization)
+    // (This handler can't differentiate what attack will be used, so we can't just calculate a total multiplier
+    // here and naively use it for any spell)
+    // This information for client side use only
     if (target->GetTypeId() == TYPEID_PLAYER)
     {
         for (uint8 i = 0; i < MAX_SPELL_SCHOOL; ++i)
@@ -5187,7 +5203,7 @@ void AuraEffect::HandlePeriodicDamageAurasTick(Unit* target, Unit* caster) const
     {
         // leave only target depending bonuses, rest is handled in calculate amount
         if (GetBase()->GetType() == DYNOBJ_AURA_TYPE)
-            damage = caster->SpellDamageBonusDone(target, GetSpellInfo(), damage, DOT, GetTotalTicks(), GetSpellEffectInfo(), { }, GetBase()->GetStackAmount());
+            damage = caster->SpellDamageBonusDone(target, GetSpellInfo(), GetSpellInfo()->GetSchoolMask(), damage, DOT, GetTotalTicks(), GetSpellEffectInfo(), { }, GetBase()->GetStackAmount());
 
         switch (GetSpellInfo()->SpellFamilyName)
         {
@@ -5213,7 +5229,7 @@ void AuraEffect::HandlePeriodicDamageAurasTick(Unit* target, Unit* caster) const
     else // ceil obtained value, it may happen that 10 ticks for 10% damage may not kill owner
         damage = uint32(ceil(CalculatePct<float, float>(target->GetMaxHealth(), damage)));
 
-    damage = target->SpellDamageBonusTaken(caster, GetSpellInfo(), damage, DOT);
+    damage = target->SpellDamageBonusTaken(caster, GetSpellInfo(), GetSpellInfo()->GetSchoolMask(), damage, DOT);
 
     // @tswow-begin
     float crit_chance = GetCritChanceFor(caster,target);
@@ -5314,8 +5330,8 @@ void AuraEffect::HandlePeriodicHealthLeechAuraTick(Unit* target, Unit* caster) c
 
     // dynobj auras must always have a caster
     if (GetBase()->GetType() == DYNOBJ_AURA_TYPE)
-        damage = ASSERT_NOTNULL(caster)->SpellDamageBonusDone(target, GetSpellInfo(), damage, DOT, GetTotalTicks(), GetSpellEffectInfo(), { }, GetBase()->GetStackAmount());
-    damage = target->SpellDamageBonusTaken(caster, GetSpellInfo(), damage, DOT);
+        damage = ASSERT_NOTNULL(caster)->SpellDamageBonusDone(target, GetSpellInfo(), GetSpellInfo()->GetSchoolMask(), damage, DOT, GetTotalTicks(), GetSpellEffectInfo(), { }, GetBase()->GetStackAmount());
+    damage = target->SpellDamageBonusTaken(caster, GetSpellInfo(), GetSpellInfo()->GetSchoolMask(), damage, DOT);
 
     // @tswow-begin
     float crit_chance = GetCritChanceFor(caster,target);
@@ -5776,8 +5792,8 @@ void AuraEffect::HandleProcTriggerDamageAuraProc(AuraApplication* aurApp, ProcEv
     }
 
     SpellNonMeleeDamage damageInfo(target, triggerTarget, GetId(), GetSpellInfo()->SchoolMask);
-    uint32 damage = target->SpellDamageBonusDone(triggerTarget, GetSpellInfo(), GetAmount(), SPELL_DIRECT_DAMAGE, 1, GetSpellEffectInfo(), { });
-    damage = triggerTarget->SpellDamageBonusTaken(target, GetSpellInfo(), damage, SPELL_DIRECT_DAMAGE);
+    uint32 damage = target->SpellDamageBonusDone(triggerTarget, GetSpellInfo(), GetSpellInfo()->GetSchoolMask(), GetAmount(), SPELL_DIRECT_DAMAGE, 1, GetSpellEffectInfo(), { });
+    damage = triggerTarget->SpellDamageBonusTaken(target, GetSpellInfo(), GetSpellInfo()->GetSchoolMask(), damage, SPELL_DIRECT_DAMAGE);
     // @tswow-begin effect mask
     target->CalculateSpellDamageTaken(&damageInfo, damage, GetSpellInfo(), BASE_ATTACK, false, false, nullptr, 1 << GetSpellEffectInfo().EffectIndex);
     // @tswow-end

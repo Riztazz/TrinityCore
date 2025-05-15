@@ -439,7 +439,7 @@ void Spell::EffectSchoolDMG()
                     // {
                     //     // Calculate damage of Immolate/Shadowflame tick
                     //     int32 pdamage = aura->GetAmount();
-                    //     pdamage = unitTarget->SpellDamageBonusTaken(unitCaster, aura->GetSpellInfo(), pdamage, DOT);
+                    //     pdamage = unitTarget->SpellDamageBonusTaken(unitCaster, aura->GetSpellInfo(), aura->GetSpellInfo()->GetSchoolMask(), pdamage, DOT);
 
                     //     // And multiply by amount of ticks to get damage potential
                     //     pdamage *= aura->GetSpellInfo()->GetMaxTicks();
@@ -711,8 +711,8 @@ void Spell::EffectSchoolDMG()
             uint32 totalTicks = 1;
             if (m_triggeredByAuraIsPeriodic)
                 totalTicks = m_triggeredByAuraTotalTicks;
-            damage = unitCaster->SpellDamageBonusDone(unitTarget, m_spellInfo, (uint32)damage, SPELL_DIRECT_DAMAGE, totalTicks, *effectInfo, { });
-            damage = unitTarget->SpellDamageBonusTaken(unitCaster, m_spellInfo, (uint32)damage, SPELL_DIRECT_DAMAGE);
+            damage = unitCaster->SpellDamageBonusDone(unitTarget, m_spellInfo, m_spellSchoolMask, (uint32)damage, SPELL_DIRECT_DAMAGE, totalTicks, *effectInfo, { });
+            damage = unitTarget->SpellDamageBonusTaken(unitCaster, m_spellInfo, m_spellSchoolMask, (uint32)damage, SPELL_DIRECT_DAMAGE);
         }
 
         m_damage += damage;
@@ -1157,8 +1157,8 @@ void Spell::EffectPowerDrain()
     // add spell damage bonus
     if (unitCaster)
     {
-        damage = unitCaster->SpellDamageBonusDone(unitTarget, m_spellInfo, uint32(damage), SPELL_DIRECT_DAMAGE, 1, *effectInfo, { });
-        damage = unitTarget->SpellDamageBonusTaken(unitCaster, m_spellInfo, uint32(damage), SPELL_DIRECT_DAMAGE);
+        damage = unitCaster->SpellDamageBonusDone(unitTarget, m_spellInfo, m_spellSchoolMask, uint32(damage), SPELL_DIRECT_DAMAGE, 1, *effectInfo, { });
+        damage = unitTarget->SpellDamageBonusTaken(unitCaster, m_spellInfo, m_spellSchoolMask, uint32(damage), SPELL_DIRECT_DAMAGE);
     }
 
     // resilience reduce mana draining effect at spell crit damage reduction (added in 2.4)
@@ -1519,8 +1519,8 @@ void Spell::EffectHealthLeech()
     Unit* unitCaster = GetUnitCasterForEffectHandlers();
     if (unitCaster)
     {
-        damage = unitCaster->SpellDamageBonusDone(unitTarget, m_spellInfo, uint32(damage), SPELL_DIRECT_DAMAGE, 1, *effectInfo, { });
-        damage = unitTarget->SpellDamageBonusTaken(unitCaster, m_spellInfo, uint32(damage), SPELL_DIRECT_DAMAGE);
+        damage = unitCaster->SpellDamageBonusDone(unitTarget, m_spellInfo, m_spellSchoolMask, uint32(damage), SPELL_DIRECT_DAMAGE, 1, *effectInfo, { });
+        damage = unitTarget->SpellDamageBonusTaken(unitCaster, m_spellInfo, m_spellSchoolMask, uint32(damage), SPELL_DIRECT_DAMAGE);
     }
 
     TC_LOG_DEBUG("spells", "HealthLeech :{}", damage);
