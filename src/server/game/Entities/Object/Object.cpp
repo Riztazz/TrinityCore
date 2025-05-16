@@ -178,7 +178,7 @@ void Object::RemoveFromPartition()
     TC_LOG_DEBUG("partitions", "Object::RemoveFromPartition called");
     if (!IsInWorld())
         return;
-    RemoveFromWorld();
+    Object::RemoveFromWorld();
     TC_LOG_DEBUG("partitions", "Object::RemoveFromPartition done");
 }
 
