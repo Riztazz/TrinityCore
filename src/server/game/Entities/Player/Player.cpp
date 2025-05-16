@@ -26546,7 +26546,7 @@ void Player::UpdateMapPartition()
 
             ///- Release charmed creatures, unsummon totems and remove pets/guardians
             //StopCastingCharm();
-            StopCastingBindSight();
+            //StopCastingBindSight();
             UnsummonPetTemporaryIfAny();
 
             // See if we can keep our combo points
@@ -26579,8 +26579,8 @@ void Player::UpdateMapPartition()
                 //if (IsVehicle())
                 //    RemoveVehicleKit();
 
-                RemoveCharmAuras();
-                RemoveBindSightAuras();
+                //RemoveCharmAuras();
+                //RemoveBindSightAuras();
                 RemoveNotOwnSingleTargetAuras();
 
                 // TODO Do we have these? See if we can move them if we do
@@ -26602,13 +26602,6 @@ void Player::UpdateMapPartition()
                 if (IsCharmed())
                     RemoveCharmedBy(nullptr);
 
-                if (m_vehicle)
-                {
-                    currentMap->RemoveFromMap(m_vehicle);
-                    m_vehicle->ResetMap();
-                    m_vehicle->SetMap(newMap);
-                    currentMap->AddToMap(m_vehicle);
-                }
                 //ASSERT(!GetCharmedGUID(), "Unit %u has charmed guid when removed from world", GetEntry());
                 //ASSERT(!GetCharmerGUID(), "Unit %u has charmer guid when removed from world", GetEntry());
 
