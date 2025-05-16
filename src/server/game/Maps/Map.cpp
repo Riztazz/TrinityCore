@@ -510,7 +510,7 @@ bool Map::AddPlayerToMap(Player* player)
     return true;
 }
 
-bool Map::AddPlayerToPartition(Player* player)
+void Map::AddPlayerToPartition(Player* player)
 {
     ZoneScopedN("Map::AddPlayerToPartition");
 
