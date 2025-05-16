@@ -26653,7 +26653,7 @@ void Player::UpdateMapPartition()
             //}
         }
         // TRANSPORTS THROUGH PARTITION ARE NOT YET HANDLED
-        SendRemoveTransports(this);
+        currentMap->SendRemoveTransports(this);
 
         //if (!inWorld) // if was in world, RemoveFromWorld() called DestroyForNearbyPlayers()
         //DestroyForNearbyPlayers(); // previous player->UpdateObjectVisibility(true)
