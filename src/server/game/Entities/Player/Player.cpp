@@ -26497,27 +26497,28 @@ void Player::SetMap(Map* map, bool allowInWorld /*= false*/)
 }
 
 // Only call from Map Delayed Update (map thread safety)
-void Player::UpdateMapPartition()
+void Player::UpdateMapPartition(Map* forcedMap)
 {
     Map* currentMap = IsInWorld() ? GetMap() : nullptr;
-    // We only ever change partitions if we are active in a map
-    if (!currentMap)
+    // We only ever change partitions if we are currently in a world map
+    if (!currentMap || !currentMap->IsWorldMap())
         return;
 
-    Map* newMap = sMapMgr->CreateMap(currentMap->GetId(), GetPosition(), this);
+    Map* newMap = forcedMap ? forcedMap : sMapMgr->CreateMap(currentMap->GetId(), GetPosition(), this);
     // We don't change partitions if already in the correct partition
     if (!newMap || newMap == currentMap)
         return;
 
+    TC_LOG_DEBUG("partitions", "Player UpdateMapPartition m_vehicle {}", m_vehicle);
+
+    // Ignore players update if we are in a vehicle, the vehicle creature needs to move first
+    if (m_vehicle && !forcedMap)
+        return;
+
     TC_LOG_DEBUG("partitions", "Player {} Moving From Partition {} To Partition {} ", GetGUID(), currentMap->GetPartitionId(), newMap->GetPartitionId());
 
-    // We currently have no way of handling vehicle changes when we cross partitions and everything bugs out
-    if (m_vehicle)
-    {
-        TeleportTo(m_homebindMapId, m_homebindX, m_homebindY, m_homebindZ, GetOrientation());
-        return;
-    }
     // TODO anything else we and can't gracefully handle/cancel we should TeleportOut to Homebind rather than bug out
+    //TeleportTo(m_homebindMapId, m_homebindX, m_homebindY, m_homebindZ, GetOrientation());
 
     // Experiment with all of the things we should set off when we cross partitions, these are taken from teleport
     DuelComplete(DUEL_FLED);
@@ -26544,7 +26545,7 @@ void Player::UpdateMapPartition()
         //player->RemoveFromWorld();
         {
             ///- Release charmed creatures, unsummon totems and remove pets/guardians
-            StopCastingCharm();
+            //StopCastingCharm();
             StopCastingBindSight();
             UnsummonPetTemporaryIfAny();
 
@@ -26576,18 +26577,18 @@ void Player::UpdateMapPartition()
                 //if (IsVehicle())
                 //    RemoveVehicleKit();
 
-                RemoveCharmAuras();
+                //RemoveCharmAuras();
                 RemoveBindSightAuras();
                 RemoveNotOwnSingleTargetAuras();
 
                 RemoveAllGameObjects();
                 RemoveAllDynObjects();
 
-                ExitVehicle();  // Remove applied auras with SPELL_AURA_CONTROL_VEHICLE
+                //ExitVehicle();  // Remove applied auras with SPELL_AURA_CONTROL_VEHICLE
 
                 UnsummonAllTotems();
 
-                RemoveAllControlled();
+                //RemoveAllControlled();
 
                 // TODO see if we can leave this
                 //RemoveAreaAurasDueToLeaveWorld();

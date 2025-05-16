@@ -3780,3 +3780,27 @@ uint32 Creature::GetModelID() const
 
     return display->ModelID;
 }
+
+void Creature::UpdateMapPartition(Map* forcedMap)
+{
+    Map* currentMap = IsInWorld() ? GetMap() : nullptr;
+    // We only ever change partitions if we are currently in a world map
+    if (!currentMap || !currentMap->IsWorldMap())
+        return;
+
+    Map* newMap = forcedMap ? forcedMap : sMapMgr->CreateMap(currentMap->GetId(), GetPosition(), this);
+    // We don't change partitions if already in the correct partition
+    if (!newMap || newMap == currentMap)
+        return;
+
+    Vehicle* vehicle = GetVehicleKit();
+    // Only support vehicles for now
+    if (!vehicle)
+        return;
+
+    // TODO try different orderings of this
+    currentMap->RemoveFromMap(this, false); // Calls resetmap internally
+    SetMap(newMap);
+    newMap->AddToMap(this);
+    vehicle->UpdatePassengersMapPartition(newMap);
+}

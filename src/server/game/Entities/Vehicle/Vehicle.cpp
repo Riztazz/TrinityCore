@@ -624,6 +624,21 @@ void Vehicle::TeleportPassengers(uint32 mapId, float x, float y, float z, float 
     }
 }
 
+void Vehicle::UpdatePassengersMapPartition(Map* map)
+{
+    // Not sure if we need to copy the players list, but doing so since TeleportPassengers does
+    std::vector<Player*> players;
+    for (SeatMap::const_iterator itr = Seats.begin(); itr != Seats.end(); ++itr)
+        if (Unit* passenger = ObjectAccessor::GetUnit(*GetBase(), itr->second.Passenger.Guid))
+            if (passenger->IsPlayer())
+                players.push_back((Player*)passenger);
+
+    for (auto player : players)
+    {
+        player->UpdateMapPartition(map);
+    }
+}
+
 /**
  * @fn void Vehicle::RelocatePassengers()
  *

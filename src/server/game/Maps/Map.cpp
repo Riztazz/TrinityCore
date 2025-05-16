@@ -1162,6 +1162,9 @@ void Map::CreatureRelocation(Creature* creature, float x, float y, float z, floa
     
     creature->UpdatePositionData();
     creature->UpdateObjectVisibility(false);
+
+    // Any time a creature is relocated add them to the update list to be checked
+    _updateMapPartitionCreatures.insert(creature);
 }
 
 void Map::GameObjectRelocation(GameObject* go, float x, float y, float z, float orientation)
@@ -2594,6 +2597,11 @@ void Map::UpdateMapPartitions()
         player->UpdateMapPartition();
 
     _updateMapPartitionPlayers.clear();
+
+    for (Creature* creature : _updateMapPartitionCreatures)
+        creature->UpdateMapPartition();
+
+    _updateMapPartitionCreatures.clear();
 }
 
 // CheckRespawn MUST do one of the following:

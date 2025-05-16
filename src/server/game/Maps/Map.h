@@ -888,6 +888,7 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
         std::unordered_set<Corpse*> _corpseBones;
         std::unordered_set<Object*> _updateObjects;
         std::unordered_set<Player*> _updateMapPartitionPlayers;
+        std::unordered_set<Creature*> _updateMapPartitionCreatures;
         MPSCQueue<FarSpellCallback> _farSpellCallbacks;
 };
 

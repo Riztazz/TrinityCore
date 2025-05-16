@@ -18,6 +18,7 @@
 #ifndef __TRINITY_VEHICLE_H
 #define __TRINITY_VEHICLE_H
 
+#include "Map.h"
 #include "ObjectDefines.h"
 #include "Object.h"
 #include "UniqueTrackablePtr.h"
@@ -60,6 +61,7 @@ class TC_GAME_API Vehicle : public TransportBase
         bool IsVehicleInUse() const;
         bool IsControllableVehicle() const;
         void TeleportPassengers(uint32 mapId, float x, float y, float z, float o);
+        void UpdatePassengersMapPartition(Map* map);
 
         SeatMap Seats;                                      ///< The collection of all seats on the vehicle. Including vacant ones.
 
