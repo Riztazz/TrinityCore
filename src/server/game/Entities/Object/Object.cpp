@@ -1897,10 +1897,10 @@ void WorldObject::SendObjectDeSpawnAnim(ObjectGuid guid)
     SendMessageToSet(&data, true);
 }
 
-void WorldObject::SetMap(Map* map)
+void WorldObject::SetMap(Map* map, bool allowInWorld /*= false*/)
 {
     ASSERT(map);
-    ASSERT(!IsInWorld());
+    ASSERT(!IsInWorld() || allowInWorld);
     if (m_currMap == map) // command add npc: first create, than loadfromdb
         return;
     if (m_currMap)
@@ -1915,10 +1915,10 @@ void WorldObject::SetMap(Map* map)
         m_currMap->AddWorldObject(this);
 }
 
-void WorldObject::ResetMap()
+void WorldObject::ResetMap(bool allowInWorld /*= false*/)
 {
     ASSERT(m_currMap);
-    ASSERT(!IsInWorld());
+    ASSERT(!IsInWorld() || allowInWorld);
     if (IsStoredInWorldObjectGridContainer())
         m_currMap->RemoveWorldObject(this);
     m_currMap = nullptr;

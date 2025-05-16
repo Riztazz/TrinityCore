@@ -2217,8 +2217,8 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
         MapReference &GetMapRef() { return m_mapRef; }
 
         // Set map to player and add reference
-        void SetMap(Map* map) override;
-        void ResetMap() override;
+        void SetMap(Map* map, bool allowInWorld = false) override;
+        void ResetMap(bool allowInWorld = false) override;
         void UpdateMapPartition();
 
         // @epoch-begin
