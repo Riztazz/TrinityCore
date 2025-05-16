@@ -179,6 +179,7 @@ void Object::RemoveFromPartition()
     if (!IsInWorld())
         return;
     RemoveFromWorld();
+    TC_LOG_DEBUG("partitions", "Object::RemoveFromPartition done");
 }
 
 void Object::BuildMovementUpdateBlock(UpdateData* data, uint32 flags) const
@@ -1148,9 +1149,11 @@ void WorldObject::RemoveFromPartition()
     DestroyForNearbyPlayers();
 
     Object::RemoveFromPartition();
+    TC_LOG_DEBUG("partitions", "WorldObject::RemoveFromPartition about to remove from groups");
     // @tswow-begin
     RemoveFromAllGroups();
     // @tswow-end
+    TC_LOG_DEBUG("partitions", "WorldObject::RemoveFromPartition done");
 }
 
 bool WorldObject::IsInWorldPvpZone() const

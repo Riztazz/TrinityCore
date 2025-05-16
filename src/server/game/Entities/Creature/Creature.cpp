@@ -3863,7 +3863,7 @@ void Creature::UpdateMapPartition(Map* forcedMap)
 
     currentMap->RemoveFromPartition(this);
 
-    ResetMap();
+    // Set the new map (unlike players, ResetMap is called from RemoveFromPartition)
     SetMap(newMap);
 
     newMap->AddToPartition(this);

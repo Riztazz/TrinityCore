@@ -10305,6 +10305,7 @@ void Unit::RemoveFromPartition()
     WorldObject::RemoveFromPartition();
 
     m_duringRemoveFromWorld = false;
+    TC_LOG_DEBUG("partitions", "Unit::RemoveFromPartition done");
 }
 
 void Unit::CleanupBeforeRemoveFromMap(bool finalCleanup)

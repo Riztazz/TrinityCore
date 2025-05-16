@@ -1211,6 +1211,7 @@ void Map::RemoveFromPartition(T *obj)
     obj->RemoveFromGrid();
 
     obj->ResetMap();
+    TC_LOG_DEBUG("partitions", "Map::RemoveFromPartition done");
 }
 
 void Map::PlayerRelocation(Player* player, float x, float y, float z, float orientation)
