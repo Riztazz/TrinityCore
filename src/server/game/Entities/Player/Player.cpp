@@ -1983,7 +1983,6 @@ void Player::AddToWorld()
 
 void Player::RemoveFromWorld()
 {
-    TC_LOG_DEBUG("partitions", "Player::RemoveFromWorld stop casting charm");
     // cleanup
     if (IsInWorld())
     {
@@ -21779,7 +21778,6 @@ bool Player::ActivateTaxiPathTo(std::vector<uint32> const& nodes, Creature* npc 
     // stop combat at start taxi flight if any
     CombatStop();
 
-    TC_LOG_DEBUG("partitions", "Player::ActivateTaxiPathTo stop casting charm");
     StopCastingCharm();
     StopCastingBindSight();
     ExitVehicle();
@@ -26613,7 +26611,6 @@ void Player::UpdateMapPartition()
 
                     //Object::RemoveFromWorld();
                     {
-                        TC_LOG_DEBUG("partitions", "Inside RemoveFromWorld fake");
                         //m_inWorld = false;
 
                         // if we remove from world then sending changes not required

@@ -6625,7 +6625,6 @@ Unit* Unit::GetFirstControlled() const
 
 void Unit::RemoveAllControlled()
 {
-    TC_LOG_DEBUG("partitions", "Unit::RemoveAllControlled stop casting charm");
     // possessed pet and vehicle
     if (GetTypeId() == TYPEID_PLAYER)
         ToPlayer()->StopCastingCharm();

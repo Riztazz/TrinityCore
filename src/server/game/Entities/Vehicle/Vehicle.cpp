@@ -931,7 +931,6 @@ bool VehicleJoinEvent::Execute(uint64, uint32)
         if (Battleground* bg = player->GetBattleground())
             bg->EventPlayerDroppedFlag(player);
 
-        TC_LOG_DEBUG("partitions", "VehicleJoinEvent::Execute stop casting charm");
         player->StopCastingCharm();
         player->StopCastingBindSight();
         player->SendOnCancelExpectedVehicleRideAura();
