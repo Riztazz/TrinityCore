@@ -626,17 +626,22 @@ void Vehicle::TeleportPassengers(uint32 mapId, float x, float y, float z, float 
 
 void Vehicle::UpdatePassengersMapPartition(Map* map)
 {
+    TC_LOG_DEBUG("partitions", "Vehicle::UpdatePassengersMapPartition {}", GetDebugInfo());
     // Not sure if we need to copy the players list, but doing so since TeleportPassengers does
     std::vector<Player*> players;
+    std::vector<Creature*> creatures;
     for (SeatMap::const_iterator itr = Seats.begin(); itr != Seats.end(); ++itr)
         if (Unit* passenger = ObjectAccessor::GetUnit(*GetBase(), itr->second.Passenger.Guid))
             if (passenger->IsPlayer())
-                players.push_back((Player*)passenger);
+                players.push_back(passenger->ToPlayer());
+            else if (passenger->IsCreature())
+                creatures.push_back(passenger->ToCreature());
+
+    for (auto creature : creatures)
+        creature->UpdateMapPartition(map);
 
     for (auto player : players)
-    {
         player->UpdateMapPartition(map);
-    }
 }
 
 /**
