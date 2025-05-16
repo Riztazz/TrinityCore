@@ -1983,6 +1983,7 @@ void Player::AddToWorld()
 
 void Player::RemoveFromWorld()
 {
+    TC_LOG_DEBUG("partitions", "Player::RemoveFromWorld stop casting charm");
     // cleanup
     if (IsInWorld())
     {
@@ -21778,6 +21779,7 @@ bool Player::ActivateTaxiPathTo(std::vector<uint32> const& nodes, Creature* npc 
     // stop combat at start taxi flight if any
     CombatStop();
 
+    TC_LOG_DEBUG("partitions", "Player::ActivateTaxiPathTo stop casting charm");
     StopCastingCharm();
     StopCastingBindSight();
     ExitVehicle();
@@ -26599,8 +26601,8 @@ void Player::UpdateMapPartition()
 
                 RemoveAllFollowers();
 
-                if (IsCharmed())
-                    RemoveCharmedBy(nullptr);
+                //if (IsCharmed())
+                //    RemoveCharmedBy(nullptr);
 
                 //ASSERT(!GetCharmedGUID(), "Unit %u has charmed guid when removed from world", GetEntry());
                 //ASSERT(!GetCharmerGUID(), "Unit %u has charmer guid when removed from world", GetEntry());
