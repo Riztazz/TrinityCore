@@ -26480,7 +26480,6 @@ void Player::RemoveAtLoginFlag(AtLoginFlags flags, bool persist /*= false*/)
 
 void Player::ResetMap(bool allowInWorld /*= false*/)
 {
-    TC_LOG_DEBUG("partitions", "Player::ResetMap allowInWorld {}", allowInWorld);
     // this may be called during Map::Update
     // after decrement+unlink, ++m_mapRefIter will continue correctly
     // when the first element of the list is being removed
@@ -26493,7 +26492,6 @@ void Player::ResetMap(bool allowInWorld /*= false*/)
 
 void Player::SetMap(Map* map, bool allowInWorld /*= false*/)
 {
-    TC_LOG_DEBUG("partitions", "Player::SetMap allowInWorld {}", allowInWorld);
     Unit::SetMap(map, allowInWorld);
     m_mapRef.link(map, this);
 }
@@ -26519,15 +26517,10 @@ void Player::UpdateMapPartition()
     CombatStop();
     ResetContestedPvP();
 
-    // TODO See if we can force pet to come with player
-    // For now these can't come with player, we resummon in new map
-    TC_LOG_DEBUG("partitions", "Before Unsummon Pet");
-    if (GetPet())
-        UnsummonPetTemporaryIfAny();
+    //if (GetPet())
+    //    UnsummonPetTemporaryIfAny();
 
-    // See if we can force objects with us
-    // For now we remove all of them
-    RemoveAllDynObjects();
+    //RemoveAllDynObjects();
 
     if (IsNonMeleeSpellCast(true))
         InterruptNonMeleeSpells(true);
@@ -26552,9 +26545,9 @@ void Player::UpdateMapPartition()
             // cleanup
 
             ///- Release charmed creatures, unsummon totems and remove pets/guardians
-            //StopCastingCharm();
+            StopCastingCharm();
             StopCastingBindSight();
-            //UnsummonPetTemporaryIfAny();
+            UnsummonPetTemporaryIfAny();
 
             // See if we can keep our combo points
             //ClearComboPoints();
@@ -26595,12 +26588,12 @@ void Player::UpdateMapPartition()
                 RemoveAllDynObjects();
 
                 // TODO try not exit vehicle to see what happens
-                //ExitVehicle();  // Remove applied auras with SPELL_AURA_CONTROL_VEHICLE
+                ExitVehicle();  // Remove applied auras with SPELL_AURA_CONTROL_VEHICLE
 
                 // TODO try to move these with you
                 UnsummonAllTotems();
 
-                //RemoveAllControlled();
+                RemoveAllControlled();
 
                 //RemoveAreaAurasDueToLeaveWorld();
 
@@ -26636,6 +26629,7 @@ void Player::UpdateMapPartition()
                         //m_scriptRef = nullptr;
                     }
                     // @tswow-begin
+                    // TODO see if we need this
                     //RemoveFromAllGroups();
                 }
                 //m_duringRemoveFromWorld = false;
@@ -26656,14 +26650,13 @@ void Player::UpdateMapPartition()
             //    }
             //}
         }
-        TC_LOG_DEBUG("partitions", "Before SendRemoveTransports");
+
         // TRANSPORTS THROUGH PARTITION ARE NOT YET HANDLED
         //currentMap->SendRemoveTransports(this);
 
         //if (!inWorld) // if was in world, RemoveFromWorld() called DestroyForNearbyPlayers()
         //DestroyForNearbyPlayers(); // previous player->UpdateObjectVisibility(true)
 
-        TC_LOG_DEBUG("partitions", "Before RemoveFromGrid");
         if (IsInGrid())
             RemoveFromGrid();
     }
@@ -26680,12 +26673,9 @@ void Player::UpdateMapPartition()
         SendDirectMessage(&packet);
     }
 
-    TC_LOG_DEBUG("partitions", "Calling Reset Map and SetMap for UpdateMapPartition {} {} ", currentMap->GetPartitionId(), newMap->GetPartitionId());
-
     // Set the new map
     ResetMap(true);
     SetMap(newMap, true);
-    TC_LOG_DEBUG("partitions", "Before newMap AddPlayerToPartition");
     newMap->AddPlayerToPartition(this);
 
     // TODO try not unsummon and summon, but rather move pet with me
