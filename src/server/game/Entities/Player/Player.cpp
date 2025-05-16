@@ -26521,6 +26521,7 @@ void Player::UpdateMapPartition()
 
     // TODO See if we can force pet to come with player
     // For now these can't come with player, we resummon in new map
+    TC_LOG_DEBUG("partitions", "Before Unsummon Pet");
     if (GetPet())
         UnsummonPetTemporaryIfAny();
 
@@ -26626,6 +26627,7 @@ void Player::UpdateMapPartition()
 
                     //Object::RemoveFromWorld();
                     {
+                        TC_LOG_DEBUG("partitions", "Inside RemoveFromWorld fake");
                         //m_inWorld = false;
 
                         // if we remove from world then sending changes not required
@@ -26654,12 +26656,14 @@ void Player::UpdateMapPartition()
             //    }
             //}
         }
+        TC_LOG_DEBUG("partitions", "Before SendRemoveTransports");
         // TRANSPORTS THROUGH PARTITION ARE NOT YET HANDLED
         currentMap->SendRemoveTransports(this);
 
         //if (!inWorld) // if was in world, RemoveFromWorld() called DestroyForNearbyPlayers()
         //DestroyForNearbyPlayers(); // previous player->UpdateObjectVisibility(true)
 
+        TC_LOG_DEBUG("partitions", "Before RemoveFromGrid");
         if (IsInGrid())
             RemoveFromGrid();
     }
@@ -26681,6 +26685,7 @@ void Player::UpdateMapPartition()
     // Set the new map
     ResetMap(true);
     SetMap(newMap, true);
+    TC_LOG_DEBUG("partitions", "Before newMap AddPlayerToMap");
     newMap->AddPlayerToMap(this);
 
     // TODO try not unsummon and summon, but rather move pet with me
