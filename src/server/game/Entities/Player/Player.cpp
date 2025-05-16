@@ -1988,6 +1988,7 @@ void Player::AddToWorld()
 
 void Player::AddToPartition()
 {
+    TC_LOG_DEBUG("partitions", "Player::AddToPartition called");
     if (IsInWorld())
         return;
 
@@ -1999,6 +2000,7 @@ void Player::AddToPartition()
     //for (uint8 i = PLAYER_SLOT_START; i < PLAYER_SLOT_END; ++i)
     //    if (m_items[i])
     //        m_items[i]->AddToWorld();
+    TC_LOG_DEBUG("partitions", "Player::AddToPartition done");
 }
 
 void Player::RemoveFromWorld()
@@ -2091,6 +2093,7 @@ void Player::RemoveFromPartition()
     //        SetViewpoint(viewpoint, false);
     //    }
     //}
+    TC_LOG_DEBUG("partitions", "Player::RemoveFromPartition done");
 }
 
 void Player::SetObjectScale(float scale)
@@ -26581,7 +26584,7 @@ void Player::UpdateMapPartition(Map* forcedMap)
     if (!newMap || newMap == currentMap)
         return;
 
-    TC_LOG_DEBUG("partitions", "Player {} Moving From Partition {} To Partition {} ", GetGUID(), currentMap->GetPartitionId(), newMap->GetPartitionId());
+    TC_LOG_DEBUG("partitions", "Player::UpdateMapPartition {} Moving From Partition {} To Partition {} ", GetGUID(), currentMap->GetPartitionId(), newMap->GetPartitionId());
 
     // TODO anything else we and can't gracefully handle/cancel we should TeleportOut to Homebind rather than bug out
     //TeleportTo(m_homebindMapId, m_homebindX, m_homebindY, m_homebindZ, GetOrientation());
@@ -26628,6 +26631,8 @@ void Player::UpdateMapPartition(Map* forcedMap)
 
     // idk if we need this either
     ProcessDelayedOperations();
+
+    TC_LOG_DEBUG("partitions", "Player::UpdateMapPartition done");
 }
 
 void Player::_LoadGlyphs(PreparedQueryResult result)

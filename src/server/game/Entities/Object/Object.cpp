@@ -154,25 +154,7 @@ void Object::AddToWorld()
 
 void Object::AddToPartition()
 {
-    TC_LOG_DEBUG("partitions", "Object::AddToPartition called");
-    if (IsInWorld())
-        return;
-
-    ASSERT(m_uint32Values);
-
-    m_inWorld = true;
-
-    // synchronize values mirror with values array (changes will send in updatecreate opcode any way
-    ASSERT(!m_objectUpdated);
-
-    ClearUpdateMask(false);
-
-    // Set new ref when adding to world (except if we already have one - also set in constructor to allow scripts to work in initialization phase)
-    // Changing the ref when adding/removing from world prevents accessing players on different maps (possibly from another thread)
-    if (!m_scriptRef)
-        m_scriptRef.reset(this, NoopObjectDeleter());
-
-    TC_LOG_DEBUG("partitions", "Object::AddToPartition done");
+    Object::AddToWorld();
 }
 
 void Object::RemoveFromWorld()
@@ -190,18 +172,7 @@ void Object::RemoveFromWorld()
 
 void Object::RemoveFromPartition()
 {
-    TC_LOG_DEBUG("partitions", "Object::RemoveFromPartition called");
-    if (!IsInWorld())
-        return;
-
-    m_inWorld = false;
-
-    // if we remove from world then sending changes not required
-    ClearUpdateMask(true);
-
-    m_scriptRef = nullptr;
-
-    TC_LOG_DEBUG("partitions", "Object::RemoveFromPartition done");
+    Object::RemoveFromWorld();
 }
 
 void Object::BuildMovementUpdateBlock(UpdateData* data, uint32 flags) const
@@ -1142,13 +1113,11 @@ void WorldObject::AddToWorld()
 
 void WorldObject::AddToPartition()
 {
-    TC_LOG_DEBUG("partitions", "WorldObject::AddToPartition called");
     if (IsInWorld())
         return;
 
     Object::AddToPartition();
     //GetMap()->GetZoneAndAreaId(GetPhaseMask(), m_zoneId, m_areaId, GetPositionX(), GetPositionY(), GetPositionZ());
-    TC_LOG_DEBUG("partitions", "WorldObject::AddToPartition done");
 }
 
 void WorldObject::RemoveFromWorld()
@@ -1166,18 +1135,15 @@ void WorldObject::RemoveFromWorld()
 
 void WorldObject::RemoveFromPartition()
 {
-    TC_LOG_DEBUG("partitions", "WorldObject::RemoveFromPartition called");
     if (!IsInWorld())
         return;
 
     DestroyForNearbyPlayers();
 
     Object::RemoveFromPartition();
-    TC_LOG_DEBUG("partitions", "WorldObject::RemoveFromPartition about to remove from groups");
     // @tswow-begin
     RemoveFromAllGroups();
     // @tswow-end
-    TC_LOG_DEBUG("partitions", "WorldObject::RemoveFromPartition done");
 }
 
 bool WorldObject::IsInWorldPvpZone() const

@@ -513,6 +513,7 @@ bool Map::AddPlayerToMap(Player* player)
 bool Map::AddPlayerToPartition(Player* player)
 {
     ZoneScopedN("Map::AddPlayerToPartition");
+    TC_LOG_DEBUG("partitions", "Map::AddPlayerToPartition called");
 
     CellCoord cellCoord = Trinity::ComputeCellCoord(player->GetPositionX(), player->GetPositionY());
     if (!cellCoord.IsCoordValid())
@@ -544,6 +545,7 @@ bool Map::AddPlayerToPartition(Player* player)
     //FIRE_ID(GetId(),Map,OnPlayerEnter,TSMap(this),TSPlayer(player));
     // @tswow-end
     //sScriptMgr->OnPlayerEnterMap(this, player);
+    TC_LOG_DEBUG("partitions", "Map::AddPlayerToPartition done");
     return true;
 }
 
@@ -631,8 +633,8 @@ bool Map::AddToMap(Transport* obj)
 template<class T>
 bool Map::AddToPartition(T* obj)
 {
-    TC_LOG_DEBUG("partitions", "Map::AddToPartition called");
     ZoneScopedN("Map::AddToPartition");
+    TC_LOG_DEBUG("partitions", "Map::AddToPartition called");
 
     /// @todo Needs clean up. An object should not be added to map twice.
     if (obj->IsInWorld())
@@ -657,13 +659,9 @@ bool Map::AddToPartition(T* obj)
     EnsureGridLoaded(cell);
     AddToGrid(obj, cell);
 
-    TC_LOG_DEBUG("partitions", "Map::AddToPartition finished adding to grid");
-
     //Must already be set before AddToMap. Usually during obj->Create.
     //obj->SetMap(this);
     obj->AddToPartition();
-
-    TC_LOG_DEBUG("partitions", "Map::AddToPartition finished adding to partition");
 
     if (obj->isActiveObject())
         AddToActive(obj);
@@ -672,13 +670,10 @@ bool Map::AddToPartition(T* obj)
 
     //something, such as vehicle, needs to be update immediately
     //also, trigger needs to cast spell, if not update, cannot see visual
-    TC_LOG_DEBUG("partitions", "Map::AddToPartition BEFORE SET IS NEW OBJECT");
     obj->SetIsNewObject(true);
-    TC_LOG_DEBUG("partitions", "Map::AddToPartition BEFORE UPDATE OBJECT VISIBILITY ON CREATE");
     obj->UpdateObjectVisibilityOnCreate();
-    TC_LOG_DEBUG("partitions", "Map::AddToPartition BEFORE SET IS NEW OBJECT");
     obj->SetIsNewObject(false);
-    TC_LOG_DEBUG("partitions", "Map::AddToPartition AFTER SET IS NEW OBJECT");
+    TC_LOG_DEBUG("partitions", "Map::AddToPartition done");
     return true;
 }
 
@@ -1116,8 +1111,8 @@ void Map::RemovePlayerFromMap(Player* player, bool remove)
 
 void Map::RemovePlayerFromPartition(Player* player)
 {
-    TC_LOG_DEBUG("partitions", "Map::RemovePlayerFromPartition called");
     ZoneScopedN("Map::RemovePlayerFromPartition");
+    TC_LOG_DEBUG("partitions", "Map::RemovePlayerFromPartition called");
 
     // Before leaving map, update zone/area for stats
     //player->UpdateZone(MAP_INVALID_ZONE, 0);
@@ -1127,18 +1122,20 @@ void Map::RemovePlayerFromPartition(Player* player)
     // @tswow-end
     //sScriptMgr->OnPlayerLeaveMap(this, player);
 
-    player->CombatStop();
+    //player->CombatStop(); This is already done in update
 
-    bool const inWorld = player->IsInWorld();
+    //bool const inWorld = player->IsInWorld();
     player->RemoveFromPartition();
     SendRemoveTransports(player);
 
     // note: RemoveFromWorld does this for inWorld objects
-    if (!inWorld) // if was in world, RemoveFromWorld() called DestroyForNearbyPlayers()
-        player->DestroyForNearbyPlayers(); // previous player->UpdateObjectVisibility(true)
+    //if (!inWorld) // if was in world, RemoveFromWorld() called DestroyForNearbyPlayers()
+    //    player->DestroyForNearbyPlayers(); // previous player->UpdateObjectVisibility(true)
 
     if (player->IsInGrid())
         player->RemoveFromGrid();
+
+    TC_LOG_DEBUG("partitions", "Map::RemovePlayerFromPartition done");
 }
 
 template<class T>
@@ -1204,8 +1201,10 @@ void Map::RemoveFromMap(Transport* obj, bool remove)
 template<class T>
 void Map::RemoveFromPartition(T *obj)
 {
+    ZoneScopedN("Map::RemoveFromPartition");
     TC_LOG_DEBUG("partitions", "Map::RemoveFromPartition called");
-    bool const inWorld = obj->IsInWorld() && obj->GetTypeId() >= TYPEID_UNIT && obj->GetTypeId() <= TYPEID_GAMEOBJECT;
+
+    //bool const inWorld = obj->IsInWorld() && obj->GetTypeId() >= TYPEID_UNIT && obj->GetTypeId() <= TYPEID_GAMEOBJECT;
     obj->RemoveFromPartition();
 
     if (obj->isActiveObject())
@@ -1214,8 +1213,8 @@ void Map::RemoveFromPartition(T *obj)
         RemoveFromWaypointCreatures(obj->ToCreature());
 
     // note: RemoveFromWorld does this for inWorld objects
-    if (!inWorld) // if was in world, RemoveFromWorld() called DestroyForNearbyPlayers()
-        obj->DestroyForNearbyPlayers(); // previous obj->UpdateObjectVisibility(true)
+    //if (!inWorld) // if was in world, RemoveFromWorld() called DestroyForNearbyPlayers()
+    //    obj->DestroyForNearbyPlayers(); // previous obj->UpdateObjectVisibility(true)
 
     obj->RemoveFromGrid();
 

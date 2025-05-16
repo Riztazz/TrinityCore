@@ -10198,13 +10198,11 @@ void Unit::AddToWorld()
 
 void Unit::AddToPartition()
 {
-    TC_LOG_DEBUG("partitions", "Unit::AddToPartition called");
     if (IsInWorld())
         return;
 
     WorldObject::AddToPartition();
-    //i_motionMaster->AddToWorld(); // Lets try not resetting our motion stuff
-    TC_LOG_DEBUG("partitions", "Unit::AddToPartition done");
+    //i_motionMaster->AddToWorld();
 }
 
 void Unit::RemoveFromWorld()
@@ -10258,7 +10256,6 @@ void Unit::RemoveFromWorld()
 
 void Unit::RemoveFromPartition()
 {
-    TC_LOG_DEBUG("partitions", "Unit::RemoveFromPartition called");
     // cleanup
     ASSERT(GetGUID());
 
@@ -10277,9 +10274,8 @@ void Unit::RemoveFromPartition()
     RemoveBindSightAuras();
     RemoveNotOwnSingleTargetAuras();
 
-    TC_LOG_DEBUG("partitions", "about to remove all game objects");
-    //RemoveAllGameObjects();
-    //RemoveAllDynObjects();
+    RemoveAllGameObjects();
+    RemoveAllDynObjects();
 
     //ExitVehicle();  // Remove applied auras with SPELL_AURA_CONTROL_VEHICLE
     UnsummonAllTotems();
@@ -10307,7 +10303,6 @@ void Unit::RemoveFromPartition()
     WorldObject::RemoveFromPartition();
 
     m_duringRemoveFromWorld = false;
-    TC_LOG_DEBUG("partitions", "Unit::RemoveFromPartition done");
 }
 
 void Unit::CleanupBeforeRemoveFromMap(bool finalCleanup)
@@ -13495,7 +13490,6 @@ void Unit::ChangeSeat(int8 seatId, bool next)
 
 void Unit::ExitVehicle(Position const* /*exitPosition*/)
 {
-    TC_LOG_DEBUG("partitions", "Unit::ExitVehicle called");
     //! This function can be called at upper level code to initialize an exit from the passenger's side.
     if (!m_vehicle)
         return;
@@ -13523,7 +13517,6 @@ void Unit::ExitVehicle(Position const* /*exitPosition*/)
 
 void Unit::_ExitVehicle(Position const* exitPosition)
 {
-    TC_LOG_DEBUG("partitions", "Unit::_ExitVehicle called");
     /// It's possible m_vehicle is NULL, when this function is called indirectly from @VehicleJoinEvent::Abort.
     /// In that case it was not possible to add the passenger to the vehicle. The vehicle aura has already been removed
     /// from the target in the aforementioned function and we don't need to do anything else at this point.
