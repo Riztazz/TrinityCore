@@ -26513,16 +26513,18 @@ void Player::UpdateMapPartition()
 
     TC_LOG_DEBUG("partitions", "Player {} Moving From Partition {} To Partition {} ", GetGUID(), currentMap->GetPartitionId(), newMap->GetPartitionId());
 
+    // We currently have no way of handling vehicle changes when we cross partitions and everything bugs out
+    if (m_vehicle)
+    {
+        TeleportTo(m_homebindMapId, m_homebindX, m_homebindY, m_homebindZ, GetOrientation());
+        return;
+    }
+
     // Experiment with all of the things we should set off when we cross partitions, these are taken from teleport
     DuelComplete(DUEL_FLED);
     SetSelection(ObjectGuid::Empty);
     CombatStop();
     ResetContestedPvP();
-
-    //if (GetPet())
-    //    UnsummonPetTemporaryIfAny();
-
-    //RemoveAllDynObjects();
 
     if (IsNonMeleeSpellCast(true))
         InterruptNonMeleeSpells(true);
@@ -26539,19 +26541,15 @@ void Player::UpdateMapPartition()
         // @tswow-end
         //sScriptMgr->OnPlayerLeaveMap(this, player);
 
-        //player->CombatStop();
-
         //bool const inWorld = player->IsInWorld();
         //player->RemoveFromWorld();
         {
-            // cleanup
-
             ///- Release charmed creatures, unsummon totems and remove pets/guardians
-            //StopCastingCharm();
-            //StopCastingBindSight();
+            StopCastingCharm();
+            StopCastingBindSight();
             UnsummonPetTemporaryIfAny();
 
-            // See if we can keep our combo points
+            // TODO See if we can keep our combo points
             //ClearComboPoints();
             //ClearComboPointHolders();
             ObjectGuid lootGuid = GetLootGUID();
@@ -26562,6 +26560,7 @@ void Player::UpdateMapPartition()
             //sOutdoorPvPMgr->HandlePlayerLeaveZone(this, m_zoneUpdateId);
             //sBattlefieldMgr->HandlePlayerLeaveZone(this, m_zoneUpdateId);
 
+            // TODO See if we don't have to do this
             // Remove items from world before self - player must be found in Item::RemoveFromObjectUpdate
             //for (uint8 i = PLAYER_SLOT_START; i < PLAYER_SLOT_END; ++i)
             //{
@@ -26569,9 +26568,6 @@ void Player::UpdateMapPartition()
             //        m_items[i]->RemoveFromWorld();
             //}
 
-            ///- Do not add/remove the player from the object storage
-            ///- It will crash when updating the ObjectAccessor
-            ///- The player should only be removed when logging out
             //Unit::RemoveFromWorld();
             {
                 //m_duringRemoveFromWorld = true;
@@ -26581,31 +26577,26 @@ void Player::UpdateMapPartition()
                 //if (IsVehicle())
                 //    RemoveVehicleKit();
 
-                //RemoveCharmAuras();
-                //RemoveBindSightAuras();
+                RemoveCharmAuras();
+                RemoveBindSightAuras();
                 RemoveNotOwnSingleTargetAuras();
 
-                // TODO Do we have these? See if we can move them if we do
                 RemoveAllGameObjects();
                 RemoveAllDynObjects();
 
-                // TODO try not exit vehicle to see what happens
-                //ExitVehicle();  // Remove applied auras with SPELL_AURA_CONTROL_VEHICLE
+                ExitVehicle();  // Remove applied auras with SPELL_AURA_CONTROL_VEHICLE
 
-                // TODO try to move these with you
                 UnsummonAllTotems();
 
-                //RemoveAllControlled();
+                RemoveAllControlled();
 
+                // TODO see if we can leave this
                 //RemoveAreaAurasDueToLeaveWorld();
 
                 RemoveAllFollowers();
 
-                //if (IsCharmed())
-                //    RemoveCharmedBy(nullptr);
-
-                //ASSERT(!GetCharmedGUID(), "Unit %u has charmed guid when removed from world", GetEntry());
-                //ASSERT(!GetCharmerGUID(), "Unit %u has charmer guid when removed from world", GetEntry());
+                if (IsCharmed())
+                    RemoveCharmedBy(nullptr);
 
                 //if (Unit* owner = GetOwner())
                 //{
@@ -26637,7 +26628,7 @@ void Player::UpdateMapPartition()
                 //m_duringRemoveFromWorld = false;
             }
 
-            // try not remove mail items from fromWorld
+            // TODO see if not remove mail items from fromWorld
             //for (ItemMap::iterator iter = mMitems.begin(); iter != mMitems.end(); ++iter)
             //    iter->second->RemoveFromWorld();
 
