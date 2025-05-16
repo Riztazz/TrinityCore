@@ -3521,10 +3521,10 @@ template TC_GAME_API bool Map::AddToMap(Creature*);
 template TC_GAME_API bool Map::AddToMap(GameObject*);
 template TC_GAME_API bool Map::AddToMap(DynamicObject*);
 
-template TC_GAME_API bool Map::AddToPartition(Corpse*);
-template TC_GAME_API bool Map::AddToPartition(Creature*);
-template TC_GAME_API bool Map::AddToPartition(GameObject*);
-template TC_GAME_API bool Map::AddToPartition(DynamicObject*);
+template TC_GAME_API void Map::AddToPartition(Corpse*);
+template TC_GAME_API void Map::AddToPartition(Creature*);
+template TC_GAME_API void Map::AddToPartition(GameObject*);
+template TC_GAME_API void Map::AddToPartition(DynamicObject*);
 
 template TC_GAME_API void Map::RemoveFromMap(Corpse*, bool);
 template TC_GAME_API void Map::RemoveFromMap(Creature*, bool);
