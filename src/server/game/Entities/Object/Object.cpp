@@ -135,7 +135,7 @@ std::string Object::_ConcatFields(uint16 startIndex, uint16 size) const
 
 void Object::AddToWorld()
 {
-    if (m_inWorld)
+    if (IsInWorld())
         return;
 
     ASSERT(m_uint32Values);
@@ -152,9 +152,17 @@ void Object::AddToWorld()
         m_scriptRef.reset(this, NoopObjectDeleter());
 }
 
+void Object::AddToPartition()
+{
+    if (IsInWorld())
+        return;
+
+    AddToWorld();
+}
+
 void Object::RemoveFromWorld()
 {
-    if (!m_inWorld)
+    if (!IsInWorld())
         return;
 
     m_inWorld = false;
@@ -163,6 +171,13 @@ void Object::RemoveFromWorld()
     ClearUpdateMask(true);
 
     m_scriptRef = nullptr;
+}
+
+void Object::RemoveFromPartition()
+{
+    if (!IsInWorld())
+        return;
+    RemoveFromWorld();
 }
 
 void Object::BuildMovementUpdateBlock(UpdateData* data, uint32 flags) const
@@ -1093,8 +1108,21 @@ void WorldObject::ProcessPositionDataChanged(PositionFullTerrainStatus const& da
 
 void WorldObject::AddToWorld()
 {
+    // TODO should we check this
+    //if (IsInWorld())
+    //    return;
+
     Object::AddToWorld();
     GetMap()->GetZoneAndAreaId(GetPhaseMask(), m_zoneId, m_areaId, GetPositionX(), GetPositionY(), GetPositionZ());
+}
+
+void WorldObject::AddToPartition()
+{
+    if (IsInWorld())
+        return;
+
+    Object::AddToPartition();
+    //GetMap()->GetZoneAndAreaId(GetPhaseMask(), m_zoneId, m_areaId, GetPositionX(), GetPositionY(), GetPositionZ());
 }
 
 void WorldObject::RemoveFromWorld()
@@ -1105,6 +1133,19 @@ void WorldObject::RemoveFromWorld()
     DestroyForNearbyPlayers();
 
     Object::RemoveFromWorld();
+    // @tswow-begin
+    RemoveFromAllGroups();
+    // @tswow-end
+}
+
+void WorldObject::RemoveFromPartition()
+{
+    if (!IsInWorld())
+        return;
+
+    DestroyForNearbyPlayers();
+
+    Object::RemoveFromPartition();
     // @tswow-begin
     RemoveFromAllGroups();
     // @tswow-end
@@ -1897,10 +1938,10 @@ void WorldObject::SendObjectDeSpawnAnim(ObjectGuid guid)
     SendMessageToSet(&data, true);
 }
 
-void WorldObject::SetMap(Map* map, bool allowInWorld /*= false*/)
+void WorldObject::SetMap(Map* map)
 {
     ASSERT(map);
-    ASSERT(!IsInWorld() || allowInWorld);
+    ASSERT(!IsInWorld());
     if (m_currMap == map) // command add npc: first create, than loadfromdb
         return;
     if (m_currMap)
@@ -1915,10 +1956,10 @@ void WorldObject::SetMap(Map* map, bool allowInWorld /*= false*/)
         m_currMap->AddWorldObject(this);
 }
 
-void WorldObject::ResetMap(bool allowInWorld /*= false*/)
+void WorldObject::ResetMap()
 {
     ASSERT(m_currMap);
-    ASSERT(!IsInWorld() || allowInWorld);
+    ASSERT(!IsInWorld());
     if (IsStoredInWorldObjectGridContainer())
         m_currMap->RemoveWorldObject(this);
     m_currMap = nullptr;

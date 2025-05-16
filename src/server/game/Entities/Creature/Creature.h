@@ -66,7 +66,9 @@ class TC_GAME_API Creature : public Unit, public GridObject<Creature>
         explicit Creature(bool isWorldObject = false);
 
         void AddToWorld() override;
+        void AddToPartition() override;
         void RemoveFromWorld() override;
+        void RemoveFromPartition() override;
 
         float GetNativeObjectScale() const override;
         void SetObjectScale(float scale) override;

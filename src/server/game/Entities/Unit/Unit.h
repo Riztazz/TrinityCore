@@ -892,7 +892,9 @@ class TC_GAME_API Unit : public WorldObject
         bool HasScheduledAIChange() const;
     public:
         void AddToWorld() override;
+        void AddToPartition() override;
         void RemoveFromWorld() override;
+        void RemoveFromPartition() override;
 
         void CleanupBeforeRemoveFromMap(bool finalCleanup);
         void CleanupsBeforeDelete(bool finalCleanup = true) override;                        // used in ~Creature/~Player (or before mass creature delete to remove cross-references to already deleted units)

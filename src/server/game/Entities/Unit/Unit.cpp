@@ -10196,53 +10196,113 @@ void Unit::AddToWorld()
     i_motionMaster->AddToWorld();
 }
 
+void Unit::AddToPartition()
+{
+    if (IsInWorld())
+        return;
+
+    WorldObject::AddToPartition();
+    //i_motionMaster->AddToWorld(); // Lets try not resetting our motion stuff
+}
+
 void Unit::RemoveFromWorld()
 {
     // cleanup
     ASSERT(GetGUID());
 
-    if (IsInWorld())
+    if (!IsInWorld())
+        return;
+
+    m_duringRemoveFromWorld = true;
+    if (UnitAI* ai = GetAI())
+        ai->OnDespawn();
+
+    if (IsVehicle())
+        RemoveVehicleKit();
+
+    RemoveCharmAuras();
+    RemoveBindSightAuras();
+    RemoveNotOwnSingleTargetAuras();
+
+    RemoveAllGameObjects();
+    RemoveAllDynObjects();
+
+    ExitVehicle();  // Remove applied auras with SPELL_AURA_CONTROL_VEHICLE
+    UnsummonAllTotems();
+    RemoveAllControlled();
+
+    RemoveAreaAurasDueToLeaveWorld();
+
+    RemoveAllFollowers();
+
+    if (IsCharmed())
+        RemoveCharmedBy(nullptr);
+
+    ASSERT(!GetCharmedGUID(), "Unit %u has charmed guid when removed from world", GetEntry());
+    ASSERT(!GetCharmerGUID(), "Unit %u has charmer guid when removed from world", GetEntry());
+
+    if (Unit* owner = GetOwner())
     {
-        m_duringRemoveFromWorld = true;
-        if (UnitAI* ai = GetAI())
-            ai->OnDespawn();
-
-        if (IsVehicle())
-            RemoveVehicleKit();
-
-        RemoveCharmAuras();
-        RemoveBindSightAuras();
-        RemoveNotOwnSingleTargetAuras();
-
-        RemoveAllGameObjects();
-        RemoveAllDynObjects();
-
-        ExitVehicle();  // Remove applied auras with SPELL_AURA_CONTROL_VEHICLE
-        UnsummonAllTotems();
-        RemoveAllControlled();
-
-        RemoveAreaAurasDueToLeaveWorld();
-
-        RemoveAllFollowers();
-
-        if (IsCharmed())
-            RemoveCharmedBy(nullptr);
-
-        ASSERT(!GetCharmedGUID(), "Unit %u has charmed guid when removed from world", GetEntry());
-        ASSERT(!GetCharmerGUID(), "Unit %u has charmer guid when removed from world", GetEntry());
-
-        if (Unit* owner = GetOwner())
+        if (owner->m_Controlled.find(this) != owner->m_Controlled.end())
         {
-            if (owner->m_Controlled.find(this) != owner->m_Controlled.end())
-            {
-                TC_LOG_FATAL("entities.unit", "Unit {} is in controlled list of {} when removed from world", GetEntry(), owner->GetEntry());
-                ABORT();
-            }
+            TC_LOG_FATAL("entities.unit", "Unit {} is in controlled list of {} when removed from world", GetEntry(), owner->GetEntry());
+            ABORT();
         }
-
-        WorldObject::RemoveFromWorld();
-        m_duringRemoveFromWorld = false;
     }
+
+    WorldObject::RemoveFromWorld();
+    m_duringRemoveFromWorld = false;
+}
+
+void Unit::RemoveFromPartition()
+{
+    // cleanup
+    ASSERT(GetGUID());
+
+    if (!IsInWorld())
+        return;
+
+    m_duringRemoveFromWorld = true;
+
+    if (UnitAI* ai = GetAI())
+        ai->OnDespawn();
+
+    //if (IsVehicle())
+    //    RemoveVehicleKit();
+
+    //RemoveCharmAuras();
+    RemoveBindSightAuras();
+    RemoveNotOwnSingleTargetAuras();
+
+    RemoveAllGameObjects();
+    RemoveAllDynObjects();
+
+    //ExitVehicle();  // Remove applied auras with SPELL_AURA_CONTROL_VEHICLE
+    UnsummonAllTotems();
+    //RemoveAllControlled();
+
+    //RemoveAreaAurasDueToLeaveWorld();
+
+    RemoveAllFollowers();
+
+    //if (IsCharmed())
+    //    RemoveCharmedBy(nullptr);
+
+    //ASSERT(!GetCharmedGUID(), "Unit %u has charmed guid when removed from world", GetEntry());
+    //ASSERT(!GetCharmerGUID(), "Unit %u has charmer guid when removed from world", GetEntry());
+
+    //if (Unit* owner = GetOwner())
+    //{
+    //    if (owner->m_Controlled.find(this) != owner->m_Controlled.end())
+    //    {
+    //        TC_LOG_FATAL("entities.unit", "Unit {} is in controlled list of {} when removed from world", GetEntry(), owner->GetEntry());
+    //        ABORT();
+    //    }
+    //}
+
+    WorldObject::RemoveFromPartition();
+
+    m_duringRemoveFromWorld = false;
 }
 
 void Unit::CleanupBeforeRemoveFromMap(bool finalCleanup)

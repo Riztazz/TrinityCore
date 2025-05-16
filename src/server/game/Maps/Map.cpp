@@ -510,14 +510,27 @@ bool Map::AddPlayerToMap(Player* player)
     return true;
 }
 
-void Map::AddPlayerToPartition(Player* player)
+bool Map::AddPlayerToPartition(Player* player)
 {
     ZoneScopedN("Map::AddPlayerToPartition");
 
     CellCoord cellCoord = Trinity::ComputeCellCoord(player->GetPositionX(), player->GetPositionY());
+    if (!cellCoord.IsCoordValid())
+    {
+        TC_LOG_ERROR("maps", "Map::Add: Player {} has invalid coordinates X:{} Y:{} grid cell [{}:{}]", player->GetGUID().ToString(), player->GetPositionX(), player->GetPositionY(), cellCoord.x_coord, cellCoord.y_coord);
+        return false;
+    }
+
     Cell cell(cellCoord);
     EnsureGridLoaded(cell);
     AddToGrid(player, cell);
+
+    // Check if we are adding to correct map
+    ASSERT (player->GetMap() == this);
+    // Like object, shouldnt this already be set based on the ASSERT?
+    //player->SetMap(this);
+    player->AddToPartition();
+
     SendInitSelf(player);
     SendInitTransports(player);
 
@@ -526,6 +539,12 @@ void Map::AddPlayerToPartition(Player* player)
 
     if (player->IsAlive())
         ConvertCorpseToBones(player->GetGUID());
+
+    // @tswow-begin
+    //FIRE_ID(GetId(),Map,OnPlayerEnter,TSMap(this),TSPlayer(player));
+    // @tswow-end
+    //sScriptMgr->OnPlayerEnterMap(this, player);
+    return true;
 }
 
 template<class T>
@@ -573,44 +592,6 @@ bool Map::AddToMap(T* obj)
     return true;
 }
 
-template<class T>
-void Map::AddToPartition(T* obj)
-{
-    ZoneScopedN("Map::AddToPartition");
-
-    CellCoord cellCoord = Trinity::ComputeCellCoord(obj->GetPositionX(), obj->GetPositionY());
-    Cell cell(cellCoord);
-    EnsureGridLoaded(cell);
-    AddToGrid(obj, cell);
-
-    //obj->AddToWorld();
-    {
-        GetObjectsStore().Insert<Creature>(obj->GetGUID(), obj);
-        if (obj->GetSpawnId())
-            GetCreatureBySpawnIdStore().insert(std::make_pair(obj->GetSpawnId(), obj));
-
-        //Unit::AddToWorld();
-        //SearchFormation();
-        //AIM_Initialize();
-        //if (IsVehicle())
-        //    GetVehicleKit()->Install();
-        //
-        //if (GetZoneScript())
-        //    GetZoneScript()->OnCreatureCreate(this);
-    }
-
-    if (obj->isActiveObject())
-        AddToActive(obj);
-    if (obj->IsCreature() && obj->ToCreature()->GetWaypointPath() != 0)
-        AddToWaypointCreatures(obj->ToCreature());
-
-    //something, such as vehicle, needs to be update immediately
-    //also, trigger needs to cast spell, if not update, cannot see visual
-    obj->SetIsNewObject(true);
-    obj->UpdateObjectVisibilityOnCreate();
-    obj->SetIsNewObject(false);
-}
-
 template<>
 bool Map::AddToMap(Transport* obj)
 {
@@ -644,6 +625,51 @@ bool Map::AddToMap(Transport* obj)
         }
     }
 
+    return true;
+}
+
+template<class T>
+bool Map::AddToPartition(T* obj)
+{
+    ZoneScopedN("Map::AddToPartition");
+
+    /// @todo Needs clean up. An object should not be added to map twice.
+    if (obj->IsInWorld())
+    {
+        ASSERT(obj->IsInGrid());
+        obj->UpdateObjectVisibility(true);
+        return true;
+    }
+
+    CellCoord cellCoord = Trinity::ComputeCellCoord(obj->GetPositionX(), obj->GetPositionY());
+    //It will create many problems (including crashes) if an object is not added to grid after creation
+    //The correct way to fix it is to make AddToMap return false and delete the object if it is not added to grid
+    //But now AddToMap is used in too many places, I will just see how many ASSERT failures it will cause
+    ASSERT(cellCoord.IsCoordValid());
+    if (!cellCoord.IsCoordValid())
+    {
+        TC_LOG_ERROR("maps", "Map::Add: Object {} has invalid coordinates X:{} Y:{} grid cell [{}:{}]", obj->GetGUID().ToString(), obj->GetPositionX(), obj->GetPositionY(), cellCoord.x_coord, cellCoord.y_coord);
+        return false; //Should delete object
+    }
+
+    Cell cell(cellCoord);
+    EnsureGridLoaded(cell);
+    AddToGrid(obj, cell);
+
+    //Must already be set before AddToMap. Usually during obj->Create.
+    //obj->SetMap(this);
+    obj->AddToPartition();
+
+    if (obj->isActiveObject())
+        AddToActive(obj);
+    if (obj->IsCreature() && obj->ToCreature()->GetWaypointPath() != 0)
+        AddToWaypointCreatures(obj->ToCreature());
+
+    //something, such as vehicle, needs to be update immediately
+    //also, trigger needs to cast spell, if not update, cannot see visual
+    obj->SetIsNewObject(true);
+    obj->UpdateObjectVisibilityOnCreate();
+    obj->SetIsNewObject(false);
     return true;
 }
 
@@ -1079,6 +1105,32 @@ void Map::RemovePlayerFromMap(Player* player, bool remove)
         DeleteFromWorld(player);
 }
 
+void Map::RemovePlayerFromPartition(Player* player)
+{
+    ZoneScopedN("Map::RemovePlayerFromPartition");
+
+    // Before leaving map, update zone/area for stats
+    //player->UpdateZone(MAP_INVALID_ZONE, 0);
+    // @tswow-begin
+    //FIRE_ID(GetId(),Map,OnPlayerLeave,TSMap(this),TSPlayer(player));
+    //player->m_tsWorldEntity.m_timers.remove_on_map_change();
+    // @tswow-end
+    //sScriptMgr->OnPlayerLeaveMap(this, player);
+
+    player->CombatStop();
+
+    bool const inWorld = player->IsInWorld();
+    player->RemoveFromPartition();
+    SendRemoveTransports(player);
+
+    // note: RemoveFromWorld does this for inWorld objects
+    if (!inWorld) // if was in world, RemoveFromWorld() called DestroyForNearbyPlayers()
+        player->DestroyForNearbyPlayers(); // previous player->UpdateObjectVisibility(true)
+
+    if (player->IsInGrid())
+        player->RemoveFromGrid();
+}
+
 template<class T>
 void Map::RemoveFromMap(T *obj, bool remove)
 {
@@ -1137,6 +1189,26 @@ void Map::RemoveFromMap(Transport* obj, bool remove)
 
     if (remove)
         DeleteFromWorld(obj);
+}
+
+template<class T>
+void Map::RemoveFromPartition(T *obj)
+{
+    bool const inWorld = obj->IsInWorld() && obj->GetTypeId() >= TYPEID_UNIT && obj->GetTypeId() <= TYPEID_GAMEOBJECT;
+    obj->RemoveFromPartition();
+
+    if (obj->isActiveObject())
+        RemoveFromActive(obj);
+    if (obj->IsCreature() && obj->ToCreature()->GetWaypointPath() != 0)
+        RemoveFromWaypointCreatures(obj->ToCreature());
+
+    // note: RemoveFromWorld does this for inWorld objects
+    if (!inWorld) // if was in world, RemoveFromWorld() called DestroyForNearbyPlayers()
+        obj->DestroyForNearbyPlayers(); // previous obj->UpdateObjectVisibility(true)
+
+    obj->RemoveFromGrid();
+
+    obj->ResetMap();
 }
 
 void Map::PlayerRelocation(Player* player, float x, float y, float z, float orientation)
@@ -3537,15 +3609,20 @@ template TC_GAME_API bool Map::AddToMap(Creature*);
 template TC_GAME_API bool Map::AddToMap(GameObject*);
 template TC_GAME_API bool Map::AddToMap(DynamicObject*);
 
-template TC_GAME_API void Map::AddToPartition(Corpse*);
-template TC_GAME_API void Map::AddToPartition(Creature*);
-template TC_GAME_API void Map::AddToPartition(GameObject*);
-template TC_GAME_API void Map::AddToPartition(DynamicObject*);
+template TC_GAME_API bool Map::AddToPartition(Corpse*);
+template TC_GAME_API bool Map::AddToPartition(Creature*);
+template TC_GAME_API bool Map::AddToPartition(GameObject*);
+template TC_GAME_API bool Map::AddToPartition(DynamicObject*);
 
 template TC_GAME_API void Map::RemoveFromMap(Corpse*, bool);
 template TC_GAME_API void Map::RemoveFromMap(Creature*, bool);
 template TC_GAME_API void Map::RemoveFromMap(GameObject*, bool);
 template TC_GAME_API void Map::RemoveFromMap(DynamicObject*, bool);
+
+template TC_GAME_API void Map::RemoveFromPartition(Corpse*);
+template TC_GAME_API void Map::RemoveFromPartition(Creature*);
+template TC_GAME_API void Map::RemoveFromPartition(GameObject*);
+template TC_GAME_API void Map::RemoveFromPartition(DynamicObject*);
 
 /* ******* Partition Maps ******* */
 

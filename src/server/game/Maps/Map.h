@@ -342,12 +342,14 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
         }
 
         virtual bool AddPlayerToMap(Player*);
-        void AddPlayerToPartition(Player*);
+        bool AddPlayerToPartition(Player*);
         virtual void RemovePlayerFromMap(Player*, bool);
+        void RemovePlayerFromPartition(Player*);
 
         template<class T> bool AddToMap(T *);
-        template<class T> void AddToPartition(T *);
+        template<class T> bool AddToPartition(T *);
         template<class T> void RemoveFromMap(T *, bool);
+        template<class T> void RemoveFromPartition(T *);
 
         void VisitNearbyCellsOf(WorldObject* obj, TypeContainerVisitor<Trinity::ObjectUpdater, GridTypeMapContainer> &gridVisitor, TypeContainerVisitor<Trinity::ObjectUpdater, WorldTypeMapContainer> &worldVisitor);
         virtual void Update(uint32);

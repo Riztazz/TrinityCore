@@ -1971,6 +1971,10 @@ void Player::ProcessDelayedOperations()
 
 void Player::AddToWorld()
 {
+    // TODO should we add this check?
+    //if (IsInWorld())
+    //    return;
+
     ///- Do not add/remove the player from the object storage
     ///- It will crash when updating the ObjectAccessor
     ///- The player should only be added when logging in
@@ -1981,8 +1985,27 @@ void Player::AddToWorld()
             m_items[i]->AddToWorld();
 }
 
+void Player::AddToPartition()
+{
+    if (IsInWorld())
+        return;
+
+    ///- Do not add/remove the player from the object storage
+    ///- It will crash when updating the ObjectAccessor
+    ///- The player should only be added when logging in
+    Unit::AddToPartition();
+
+    for (uint8 i = PLAYER_SLOT_START; i < PLAYER_SLOT_END; ++i)
+        if (m_items[i])
+            m_items[i]->AddToWorld();
+}
+
 void Player::RemoveFromWorld()
 {
+    // TODO should we add this check?
+    //if (!IsInWorld())
+    //    return;
+
     // cleanup
     if (IsInWorld())
     {
@@ -2023,6 +2046,49 @@ void Player::RemoveFromWorld()
             SetViewpoint(viewpoint, false);
         }
     }
+}
+
+void Player::RemoveFromPartition()
+{
+    if (!IsInWorld())
+        return;
+
+    ///- Release charmed creatures, unsummon totems and remove pets/guardians
+    //StopCastingCharm();
+    StopCastingBindSight();
+    UnsummonPetTemporaryIfAny();
+    //ClearComboPoints();
+    //ClearComboPointHolders();
+    ObjectGuid lootGuid = GetLootGUID();
+    if (!lootGuid.IsEmpty())
+        m_session->DoLootRelease(lootGuid);
+    //sOutdoorPvPMgr->HandlePlayerLeaveZone(this, m_zoneUpdateId);
+    //sBattlefieldMgr->HandlePlayerLeaveZone(this, m_zoneUpdateId);
+
+    // Remove items from world before self - player must be found in Item::RemoveFromObjectUpdate
+    for (uint8 i = PLAYER_SLOT_START; i < PLAYER_SLOT_END; ++i)
+    {
+        if (m_items[i])
+            m_items[i]->RemoveFromWorld();
+    }
+
+    ///- Do not add/remove the player from the object storage
+    ///- It will crash when updating the ObjectAccessor
+    ///- The player should only be removed when logging out
+    Unit::RemoveFromPartition();
+
+    for (ItemMap::iterator iter = mMitems.begin(); iter != mMitems.end(); ++iter)
+        iter->second->RemoveFromWorld();
+
+    //if (m_uint32Values)
+    //{
+    //    if (WorldObject* viewpoint = GetViewpoint())
+    //    {
+    //        TC_LOG_ERROR("entities.player", "Player::RemoveFromWorld: Player '{}' ({}) has viewpoint (Entry:{}, Type: {}) when removed from world",
+    //            GetName(), GetGUID().ToString(), viewpoint->GetEntry(), viewpoint->GetTypeId());
+    //        SetViewpoint(viewpoint, false);
+    //    }
+    //}
 }
 
 void Player::SetObjectScale(float scale)
@@ -26478,7 +26544,7 @@ void Player::RemoveAtLoginFlag(AtLoginFlags flags, bool persist /*= false*/)
     }
 }
 
-void Player::ResetMap(bool allowInWorld /*= false*/)
+void Player::ResetMap()
 {
     // this may be called during Map::Update
     // after decrement+unlink, ++m_mapRefIter will continue correctly
@@ -26486,19 +26552,23 @@ void Player::ResetMap(bool allowInWorld /*= false*/)
     // nocheck_prev will return the padding element of the RefManager
     // instead of nullptr in the case of prev
     GetMap()->UpdateIteratorBack(this);
-    Unit::ResetMap(allowInWorld);
+    Unit::ResetMap();
     GetMapRef().unlink();
 }
 
-void Player::SetMap(Map* map, bool allowInWorld /*= false*/)
+void Player::SetMap(Map* map)
 {
-    Unit::SetMap(map, allowInWorld);
+    Unit::SetMap(map);
     m_mapRef.link(map, this);
 }
 
 // Only call from Map Delayed Update (map thread safety)
 void Player::UpdateMapPartition(Map* forcedMap)
 {
+    // Ignore players update if we are in a vehicle, the vehicle creature needs to move first
+    if (m_vehicle && !forcedMap)
+        return;
+
     Map* currentMap = IsInWorld() ? GetMap() : nullptr;
     // We only ever change partitions if we are currently in a world map
     if (!currentMap || !currentMap->IsWorldMap())
@@ -26507,12 +26577,6 @@ void Player::UpdateMapPartition(Map* forcedMap)
     Map* newMap = forcedMap ? forcedMap : sMapMgr->CreateMap(currentMap->GetId(), GetPosition(), this);
     // We don't change partitions if already in the correct partition
     if (!newMap || newMap == currentMap)
-        return;
-
-    TC_LOG_DEBUG("partitions", "Player UpdateMapPartition m_vehicle {}", m_vehicle ? "true" : "false");
-
-    // Ignore players update if we are in a vehicle, the vehicle creature needs to move first
-    if (m_vehicle && !forcedMap)
         return;
 
     TC_LOG_DEBUG("partitions", "Player {} Moving From Partition {} To Partition {} ", GetGUID(), currentMap->GetPartitionId(), newMap->GetPartitionId());
@@ -26532,126 +26596,7 @@ void Player::UpdateMapPartition(Map* forcedMap)
     // TODO do we need to remove these?
     RemoveAurasWithInterruptFlags(AURA_INTERRUPT_FLAG_CHANGE_MAP | AURA_INTERRUPT_FLAG_MOVE | AURA_INTERRUPT_FLAG_TURNING);
 
-    //currentMap->RemovePlayerFromMap(this, false);
-    {
-        //player->UpdateZone(MAP_INVALID_ZONE, 0);
-        // @tswow-begin
-        //FIRE_ID(GetId(),Map,OnPlayerLeave,TSMap(this),TSPlayer(player));
-        //player->m_tsWorldEntity.m_timers.remove_on_map_change();
-        // @tswow-end
-        //sScriptMgr->OnPlayerLeaveMap(this, player);
-
-        //bool const inWorld = player->IsInWorld();
-        //player->RemoveFromWorld();
-        {
-            ///- Release charmed creatures, unsummon totems and remove pets/guardians
-            //StopCastingCharm();
-            StopCastingBindSight();
-            UnsummonPetTemporaryIfAny();
-
-            // TODO See if we can keep our combo points
-            //ClearComboPoints();
-            //ClearComboPointHolders();
-            ObjectGuid lootGuid = GetLootGUID();
-            if (!lootGuid.IsEmpty())
-                m_session->DoLootRelease(lootGuid);
-
-            // PARTITIONS CHANGES DO NOT SERVE AS PVP/BATTLEFIELD ZONE UPDATES
-            //sOutdoorPvPMgr->HandlePlayerLeaveZone(this, m_zoneUpdateId);
-            //sBattlefieldMgr->HandlePlayerLeaveZone(this, m_zoneUpdateId);
-
-            // TODO See if we don't have to do this
-            // Remove items from world before self - player must be found in Item::RemoveFromObjectUpdate
-            //for (uint8 i = PLAYER_SLOT_START; i < PLAYER_SLOT_END; ++i)
-            //{
-            //    if (m_items[i])
-            //        m_items[i]->RemoveFromWorld();
-            //}
-
-            //Unit::RemoveFromWorld();
-            {
-                //m_duringRemoveFromWorld = true;
-                //if (UnitAI* ai = GetAI())
-                //    ai->OnDespawn();
-
-                //if (IsVehicle())
-                //    RemoveVehicleKit();
-
-                //RemoveCharmAuras();
-                RemoveBindSightAuras();
-                RemoveNotOwnSingleTargetAuras();
-
-                RemoveAllGameObjects();
-                RemoveAllDynObjects();
-
-                //ExitVehicle();  // Remove applied auras with SPELL_AURA_CONTROL_VEHICLE
-
-                UnsummonAllTotems();
-
-                //RemoveAllControlled();
-
-                // TODO see if we can leave this
-                //RemoveAreaAurasDueToLeaveWorld();
-
-                RemoveAllFollowers();
-
-                if (IsCharmed())
-                    RemoveCharmedBy(nullptr);
-
-                //if (Unit* owner = GetOwner())
-                //{
-                //    if (owner->m_Controlled.find(this) != owner->m_Controlled.end())
-                //    {
-                //        TC_LOG_FATAL("entities.unit", "Unit {} is in controlled list of {} when removed from world", GetEntry(), owner->GetEntry());
-                //        ABORT();
-                //    }
-                //}
-
-                //WorldObject::RemoveFromWorld();
-                {
-                    DestroyForNearbyPlayers();
-
-                    //Object::RemoveFromWorld();
-                    {
-                        //m_inWorld = false;
-
-                        // if we remove from world then sending changes not required
-                        ClearUpdateMask(true);
-
-                        //m_scriptRef = nullptr;
-                    }
-                    // @tswow-begin
-                    // TODO see if we need this
-                    //RemoveFromAllGroups();
-                }
-                //m_duringRemoveFromWorld = false;
-            }
-
-            // TODO see if not remove mail items from fromWorld
-            //for (ItemMap::iterator iter = mMitems.begin(); iter != mMitems.end(); ++iter)
-            //    iter->second->RemoveFromWorld();
-
-            // NO PARTITIONS IN ARENA STUFF
-            //if (m_uint32Values)
-            //{
-            //    if (WorldObject* viewpoint = GetViewpoint())
-            //    {
-            //        TC_LOG_ERROR("entities.player", "Player::RemoveFromWorld: Player '{}' ({}) has viewpoint (Entry:{}, Type: {}) when removed from world",
-            //            GetName(), GetGUID().ToString(), viewpoint->GetEntry(), viewpoint->GetTypeId());
-            //        SetViewpoint(viewpoint, false);
-            //    }
-            //}
-        }
-
-        // TRANSPORTS THROUGH PARTITION ARE NOT YET HANDLED
-        //currentMap->SendRemoveTransports(this);
-
-        //if (!inWorld) // if was in world, RemoveFromWorld() called DestroyForNearbyPlayers()
-        //DestroyForNearbyPlayers(); // previous player->UpdateObjectVisibility(true)
-
-        if (IsInGrid())
-            RemoveFromGrid();
-    }
+    currentMap->RemovePlayerFromPartition(this);
 
     // Delete all existing visible objects, we don't have an existing function that does this
     // since usually we send teleport packets for changing maps
@@ -26666,15 +26611,16 @@ void Player::UpdateMapPartition(Map* forcedMap)
     }
 
     // Set the new map
-    ResetMap(true);
-    SetMap(newMap, true);
+    ResetMap();
+    SetMap(newMap);
+
     newMap->AddPlayerToPartition(this);
 
     // TODO try not unsummon and summon, but rather move pet with me
     ResummonPetTemporaryUnSummonedIfAny();
 
     // idk if we need this either
-    //ProcessDelayedOperations();
+    ProcessDelayedOperations();
 }
 
 void Player::_LoadGlyphs(PreparedQueryResult result)

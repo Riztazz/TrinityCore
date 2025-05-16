@@ -83,7 +83,9 @@ class TC_GAME_API Object
         bool IsInWorld() const { return m_inWorld; }
 
         virtual void AddToWorld();
+        virtual void AddToPartition();
         virtual void RemoveFromWorld();
+        virtual void RemoveFromPartition();
 
         static ObjectGuid GetGUID(Object const* o) { return o ? o->GetGUID() : ObjectGuid::Empty; }
         ObjectGuid GetGUID() const { return GetGuidValue(OBJECT_FIELD_GUID); }
@@ -327,7 +329,9 @@ class TC_GAME_API WorldObject : public Object, public WorldLocation
 
         void _Create(ObjectGuid::LowType guidlow, HighGuid guidhigh, uint32 phaseMask);
         void AddToWorld() override;
+        void AddToPartition() override;
         void RemoveFromWorld() override;
+        void RemoveFromPartition() override;
 
         void GetNearPoint2D(WorldObject const* searcher, float& x, float& y, float distance, float absAngle) const;
         void GetNearPoint(WorldObject const* searcher, float& x, float& y, float& z, float distance2d, float absAngle) const;
@@ -437,8 +441,8 @@ class TC_GAME_API WorldObject : public Object, public WorldLocation
         FlaggedValuesArray32<int32, uint32, ServerSideVisibilityType, TOTAL_SERVERSIDE_VISIBILITY_TYPES> m_serverSideVisibility;
         FlaggedValuesArray32<int32, uint32, ServerSideVisibilityType, TOTAL_SERVERSIDE_VISIBILITY_TYPES> m_serverSideVisibilityDetect;
 
-        virtual void SetMap(Map* map, bool allowInWorld = false);
-        virtual void ResetMap(bool allowInWorld = false);
+        virtual void SetMap(Map* map);
+        virtual void ResetMap();
         Map* GetMap() const { ASSERT(m_currMap); return m_currMap; }
         Map* FindMap() const { return m_currMap; }
         //used to check all object's GetMap() calls when object is not in world!

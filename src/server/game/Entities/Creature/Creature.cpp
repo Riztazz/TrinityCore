@@ -301,6 +301,10 @@ Creature::Creature(bool isWorldObject): Unit(isWorldObject), m_groupLootTimer(0)
 
 void Creature::AddToWorld()
 {
+    // TODO should we add this check?
+    //if (IsInWorld())
+    //    return;
+
     // @tswow-begin
     bool b = false;
     FIRE_ID(GetCreatureTemplate()->events.id,Creature,OnCreate,TSCreature(this),TSMutable<bool,bool>(&b));
@@ -332,28 +336,85 @@ void Creature::AddToWorld()
     }
 }
 
-void Creature::RemoveFromWorld()
+void Creature::AddToPartition()
 {
     if (IsInWorld())
-    {
-        // @tswow-begin
-        FIRE_ID(GetCreatureTemplate()->events.id,Creature,OnRemove,TSCreature(this));
-        FIRE_ID(GetMap()->GetId(),Map,OnCreatureRemove,TSMap(GetMap()),TSCreature(this));
-        // @tswow-end
-        if (GetZoneScript())
-            GetZoneScript()->OnCreatureRemove(this);
+        return;
 
-        if (m_formation)
-            sFormationMgr->RemoveCreatureFromGroup(m_formation, this);
+    // @tswow-begin
+    //bool b = false;
+    //FIRE_ID(GetCreatureTemplate()->events.id,Creature,OnCreate,TSCreature(this),TSMutable<bool,bool>(&b));
+    //FIRE_ID(GetMap()->GetId(),Map,OnCreatureCreate,TSMap(GetMap()),TSCreature(this),TSMutable<bool,bool>(&b));
+    //if(b)
+    //{
+    //    // TODO: Is this enough to stop spawning?
+    //    return;
+    //}
+    // @tswow-end
 
-        Unit::RemoveFromWorld();
+    ///- Register the creature for guid lookup
+    GetMap()->GetObjectsStore().Insert<Creature>(GetGUID(), this);
+    if (m_spawnId)
+        GetMap()->GetCreatureBySpawnIdStore().insert(std::make_pair(m_spawnId, this));
 
-        if (m_spawnId)
-            Trinity::Containers::MultimapErasePair(GetMap()->GetCreatureBySpawnIdStore(), m_spawnId, this);
+    TC_LOG_DEBUG("entities.unit", "Adding creature {} with DBGUID {} to world in map {}", GetGUID().ToString(), m_spawnId, GetMap()->GetId());
 
-        TC_LOG_DEBUG("entities.unit", "Removing creature {} with DBGUID {} to world in map {}", GetGUID().ToString(), m_spawnId, GetMap()->GetId());
-        GetMap()->GetObjectsStore().Remove<Creature>(GetGUID());
-    }
+    Unit::AddToPartition();
+    SearchFormation();
+    //AIM_Initialize();
+    //if (IsVehicle())
+    //    GetVehicleKit()->Install();
+
+    //if (GetZoneScript())
+    //    GetZoneScript()->OnCreatureCreate(this);
+}
+
+void Creature::RemoveFromWorld()
+{
+    if (!IsInWorld())
+        return;
+
+    // @tswow-begin
+    FIRE_ID(GetCreatureTemplate()->events.id,Creature,OnRemove,TSCreature(this));
+    FIRE_ID(GetMap()->GetId(),Map,OnCreatureRemove,TSMap(GetMap()),TSCreature(this));
+    // @tswow-end
+    if (GetZoneScript())
+        GetZoneScript()->OnCreatureRemove(this);
+
+    if (m_formation)
+        sFormationMgr->RemoveCreatureFromGroup(m_formation, this);
+
+    Unit::RemoveFromWorld();
+
+    if (m_spawnId)
+        Trinity::Containers::MultimapErasePair(GetMap()->GetCreatureBySpawnIdStore(), m_spawnId, this);
+
+    TC_LOG_DEBUG("entities.unit", "Removing creature {} with DBGUID {} to world in map {}", GetGUID().ToString(), m_spawnId, GetMap()->GetId());
+    GetMap()->GetObjectsStore().Remove<Creature>(GetGUID());
+}
+
+void Creature::RemoveFromPartition()
+{
+    if (!IsInWorld())
+        return;
+
+    // @tswow-begin
+    //FIRE_ID(GetCreatureTemplate()->events.id,Creature,OnRemove,TSCreature(this));
+    //FIRE_ID(GetMap()->GetId(),Map,OnCreatureRemove,TSMap(GetMap()),TSCreature(this));
+    // @tswow-end
+    //if (GetZoneScript())
+    //    GetZoneScript()->OnCreatureRemove(this);
+
+    if (m_formation)
+        sFormationMgr->RemoveCreatureFromGroup(m_formation, this);
+
+    Unit::RemoveFromPartition();
+
+    if (m_spawnId)
+        Trinity::Containers::MultimapErasePair(GetMap()->GetCreatureBySpawnIdStore(), m_spawnId, this);
+
+    //TC_LOG_DEBUG("entities.unit", "Removing creature {} with DBGUID {} to world in map {}", GetGUID().ToString(), m_spawnId, GetMap()->GetId());
+    GetMap()->GetObjectsStore().Remove<Creature>(GetGUID());
 }
 
 void Creature::SetOutfit(std::shared_ptr<CreatureOutfit> const & outfit)
@@ -3783,6 +3844,11 @@ uint32 Creature::GetModelID() const
 
 void Creature::UpdateMapPartition(Map* forcedMap)
 {
+    Vehicle* vehicle = GetVehicleKit();
+    // Only support vehicles for now
+    if (!vehicle)
+        return;
+
     Map* currentMap = IsInWorld() ? GetMap() : nullptr;
     // We only ever change partitions if we are currently in a world map
     if (!currentMap || !currentMap->IsWorldMap())
@@ -3793,105 +3859,11 @@ void Creature::UpdateMapPartition(Map* forcedMap)
     if (!newMap || newMap == currentMap)
         return;
 
-    Vehicle* vehicle = GetVehicleKit();
-    // Only support vehicles for now
-    if (!vehicle)
-        return;
+    currentMap->RemoveFromPartition(this);
 
-    // TODO try different orderings of this
-    //currentMap->RemoveFromMap(this, false);
-    {
-        //Creature::RemoveFromWorld();
-        {
-            // @tswow-begin
-            //FIRE_ID(GetCreatureTemplate()->events.id,Creature,OnRemove,TSCreature(this));
-            //FIRE_ID(GetMap()->GetId(),Map,OnCreatureRemove,TSMap(GetMap()),TSCreature(this));
-            // @tswow-end
-            //if (GetZoneScript())
-            //    GetZoneScript()->OnCreatureRemove(this);
+    ResetMap();
+    SetMap(newMap);
 
-            // TODO no support for formations yet
-            if (m_formation)
-                sFormationMgr->RemoveCreatureFromGroup(m_formation, this);
-
-            //Unit::RemoveFromWorld();
-            {
-                //m_duringRemoveFromWorld = true;
-                //if (UnitAI* ai = GetAI())
-                //    ai->OnDespawn();
-
-                //if (IsVehicle())
-                //    RemoveVehicleKit();
-
-                //RemoveCharmAuras();
-                RemoveBindSightAuras();
-                RemoveNotOwnSingleTargetAuras();
-
-                RemoveAllGameObjects();
-                RemoveAllDynObjects();
-
-                //ExitVehicle();  // Remove applied auras with SPELL_AURA_CONTROL_VEHICLE
-                UnsummonAllTotems();
-                //RemoveAllControlled();
-
-                RemoveAreaAurasDueToLeaveWorld();
-
-                RemoveAllFollowers();
-
-                //if (IsCharmed())
-                //    RemoveCharmedBy(nullptr);
-
-                //if (Unit* owner = GetOwner())
-                //{
-                //    if (owner->m_Controlled.find(this) != owner->m_Controlled.end())
-                //    {
-                //        TC_LOG_FATAL("entities.unit", "Unit {} is in controlled list of {} when removed from world", GetEntry(), owner->GetEntry());
-                //        ABORT();
-                //    }
-                //}
-
-                //WorldObject::RemoveFromWorld();
-                {
-                    //TESTING
-                    //DestroyForNearbyPlayers();
-
-                    //Object::RemoveFromWorld();
-                    {
-                        //m_inWorld = false;
-
-                        // if we remove from world then sending changes not required
-                        ClearUpdateMask(true);
-                    
-                        //m_scriptRef = nullptr;
-                    }
-
-                    // TODO see if we need this
-                    //RemoveFromAllGroups();
-                }
-                //m_duringRemoveFromWorld = false;
-            }
-
-            if (m_spawnId)
-                Trinity::Containers::MultimapErasePair(currentMap->GetCreatureBySpawnIdStore(), m_spawnId, this);
-
-            TC_LOG_DEBUG("entities.unit", "Removing creature {} with DBGUID {} to world in map {}", GetGUID().ToString(), m_spawnId, currentMap->GetId());
-            currentMap->GetObjectsStore().Remove<Creature>(GetGUID());
-        }
-
-        if (isActiveObject())
-            currentMap->RemoveFromActive(this);
-        if (GetWaypointPath() != 0)
-            currentMap->RemoveFromWaypointCreatures(this);
-
-        // note: RemoveFromWorld does this for inWorld objects
-        //if (!inWorld) // if was in world, RemoveFromWorld() called DestroyForNearbyPlayers()
-        //    DestroyForNearbyPlayers(); // previous obj->UpdateObjectVisibility(true)
-
-        RemoveFromGrid();
-    }
-
-    ResetMap(true);
-    SetMap(newMap, true);
     newMap->AddToPartition(this);
 
     // Now update passengers
