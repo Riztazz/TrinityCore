@@ -169,8 +169,8 @@ void Object::AddToPartition()
 
     // Set new ref when adding to world (except if we already have one - also set in constructor to allow scripts to work in initialization phase)
     // Changing the ref when adding/removing from world prevents accessing players on different maps (possibly from another thread)
-    //if (!m_scriptRef)
-    //    m_scriptRef.reset(this, NoopObjectDeleter());
+    if (!m_scriptRef)
+        m_scriptRef.reset(this, NoopObjectDeleter());
 
     TC_LOG_DEBUG("partitions", "Object::AddToPartition done");
 }
@@ -199,7 +199,7 @@ void Object::RemoveFromPartition()
     // if we remove from world then sending changes not required
     ClearUpdateMask(true);
 
-    //m_scriptRef = nullptr;
+    m_scriptRef = nullptr;
 
     TC_LOG_DEBUG("partitions", "Object::RemoveFromPartition done");
 }
