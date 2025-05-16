@@ -175,6 +175,7 @@ void Object::RemoveFromWorld()
 
 void Object::RemoveFromPartition()
 {
+    TC_LOG_DEBUG("partitions", "Object::RemoveFromPartition called");
     if (!IsInWorld())
         return;
     RemoveFromWorld();
@@ -1140,6 +1141,7 @@ void WorldObject::RemoveFromWorld()
 
 void WorldObject::RemoveFromPartition()
 {
+    TC_LOG_DEBUG("partitions", "WorldObject::RemoveFromPartition called");
     if (!IsInWorld())
         return;
 

@@ -2050,6 +2050,7 @@ void Player::RemoveFromWorld()
 
 void Player::RemoveFromPartition()
 {
+    TC_LOG_DEBUG("partitions", "Player::RemoveFromPartition called");
     if (!IsInWorld())
         return;
 

@@ -1107,6 +1107,7 @@ void Map::RemovePlayerFromMap(Player* player, bool remove)
 
 void Map::RemovePlayerFromPartition(Player* player)
 {
+    TC_LOG_DEBUG("partitions", "Map::RemovePlayerFromPartition called");
     ZoneScopedN("Map::RemovePlayerFromPartition");
 
     // Before leaving map, update zone/area for stats
@@ -1194,6 +1195,7 @@ void Map::RemoveFromMap(Transport* obj, bool remove)
 template<class T>
 void Map::RemoveFromPartition(T *obj)
 {
+    TC_LOG_DEBUG("partitions", "Map::RemoveFromPartition called");
     bool const inWorld = obj->IsInWorld() && obj->GetTypeId() >= TYPEID_UNIT && obj->GetTypeId() <= TYPEID_GAMEOBJECT;
     obj->RemoveFromPartition();
 

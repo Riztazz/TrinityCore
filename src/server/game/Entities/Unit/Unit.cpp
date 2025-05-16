@@ -10256,6 +10256,7 @@ void Unit::RemoveFromWorld()
 
 void Unit::RemoveFromPartition()
 {
+    TC_LOG_DEBUG("partitions", "Unit::RemoveFromPartition called");
     // cleanup
     ASSERT(GetGUID());
 
@@ -10264,8 +10265,8 @@ void Unit::RemoveFromPartition()
 
     m_duringRemoveFromWorld = true;
 
-    if (UnitAI* ai = GetAI())
-        ai->OnDespawn();
+    //if (UnitAI* ai = GetAI())
+    //    ai->OnDespawn();
 
     //if (IsVehicle())
     //    RemoveVehicleKit();
@@ -10274,8 +10275,9 @@ void Unit::RemoveFromPartition()
     RemoveBindSightAuras();
     RemoveNotOwnSingleTargetAuras();
 
-    RemoveAllGameObjects();
-    RemoveAllDynObjects();
+    TC_LOG_DEBUG("partitions", "about to remove all game objects");
+    //RemoveAllGameObjects();
+    //RemoveAllDynObjects();
 
     //ExitVehicle();  // Remove applied auras with SPELL_AURA_CONTROL_VEHICLE
     UnsummonAllTotems();

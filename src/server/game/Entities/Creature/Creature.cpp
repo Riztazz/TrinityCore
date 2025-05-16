@@ -3859,6 +3859,8 @@ void Creature::UpdateMapPartition(Map* forcedMap)
     if (!newMap || newMap == currentMap)
         return;
 
+    TC_LOG_DEBUG("partitions", "Creature {} Moving From Partition {} To Partition {} ", GetGUID(), currentMap->GetPartitionId(), newMap->GetPartitionId());
+
     currentMap->RemoveFromPartition(this);
 
     ResetMap();
