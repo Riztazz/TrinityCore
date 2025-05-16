@@ -26480,6 +26480,7 @@ void Player::RemoveAtLoginFlag(AtLoginFlags flags, bool persist /*= false*/)
 
 void Player::ResetMap(bool allowInWorld /*= false*/)
 {
+    TC_LOG_DEBUG("partitions", "Player::ResetMap allowInWorld {}", allowInWorld);
     // this may be called during Map::Update
     // after decrement+unlink, ++m_mapRefIter will continue correctly
     // when the first element of the list is being removed
@@ -26492,6 +26493,7 @@ void Player::ResetMap(bool allowInWorld /*= false*/)
 
 void Player::SetMap(Map* map, bool allowInWorld /*= false*/)
 {
+    TC_LOG_DEBUG("partitions", "Player::SetMap allowInWorld {}", allowInWorld);
     Unit::SetMap(map, allowInWorld);
     m_mapRef.link(map, this);
 }
@@ -26673,6 +26675,8 @@ void Player::UpdateMapPartition()
         deleteData.BuildPacket(&packet);
         SendDirectMessage(&packet);
     }
+
+    TC_LOG_DEBUG("partitions", "Calling Reset Map and SetMap for UpdateMapPartition {} {} ", currentMap->GetPartitionId(), newMap->GetPartitionId());
 
     // Set the new map
     ResetMap(true);

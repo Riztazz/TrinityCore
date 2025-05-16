@@ -1899,6 +1899,7 @@ void WorldObject::SendObjectDeSpawnAnim(ObjectGuid guid)
 
 void WorldObject::SetMap(Map* map, bool allowInWorld /*= false*/)
 {
+    TC_LOG_DEBUG("partitions", "WorldObject::SetMap allowInWorld {}", allowInWorld);
     ASSERT(map);
     ASSERT(!IsInWorld() || allowInWorld);
     if (m_currMap == map) // command add npc: first create, than loadfromdb
@@ -1917,6 +1918,7 @@ void WorldObject::SetMap(Map* map, bool allowInWorld /*= false*/)
 
 void WorldObject::ResetMap(bool allowInWorld /*= false*/)
 {
+    TC_LOG_DEBUG("partitions", "WorldObject::ResetMap allowInWorld {}", allowInWorld);
     ASSERT(m_currMap);
     ASSERT(!IsInWorld() || allowInWorld);
     if (IsStoredInWorldObjectGridContainer())
