@@ -589,8 +589,6 @@ void Map::AddToPartition(T* obj)
         if (m_spawnId)
             GetCreatureBySpawnIdStore().insert(std::make_pair(m_spawnId, this));
 
-        TC_LOG_DEBUG("entities.unit", "Adding creature {} with DBGUID {} to world in map {}", GetGUID().ToString(), m_spawnId, GetId());
-
         //Unit::AddToWorld();
         //SearchFormation();
         //AIM_Initialize();
