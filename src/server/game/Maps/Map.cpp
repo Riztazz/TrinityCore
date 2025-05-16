@@ -546,7 +546,7 @@ bool Map::AddToMap(T* obj)
 
     if (obj->isActiveObject())
         AddToActive(obj);
-    if (obj->IsCreature() && obj->ToCreature()->GetPathId() != 0)
+    if (obj->IsCreature() && obj->ToCreature()->GetWaypointPath() != 0)
         AddToWaypointCreatures(obj->ToCreature());
 
     //something, such as vehicle, needs to be update immediately
@@ -1033,7 +1033,7 @@ void Map::RemoveFromMap(T *obj, bool remove)
 
     if (obj->isActiveObject())
         RemoveFromActive(obj);
-    if (obj->IsCreature() && obj->ToCreature()->GetPathId() != 0)
+    if (obj->IsCreature() && obj->ToCreature()->GetWaypointPath() != 0)
         RemoveFromWaypointCreatures(obj->ToCreature());
 
     // note: RemoveFromWorld does this for inWorld objects
