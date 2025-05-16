@@ -631,6 +631,7 @@ bool Map::AddToMap(Transport* obj)
 template<class T>
 bool Map::AddToPartition(T* obj)
 {
+    TC_LOG_DEBUG("partitions", "Map::AddToPartition called");
     ZoneScopedN("Map::AddToPartition");
 
     /// @todo Needs clean up. An object should not be added to map twice.
@@ -656,9 +657,13 @@ bool Map::AddToPartition(T* obj)
     EnsureGridLoaded(cell);
     AddToGrid(obj, cell);
 
+    TC_LOG_DEBUG("partitions", "Map::AddToPartition finished adding to grid");
+
     //Must already be set before AddToMap. Usually during obj->Create.
     //obj->SetMap(this);
     obj->AddToPartition();
+
+    TC_LOG_DEBUG("partitions", "Map::AddToPartition finished adding to partition");
 
     if (obj->isActiveObject())
         AddToActive(obj);
@@ -667,9 +672,13 @@ bool Map::AddToPartition(T* obj)
 
     //something, such as vehicle, needs to be update immediately
     //also, trigger needs to cast spell, if not update, cannot see visual
+    TC_LOG_DEBUG("partitions", "Map::AddToPartition BEFORE SET IS NEW OBJECT");
     obj->SetIsNewObject(true);
+    TC_LOG_DEBUG("partitions", "Map::AddToPartition BEFORE UPDATE OBJECT VISIBILITY ON CREATE");
     obj->UpdateObjectVisibilityOnCreate();
+    TC_LOG_DEBUG("partitions", "Map::AddToPartition BEFORE SET IS NEW OBJECT");
     obj->SetIsNewObject(false);
+    TC_LOG_DEBUG("partitions", "Map::AddToPartition AFTER SET IS NEW OBJECT");
     return true;
 }
 
