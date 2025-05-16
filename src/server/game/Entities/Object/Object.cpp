@@ -154,10 +154,12 @@ void Object::AddToWorld()
 
 void Object::AddToPartition()
 {
+    TC_LOG_DEBUG("partitions", "Object::AddToPartition called");
     if (IsInWorld())
         return;
 
     AddToWorld();
+    TC_LOG_DEBUG("partitions", "Object::AddToPartition done");
 }
 
 void Object::RemoveFromWorld()
@@ -1120,11 +1122,13 @@ void WorldObject::AddToWorld()
 
 void WorldObject::AddToPartition()
 {
+    TC_LOG_DEBUG("partitions", "WorldObject::AddToPartition called");
     if (IsInWorld())
         return;
 
     Object::AddToPartition();
     //GetMap()->GetZoneAndAreaId(GetPhaseMask(), m_zoneId, m_areaId, GetPositionX(), GetPositionY(), GetPositionZ());
+    TC_LOG_DEBUG("partitions", "WorldObject::AddToPartition done");
 }
 
 void WorldObject::RemoveFromWorld()

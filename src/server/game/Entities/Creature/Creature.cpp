@@ -338,6 +338,8 @@ void Creature::AddToWorld()
 
 void Creature::AddToPartition()
 {
+    TC_LOG_DEBUG("partitions", "Creature::AddToPartition called");
+
     if (IsInWorld())
         return;
 
@@ -359,7 +361,12 @@ void Creature::AddToPartition()
 
     TC_LOG_DEBUG("entities.unit", "Adding creature {} with DBGUID {} to world in map {}", GetGUID().ToString(), m_spawnId, GetMap()->GetId());
 
+    TC_LOG_DEBUG("partitions", "Creature::AddToPartition finished registering units in map");
+
     Unit::AddToPartition();
+
+    TC_LOG_DEBUG("partitions", "Creature::AddToPartition calling SearchFormation");
+
     SearchFormation();
     //AIM_Initialize();
     //if (IsVehicle())
@@ -367,6 +374,7 @@ void Creature::AddToPartition()
 
     //if (GetZoneScript())
     //    GetZoneScript()->OnCreatureCreate(this);
+    TC_LOG_DEBUG("partitions", "Creature::AddToPartition done");
 }
 
 void Creature::RemoveFromWorld()

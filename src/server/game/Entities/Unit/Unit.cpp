@@ -10198,11 +10198,13 @@ void Unit::AddToWorld()
 
 void Unit::AddToPartition()
 {
+    TC_LOG_DEBUG("partitions", "Unit::AddToPartition called");
     if (IsInWorld())
         return;
 
     WorldObject::AddToPartition();
     //i_motionMaster->AddToWorld(); // Lets try not resetting our motion stuff
+    TC_LOG_DEBUG("partitions", "Unit::AddToPartition done");
 }
 
 void Unit::RemoveFromWorld()
