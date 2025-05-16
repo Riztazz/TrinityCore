@@ -3844,6 +3844,10 @@ uint32 Creature::GetModelID() const
 
 void Creature::UpdateMapPartition(Map* forcedMap)
 {
+    // Ignore creatures update if we are in a vehicle, the vehicle creature needs to move first
+    if (m_vehicle && !forcedMap)
+        return;
+
     Vehicle* vehicle = GetVehicleKit();
     // Only support vehicles for now
     if (!vehicle)
@@ -3867,6 +3871,8 @@ void Creature::UpdateMapPartition(Map* forcedMap)
     SetMap(newMap);
 
     newMap->AddToPartition(this);
+
+    TC_LOG_DEBUG("partitions", "Creature Done AddingToPartition, Now Updating Passengers");
 
     // Now update passengers
     vehicle->UpdatePassengersMapPartition(newMap);
