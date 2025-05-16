@@ -10201,48 +10201,48 @@ void Unit::RemoveFromWorld()
     // cleanup
     ASSERT(GetGUID());
 
-    if (!IsInWorld())
-        return;
-
-    m_duringRemoveFromWorld = true;
-    if (UnitAI* ai = GetAI())
-        ai->OnDespawn();
-
-    if (IsVehicle())
-        RemoveVehicleKit();
-
-    RemoveCharmAuras();
-    RemoveBindSightAuras();
-    RemoveNotOwnSingleTargetAuras();
-
-    RemoveAllGameObjects();
-    RemoveAllDynObjects();
-
-    ExitVehicle();  // Remove applied auras with SPELL_AURA_CONTROL_VEHICLE
-    UnsummonAllTotems();
-    RemoveAllControlled();
-
-    RemoveAreaAurasDueToLeaveWorld();
-
-    RemoveAllFollowers();
-
-    if (IsCharmed())
-        RemoveCharmedBy(nullptr);
-
-    ASSERT(!GetCharmedGUID(), "Unit %u has charmed guid when removed from world", GetEntry());
-    ASSERT(!GetCharmerGUID(), "Unit %u has charmer guid when removed from world", GetEntry());
-
-    if (Unit* owner = GetOwner())
+    if (IsInWorld())
     {
-        if (owner->m_Controlled.find(this) != owner->m_Controlled.end())
-        {
-            TC_LOG_FATAL("entities.unit", "Unit {} is in controlled list of {} when removed from world", GetEntry(), owner->GetEntry());
-            ABORT();
-        }
-    }
+        m_duringRemoveFromWorld = true;
+        if (UnitAI* ai = GetAI())
+            ai->OnDespawn();
 
-    WorldObject::RemoveFromWorld();
-    m_duringRemoveFromWorld = false;
+        if (IsVehicle())
+            RemoveVehicleKit();
+
+        RemoveCharmAuras();
+        RemoveBindSightAuras();
+        RemoveNotOwnSingleTargetAuras();
+
+        RemoveAllGameObjects();
+        RemoveAllDynObjects();
+
+        ExitVehicle();  // Remove applied auras with SPELL_AURA_CONTROL_VEHICLE
+        UnsummonAllTotems();
+        RemoveAllControlled();
+
+        RemoveAreaAurasDueToLeaveWorld();
+
+        RemoveAllFollowers();
+
+        if (IsCharmed())
+            RemoveCharmedBy(nullptr);
+
+        ASSERT(!GetCharmedGUID(), "Unit %u has charmed guid when removed from world", GetEntry());
+        ASSERT(!GetCharmerGUID(), "Unit %u has charmer guid when removed from world", GetEntry());
+
+        if (Unit* owner = GetOwner())
+        {
+            if (owner->m_Controlled.find(this) != owner->m_Controlled.end())
+            {
+                TC_LOG_FATAL("entities.unit", "Unit {} is in controlled list of {} when removed from world", GetEntry(), owner->GetEntry());
+                ABORT();
+            }
+        }
+
+        WorldObject::RemoveFromWorld();
+        m_duringRemoveFromWorld = false;
+    }
 }
 
 void Unit::AddToPartition()

@@ -338,26 +338,26 @@ void Creature::AddToWorld()
 
 void Creature::RemoveFromWorld()
 {
-    if (!IsInWorld())
-        return;
+    if (IsInWorld())
+    {
+        // @tswow-begin
+        FIRE_ID(GetCreatureTemplate()->events.id,Creature,OnRemove,TSCreature(this));
+        FIRE_ID(GetMap()->GetId(),Map,OnCreatureRemove,TSMap(GetMap()),TSCreature(this));
+        // @tswow-end
+        if (GetZoneScript())
+            GetZoneScript()->OnCreatureRemove(this);
 
-    // @tswow-begin
-    FIRE_ID(GetCreatureTemplate()->events.id,Creature,OnRemove,TSCreature(this));
-    FIRE_ID(GetMap()->GetId(),Map,OnCreatureRemove,TSMap(GetMap()),TSCreature(this));
-    // @tswow-end
-    if (GetZoneScript())
-        GetZoneScript()->OnCreatureRemove(this);
+        if (m_formation)
+            sFormationMgr->RemoveCreatureFromGroup(m_formation, this);
 
-    if (m_formation)
-        sFormationMgr->RemoveCreatureFromGroup(m_formation, this);
+        Unit::RemoveFromWorld();
 
-    Unit::RemoveFromWorld();
+        if (m_spawnId)
+            Trinity::Containers::MultimapErasePair(GetMap()->GetCreatureBySpawnIdStore(), m_spawnId, this);
 
-    if (m_spawnId)
-        Trinity::Containers::MultimapErasePair(GetMap()->GetCreatureBySpawnIdStore(), m_spawnId, this);
-
-    TC_LOG_DEBUG("entities.unit", "Removing creature {} with DBGUID {} to world in map {}", GetGUID().ToString(), m_spawnId, GetMap()->GetId());
-    GetMap()->GetObjectsStore().Remove<Creature>(GetGUID());
+        TC_LOG_DEBUG("entities.unit", "Removing creature {} with DBGUID {} to world in map {}", GetGUID().ToString(), m_spawnId, GetMap()->GetId());
+        GetMap()->GetObjectsStore().Remove<Creature>(GetGUID());
+    }
 }
 
 void Creature::AddToPartition()
