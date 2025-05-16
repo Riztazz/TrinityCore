@@ -583,6 +583,24 @@ void Map::AddToPartition(T* obj)
     EnsureGridLoaded(cell);
     AddToGrid(obj, cell);
 
+    //obj->AddToWorld();
+    {
+        GetObjectsStore().Insert<Creature>(GetGUID(), this);
+        if (m_spawnId)
+            GetCreatureBySpawnIdStore().insert(std::make_pair(m_spawnId, this));
+
+        TC_LOG_DEBUG("entities.unit", "Adding creature {} with DBGUID {} to world in map {}", GetGUID().ToString(), m_spawnId, GetId());
+
+        //Unit::AddToWorld();
+        //SearchFormation();
+        //AIM_Initialize();
+        //if (IsVehicle())
+        //    GetVehicleKit()->Install();
+        //
+        //if (GetZoneScript())
+        //    GetZoneScript()->OnCreatureCreate(this);
+    }
+
     if (obj->isActiveObject())
         AddToActive(obj);
     if (obj->IsCreature() && obj->ToCreature()->GetWaypointPath() != 0)
