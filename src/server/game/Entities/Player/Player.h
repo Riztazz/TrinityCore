@@ -2219,7 +2219,7 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
         // Set map to player and add reference
         void SetMap(Map* map) override;
         void ResetMap() override;
-        void SetMapPartition(Map* map);
+        void UpdateMapPartition();
 
         // @epoch-begin
         bool CanTeleport() { return m_canTeleport; }

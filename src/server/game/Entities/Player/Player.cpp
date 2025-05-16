@@ -26496,15 +26496,20 @@ void Player::SetMap(Map* map)
     m_mapRef.link(map, this);
 }
 
-void Player::SetMapPartition(Map* map)
+// Only call from Map Delayed Update (map thread safety)
+void Player::UpdateMapPartition()
 {
-    // Should only SetMapParition if we are currently in a map
-    ASSERT(GetMap());
-    ASSERT(map);
-    if (GetMap() == map)
+    Map* currentMap = IsInWorld() ? GetMap() : nullptr;
+    // We only ever change partitions if we are active in a map
+    if (!currentMap)
         return;
 
-    TC_LOG_DEBUG("partitions", "Player {} Moving From Partition {} To Partition {} ", GetGUID(), GetMap()->GetPartitionId(), map->GetPartitionId());
+    Map* newMap = sMapMgr->CreateMap(currentMap->GetId(), GetPosition(), this);
+    // We don't change partitions if already in the correct partition
+    if (!newMap || newMap == currentMap)
+        return;
+
+    TC_LOG_DEBUG("partitions", "Player {} Moving From Partition {} To Partition {} ", GetGUID(), currentMap->GetPartitionId(), newMap->GetPartitionId());
 
     // Experiment with all of the things we should set off when we cross partitions, these are taken from teleport
     DuelComplete(DUEL_FLED);
@@ -26521,7 +26526,7 @@ void Player::SetMapPartition(Map* map)
     RemoveAurasWithInterruptFlags(AURA_INTERRUPT_FLAG_CHANGE_MAP | AURA_INTERRUPT_FLAG_MOVE | AURA_INTERRUPT_FLAG_TURNING);
 
     // TODO work out whatever changes we need here
-    GetMap()->RemovePlayerFromMap(this, false);
+    currentMap->RemovePlayerFromMap(this, false);
 
     // Delete all existing visible objects, we don't have an existing function that does this
     // since usually we send teleport packets for changing maps
@@ -26537,8 +26542,8 @@ void Player::SetMapPartition(Map* map)
 
     // Set the new map
     ResetMap();
-    SetMap(map);
-    map->AddPlayerToMap(this);
+    SetMap(newMap);
+    newMap->AddPlayerToMap(this);
 
     // We might not need this force (AddPlayerToMap calls it as well)
     //UpdateObjectVisibility(true);

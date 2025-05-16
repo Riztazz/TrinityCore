@@ -219,21 +219,6 @@ void DelayedUnitRelocation::Visit(CreatureMapType &m)
     {
         Creature* unit = iter->GetSource();
 
-        // Disabled until we can solve nuances of creatures moving between maps
-        // if (!unit->IsPet() && !unit->ToTempSummon())
-        // {
-        //     Map* currentMap = unit->GetMap();
-        //     Map* checkMap = sMapMgr->CreateMap(currentMap->GetId(), unit->GetPosition());
-        //     if (checkMap != currentMap)
-        //     {
-        //         unit->SetMapPartition(checkMap);
-        //         if (unit->IsVehicle())
-        //         {
-        //             unit->GetVehicleKit()->SetPassengersMapPartition(checkMap);
-        //         }
-        //     }
-        // }
-
         if (!unit->isNeedNotify(NOTIFY_VISIBILITY_CHANGED))
             continue;
 
@@ -252,22 +237,6 @@ void DelayedUnitRelocation::Visit(PlayerMapType &m)
     for (PlayerMapType::iterator iter = m.begin(); iter != m.end(); ++iter)
     {
         Player* player = iter->GetSource();
-
-        // I am injecting partition checks here as this is our slower/heavier update to update visibility
-        // so a great time to check if we need to change maps
-        Map* currentMap = player->GetMap();
-        Map* checkMap = sMapMgr->CreateMap(currentMap->GetId(), player->GetPosition(), player);
-        if (checkMap != currentMap)
-        {
-            player->SetMapPartition(checkMap);
-            // Disabled until we can solve nuances player vehicle moving between maps
-            // if (player->IsVehicle())
-            // {
-            //     player->GetVehicleKit()->SetPassengersMapPartition(checkMap);
-            // }
-            continue;
-        }
-
         WorldObject const* viewPoint = player->m_seer;
 
         if (!viewPoint->isNeedNotify(NOTIFY_VISIBILITY_CHANGED))

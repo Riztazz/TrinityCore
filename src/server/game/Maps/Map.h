@@ -694,6 +694,7 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
         void ScriptsProcess();
 
         void SendObjectUpdates();
+        void UpdateMapPartitions();
 
     protected:
         std::mutex _mapLock;
@@ -805,6 +806,7 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
         // This will not affect any already-present creatures in the group
         void SetSpawnGroupInactive(uint32 groupId) { SetSpawnGroupActive(groupId, false); }
 
+        // Far spell callbacks are for things that are not map-thread safe (cannot run in parallel) such as summons
         typedef std::function<void(Map*)> FarSpellCallback;
         void AddFarSpellCallback(FarSpellCallback&& callback);
 
@@ -883,9 +885,8 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
         std::unordered_map<uint32/*cellId*/, std::unordered_set<Corpse*>> _corpsesByCell;
         std::unordered_map<ObjectGuid, Corpse*> _corpsesByPlayer;
         std::unordered_set<Corpse*> _corpseBones;
-
         std::unordered_set<Object*> _updateObjects;
-
+        std::unordered_set<Player*> _updateMapPartitionPlayers;
         MPSCQueue<FarSpellCallback> _farSpellCallbacks;
 };
 

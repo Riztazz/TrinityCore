@@ -3782,7 +3782,7 @@ uint32 Creature::GetModelID() const
 }
 
 // Disabled until we can work out all of the details of creatures/vehicles moving between partitions
-// void Creature::SetMapPartition(Map* map)
+// void Creature::UpdateMapPartition()
 // {
 //     // Should only SetMapParition if we are currently in a map
 //     ASSERT(GetMap());

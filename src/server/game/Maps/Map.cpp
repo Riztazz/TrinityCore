@@ -811,16 +811,24 @@ void Map::Update(uint32 t_diff)
                     continue;
 
                 // Manually update the creature and its formation members
-                if (creature->IsFormationLeader())
+                auto formation = creature->GetFormation();
+                if (formation && creature->IsFormationLeader())
                 {
-                    for (auto itr = creature->GetFormation()->GetMembersBegin(); itr != creature->GetFormation()->GetMembersEnd(); ++itr)
+                    // Copy the members to handle both members removing themselves from the formation,
+                    // and removing others from the formation
+                    std::vector<Creature*> members;
+                    for (auto itr = formation->GetMembersBegin(); itr != formation->GetMembersEnd(); ++itr)
                     {
                         if (itr->first)
-                            itr->first->Update(t_diff);
+                            members.push_back(itr->first);
                     }
+                    // Update all members this tick, even if they are removed from the formation during the tick
+                    for (Creature* member : members)
+                        member->Update(t_diff);
                 }
-                // Don't update formation members, they are updated by the leader
-                else if (!creature->GetFormation())
+                // Don't update members of formations individually, do it via the leader above
+                // Update the creature if it is not in a formation
+                else if (!formation)
                 {
                     creature->Update(t_diff);
                 }
@@ -1104,6 +1112,9 @@ void Map::PlayerRelocation(Player* player, float x, float y, float z, float orie
 
     player->UpdatePositionData();
     player->UpdateObjectVisibility(false);
+
+    // Any time a player is relocated add them to the update list to be checked
+    _updateMapPartitionPlayers.insert(player);
 }
 
 void Map::CreatureRelocation(Creature* creature, float x, float y, float z, float orientation)
@@ -2555,6 +2566,18 @@ void Map::SendObjectUpdates()
     }
 }
 
+void Map::UpdateMapPartitions()
+{
+    ZoneScopedN("Map::UpdateMapPartitions");
+
+    // Every time a player is relocated we check their map partition to see if they need to be moved to a different map
+    // This is a set since multiple events in the update can result in the same player being added multiple times (movement, spells, transports etc)
+    for (Player* player : _updateMapPartitionPlayers)
+        player->UpdateMapPartition();
+
+    _updateMapPartitionPlayers.clear();
+}
+
 // CheckRespawn MUST do one of the following:
 //  -) return true
 //  -) set info->respawnTime to zero, which indicates the respawn time should be deleted (and will never be processed again without outside intervention)
@@ -3272,6 +3295,9 @@ void Map::DelayedUpdate(uint32 t_diff)
     }
 
     RemoveAllObjectsInRemoveList();
+
+    // Process partition switching last
+    UpdateMapPartitions();
 }
 
 void Map::AddObjectToRemoveList(WorldObject* obj)
