@@ -3747,6 +3747,7 @@ std::string Creature::GetDebugInfo() const
 
 void Creature::ExitVehicle(Position const* /*exitPosition*/)
 {
+    TC_LOG_DEBUG("partitions", "Creature::ExitVehicle called");
     bool const isInVehicle = GetVehicle();
     Unit::ExitVehicle();
 
