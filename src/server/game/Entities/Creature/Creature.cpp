@@ -385,12 +385,7 @@ void Creature::AddToPartition()
 
     TC_LOG_DEBUG("entities.unit", "Adding creature {} with DBGUID {} to world in map {}", GetGUID().ToString(), m_spawnId, GetMap()->GetId());
 
-    TC_LOG_DEBUG("partitions", "Creature::AddToPartition finished registering units in map");
-
     Unit::AddToPartition();
-
-    TC_LOG_DEBUG("partitions", "Creature::AddToPartition calling SearchFormation");
-
     SearchFormation();
     //AIM_Initialize();
     //if (IsVehicle())
