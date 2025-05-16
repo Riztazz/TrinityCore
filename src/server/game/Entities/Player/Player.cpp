@@ -26509,7 +26509,7 @@ void Player::UpdateMapPartition(Map* forcedMap)
     if (!newMap || newMap == currentMap)
         return;
 
-    TC_LOG_DEBUG("partitions", "Player UpdateMapPartition m_vehicle {}", m_vehicle);
+    TC_LOG_DEBUG("partitions", "Player UpdateMapPartition m_vehicle {}", m_vehicle ? "true" : "false");
 
     // Ignore players update if we are in a vehicle, the vehicle creature needs to move first
     if (m_vehicle && !forcedMap)
