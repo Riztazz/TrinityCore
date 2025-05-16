@@ -26545,7 +26545,7 @@ void Player::UpdateMapPartition()
             // cleanup
 
             ///- Release charmed creatures, unsummon totems and remove pets/guardians
-            StopCastingCharm();
+            //StopCastingCharm();
             StopCastingBindSight();
             UnsummonPetTemporaryIfAny();
 
@@ -26588,12 +26588,12 @@ void Player::UpdateMapPartition()
                 RemoveAllDynObjects();
 
                 // TODO try not exit vehicle to see what happens
-                ExitVehicle();  // Remove applied auras with SPELL_AURA_CONTROL_VEHICLE
+                //ExitVehicle();  // Remove applied auras with SPELL_AURA_CONTROL_VEHICLE
 
                 // TODO try to move these with you
                 UnsummonAllTotems();
 
-                RemoveAllControlled();
+                //RemoveAllControlled();
 
                 //RemoveAreaAurasDueToLeaveWorld();
 
@@ -26602,6 +26602,13 @@ void Player::UpdateMapPartition()
                 if (IsCharmed())
                     RemoveCharmedBy(nullptr);
 
+                if (m_vehicle)
+                {
+                    currentMap->RemoveFromMap(m_vehicle);
+                    m_vehicle->ResetMap();
+                    m_vehicle->SetMap(newMap);
+                    currentMap->AddToMap(m_vehicle);
+                }
                 //ASSERT(!GetCharmedGUID(), "Unit %u has charmed guid when removed from world", GetEntry());
                 //ASSERT(!GetCharmerGUID(), "Unit %u has charmer guid when removed from world", GetEntry());
 
