@@ -346,6 +346,7 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
         virtual void RemovePlayerFromMap(Player*, bool);
 
         template<class T> bool AddToMap(T *);
+        template<class T> bool AddToPartition(T *);
         template<class T> void RemoveFromMap(T *, bool);
 
         void VisitNearbyCellsOf(WorldObject* obj, TypeContainerVisitor<Trinity::ObjectUpdater, GridTypeMapContainer> &gridVisitor, TypeContainerVisitor<Trinity::ObjectUpdater, WorldTypeMapContainer> &worldVisitor);
@@ -472,10 +473,26 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
         void ScriptCommandStart(ScriptInfo const& script, uint32 delay, Object* source, Object* target);
 
         // must called with AddToWorld
-        void AddToActive(WorldObject* obj);
+        void AddToActive(WorldObject* obj)
+        {
+            m_activeNonPlayers.insert(obj);
+        }
 
         // must called with RemoveFromWorld
-        void RemoveFromActive(WorldObject* obj);
+        void RemoveFromActive(WorldObject* obj)
+        {
+            if (m_activeNonPlayersIter != m_activeNonPlayers.end())
+            {
+                ActiveNonPlayers::iterator itr = m_activeNonPlayers.find(obj);
+                if (itr == m_activeNonPlayers.end())
+                    return;
+                if (itr == m_activeNonPlayersIter)
+                    ++m_activeNonPlayersIter;
+                m_activeNonPlayers.erase(itr);
+            }
+            else
+                m_activeNonPlayers.erase(obj);
+        }
 
         // must called with AddToWorld
         void AddToWaypointCreatures(Creature* creature)
@@ -818,27 +835,6 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
 
         template<class T>
         void DeleteFromWorld(T*);
-
-        void AddToActiveHelper(WorldObject* obj)
-        {
-            m_activeNonPlayers.insert(obj);
-        }
-
-        void RemoveFromActiveHelper(WorldObject* obj)
-        {
-            // Map::Update for active object in proccess
-            if (m_activeNonPlayersIter != m_activeNonPlayers.end())
-            {
-                ActiveNonPlayers::iterator itr = m_activeNonPlayers.find(obj);
-                if (itr == m_activeNonPlayers.end())
-                    return;
-                if (itr == m_activeNonPlayersIter)
-                    ++m_activeNonPlayersIter;
-                m_activeNonPlayers.erase(itr);
-            }
-            else
-                m_activeNonPlayers.erase(obj);
-        }
 
         std::unique_ptr<RespawnListContainer> _respawnTimes;
         RespawnInfoMap       _creatureRespawnTimesBySpawnId;

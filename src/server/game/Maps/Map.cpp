@@ -491,7 +491,7 @@ bool Map::AddPlayerToMap(Player* player)
     // Check if we are adding to correct map
     ASSERT (player->GetMap() == this);
     // Like object, shouldnt this already be set based on the ASSERT?
-    player->SetMap(this);
+    //player->SetMap(this);
     player->AddToWorld();
 
     SendInitSelf(player);
@@ -528,8 +528,6 @@ void Map::AddPlayerToPartition(Player* player)
         ConvertCorpseToBones(player->GetGUID());
 }
 
-// FIXME there doesn't seem to be any locking around AddToGrid (there is for loading the grid)
-// but AddToGrid is not thread safe (its linking to a linked list)
 template<class T>
 bool Map::AddToMap(T* obj)
 {
@@ -573,6 +571,28 @@ bool Map::AddToMap(T* obj)
     obj->UpdateObjectVisibilityOnCreate();
     obj->SetIsNewObject(false);
     return true;
+}
+
+template<class T>
+void Map::AddToPartition(T* obj)
+{
+    ZoneScopedN("Map::AddToPartition");
+
+    CellCoord cellCoord = Trinity::ComputeCellCoord(obj->GetPositionX(), obj->GetPositionY());
+    Cell cell(cellCoord);
+    EnsureGridLoaded(cell);
+    AddToGrid(obj, cell);
+
+    if (obj->isActiveObject())
+        AddToActive(obj);
+    if (obj->IsCreature() && obj->ToCreature()->GetWaypointPath() != 0)
+        AddToWaypointCreatures(obj->ToCreature());
+
+    //something, such as vehicle, needs to be update immediately
+    //also, trigger needs to cast spell, if not update, cannot see visual
+    obj->SetIsNewObject(true);
+    obj->UpdateObjectVisibilityOnCreate();
+    obj->SetIsNewObject(false);
 }
 
 template<>
@@ -3496,20 +3516,15 @@ bool Map::ActiveObjectsNearGrid(NGridType const& ngrid) const
     return false;
 }
 
-void Map::AddToActive(WorldObject* obj)
-{
-    AddToActiveHelper(obj);
-}
-
-void Map::RemoveFromActive(WorldObject* obj)
-{
-    RemoveFromActiveHelper(obj);
-}
-
 template TC_GAME_API bool Map::AddToMap(Corpse*);
 template TC_GAME_API bool Map::AddToMap(Creature*);
 template TC_GAME_API bool Map::AddToMap(GameObject*);
 template TC_GAME_API bool Map::AddToMap(DynamicObject*);
+
+template TC_GAME_API bool Map::AddToPartition(Corpse*);
+template TC_GAME_API bool Map::AddToPartition(Creature*);
+template TC_GAME_API bool Map::AddToPartition(GameObject*);
+template TC_GAME_API bool Map::AddToPartition(DynamicObject*);
 
 template TC_GAME_API void Map::RemoveFromMap(Corpse*, bool);
 template TC_GAME_API void Map::RemoveFromMap(Creature*, bool);
