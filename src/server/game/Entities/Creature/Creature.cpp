@@ -3852,7 +3852,8 @@ void Creature::UpdateMapPartition(Map* forcedMap)
 
                 //WorldObject::RemoveFromWorld();
                 {
-                    DestroyForNearbyPlayers();
+                    //TESTING
+                    //DestroyForNearbyPlayers();
 
                     //Object::RemoveFromWorld();
                     {
