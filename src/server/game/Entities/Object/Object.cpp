@@ -158,7 +158,21 @@ void Object::AddToPartition()
     if (IsInWorld())
         return;
 
-    AddToWorld();
+    //AddToWorld();
+
+    //ASSERT(m_uint32Values);
+
+    m_inWorld = true;
+
+    // synchronize values mirror with values array (changes will send in updatecreate opcode any way
+    //ASSERT(!m_objectUpdated);
+    //ClearUpdateMask(false);
+
+    // Set new ref when adding to world (except if we already have one - also set in constructor to allow scripts to work in initialization phase)
+    // Changing the ref when adding/removing from world prevents accessing players on different maps (possibly from another thread)
+    //if (!m_scriptRef)
+    //    m_scriptRef.reset(this, NoopObjectDeleter());
+
     TC_LOG_DEBUG("partitions", "Object::AddToPartition done");
 }
 
