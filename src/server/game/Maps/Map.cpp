@@ -510,6 +510,24 @@ bool Map::AddPlayerToMap(Player* player)
     return true;
 }
 
+bool Map::AddPlayerToPartition(Player* player)
+{
+    ZoneScopedN("Map::AddPlayerToPartition");
+
+    CellCoord cellCoord = Trinity::ComputeCellCoord(player->GetPositionX(), player->GetPositionY());
+    Cell cell(cellCoord);
+    EnsureGridLoaded(cell);
+    AddToGrid(player, cell);
+    SendInitSelf(player);
+    SendInitTransports(player);
+
+    player->m_clientGUIDs.clear();
+    player->UpdateObjectVisibility(false);
+
+    if (player->IsAlive())
+        ConvertCorpseToBones(player->GetGUID());
+}
+
 // FIXME there doesn't seem to be any locking around AddToGrid (there is for loading the grid)
 // but AddToGrid is not thread safe (its linking to a linked list)
 template<class T>

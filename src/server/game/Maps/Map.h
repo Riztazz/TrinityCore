@@ -342,6 +342,7 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
         }
 
         virtual bool AddPlayerToMap(Player*);
+        void AddPlayerToPartition(Player*);
         virtual void RemovePlayerFromMap(Player*, bool);
 
         template<class T> bool AddToMap(T *);

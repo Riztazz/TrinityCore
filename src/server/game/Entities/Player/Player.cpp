@@ -26685,8 +26685,8 @@ void Player::UpdateMapPartition()
     // Set the new map
     ResetMap(true);
     SetMap(newMap, true);
-    TC_LOG_DEBUG("partitions", "Before newMap AddPlayerToMap");
-    newMap->AddPlayerToMap(this);
+    TC_LOG_DEBUG("partitions", "Before newMap AddPlayerToPartition");
+    newMap->AddPlayerToPartition(this);
 
     // TODO try not unsummon and summon, but rather move pet with me
     ResummonPetTemporaryUnSummonedIfAny();
