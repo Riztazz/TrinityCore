@@ -165,7 +165,7 @@ void Object::AddToPartition()
     // synchronize values mirror with values array (changes will send in updatecreate opcode any way
     ASSERT(!m_objectUpdated);
 
-    //ClearUpdateMask(false);
+    ClearUpdateMask(false);
 
     // Set new ref when adding to world (except if we already have one - also set in constructor to allow scripts to work in initialization phase)
     // Changing the ref when adding/removing from world prevents accessing players on different maps (possibly from another thread)
@@ -197,7 +197,7 @@ void Object::RemoveFromPartition()
     m_inWorld = false;
 
     // if we remove from world then sending changes not required
-    //ClearUpdateMask(true);
+    ClearUpdateMask(true);
 
     //m_scriptRef = nullptr;
 
