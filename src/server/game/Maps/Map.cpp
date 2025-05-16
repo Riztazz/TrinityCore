@@ -586,8 +586,8 @@ void Map::AddToPartition(T* obj)
     //obj->AddToWorld();
     {
         GetObjectsStore().Insert<Creature>(GetGUID(), this);
-        if (m_spawnId)
-            GetCreatureBySpawnIdStore().insert(std::make_pair(m_spawnId, this));
+        if (obj->GetSpawnId())
+            GetCreatureBySpawnIdStore().insert(std::make_pair(obj->GetSpawnId(), this));
 
         //Unit::AddToWorld();
         //SearchFormation();
