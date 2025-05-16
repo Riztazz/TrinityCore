@@ -1986,23 +1986,6 @@ void Player::AddToWorld()
             m_items[i]->AddToWorld();
 }
 
-void Player::AddToPartition()
-{
-    TC_LOG_DEBUG("partitions", "Player::AddToPartition called");
-    if (IsInWorld())
-        return;
-
-    ///- Do not add/remove the player from the object storage
-    ///- It will crash when updating the ObjectAccessor
-    ///- The player should only be added when logging in
-    Unit::AddToPartition();
-
-    //for (uint8 i = PLAYER_SLOT_START; i < PLAYER_SLOT_END; ++i)
-    //    if (m_items[i])
-    //        m_items[i]->AddToWorld();
-    TC_LOG_DEBUG("partitions", "Player::AddToPartition done");
-}
-
 void Player::RemoveFromWorld()
 {
     // TODO should we add this check?
@@ -2049,6 +2032,23 @@ void Player::RemoveFromWorld()
             SetViewpoint(viewpoint, false);
         }
     }
+}
+
+void Player::AddToPartition()
+{
+    TC_LOG_DEBUG("partitions", "Player::AddToPartition called");
+    if (IsInWorld())
+        return;
+
+    ///- Do not add/remove the player from the object storage
+    ///- It will crash when updating the ObjectAccessor
+    ///- The player should only be added when logging in
+    Unit::AddToPartition();
+
+    //for (uint8 i = PLAYER_SLOT_START; i < PLAYER_SLOT_END; ++i)
+    //    if (m_items[i])
+    //        m_items[i]->AddToWorld();
+    TC_LOG_DEBUG("partitions", "Player::AddToPartition done");
 }
 
 void Player::RemoveFromPartition()

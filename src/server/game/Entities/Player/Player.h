@@ -937,8 +937,8 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
         void CleanupsBeforeDelete(bool finalCleanup = true) override;
 
         void AddToWorld() override;
-        void AddToPartition() override;
         void RemoveFromWorld() override;
+        void AddToPartition() override;
         void RemoveFromPartition() override;
 
         void SetObjectScale(float scale) override;

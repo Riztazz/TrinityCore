@@ -15,17 +15,15 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "CellImpl.h"
+
 #include "GridNotifiers.h"
 #include "GridNotifiersImpl.h"
-#include "MapManager.h"
 #include "WorldPacket.h"
 #include "WorldSession.h"
 #include "UpdateData.h"
 #include "Transport.h"
 #include "ObjectAccessor.h"
-#include "SpellDefines.h"
-#include "Vehicle.h"
+#include "CellImpl.h"
 
 // @tswow-begin
 #include "TSUnit.h"
@@ -218,7 +216,6 @@ void DelayedUnitRelocation::Visit(CreatureMapType &m)
     for (CreatureMapType::iterator iter = m.begin(); iter != m.end(); ++iter)
     {
         Creature* unit = iter->GetSource();
-
         if (!unit->isNeedNotify(NOTIFY_VISIBILITY_CHANGED))
             continue;
 

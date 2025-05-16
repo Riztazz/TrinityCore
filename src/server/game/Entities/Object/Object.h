@@ -329,8 +329,8 @@ class TC_GAME_API WorldObject : public Object, public WorldLocation
 
         void _Create(ObjectGuid::LowType guidlow, HighGuid guidhigh, uint32 phaseMask);
         void AddToWorld() override;
-        void AddToPartition() override;
         void RemoveFromWorld() override;
+        void AddToPartition() override;
         void RemoveFromPartition() override;
 
         void GetNearPoint2D(WorldObject const* searcher, float& x, float& y, float distance, float absAngle) const;

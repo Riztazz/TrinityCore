@@ -152,11 +152,6 @@ void Object::AddToWorld()
         m_scriptRef.reset(this, NoopObjectDeleter());
 }
 
-void Object::AddToPartition()
-{
-    Object::AddToWorld();
-}
-
 void Object::RemoveFromWorld()
 {
     if (!IsInWorld())
@@ -168,6 +163,11 @@ void Object::RemoveFromWorld()
     ClearUpdateMask(true);
 
     m_scriptRef = nullptr;
+}
+
+void Object::AddToPartition()
+{
+    Object::AddToWorld();
 }
 
 void Object::RemoveFromPartition()
@@ -1111,15 +1111,6 @@ void WorldObject::AddToWorld()
     GetMap()->GetZoneAndAreaId(GetPhaseMask(), m_zoneId, m_areaId, GetPositionX(), GetPositionY(), GetPositionZ());
 }
 
-void WorldObject::AddToPartition()
-{
-    if (IsInWorld())
-        return;
-
-    Object::AddToPartition();
-    //GetMap()->GetZoneAndAreaId(GetPhaseMask(), m_zoneId, m_areaId, GetPositionX(), GetPositionY(), GetPositionZ());
-}
-
 void WorldObject::RemoveFromWorld()
 {
     if (!IsInWorld())
@@ -1131,6 +1122,15 @@ void WorldObject::RemoveFromWorld()
     // @tswow-begin
     RemoveFromAllGroups();
     // @tswow-end
+}
+
+void WorldObject::AddToPartition()
+{
+    if (IsInWorld())
+        return;
+
+    Object::AddToPartition();
+    //GetMap()->GetZoneAndAreaId(GetPhaseMask(), m_zoneId, m_areaId, GetPositionX(), GetPositionY(), GetPositionZ());
 }
 
 void WorldObject::RemoveFromPartition()

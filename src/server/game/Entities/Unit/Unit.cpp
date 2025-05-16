@@ -10196,15 +10196,6 @@ void Unit::AddToWorld()
     i_motionMaster->AddToWorld();
 }
 
-void Unit::AddToPartition()
-{
-    if (IsInWorld())
-        return;
-
-    WorldObject::AddToPartition();
-    //i_motionMaster->AddToWorld();
-}
-
 void Unit::RemoveFromWorld()
 {
     // cleanup
@@ -10252,6 +10243,15 @@ void Unit::RemoveFromWorld()
 
     WorldObject::RemoveFromWorld();
     m_duringRemoveFromWorld = false;
+}
+
+void Unit::AddToPartition()
+{
+    if (IsInWorld())
+        return;
+
+    WorldObject::AddToPartition();
+    //i_motionMaster->AddToWorld();
 }
 
 void Unit::RemoveFromPartition()

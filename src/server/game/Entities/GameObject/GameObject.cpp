@@ -669,7 +669,7 @@ void GameObject::Update(uint32 diff)
                         if (poolid)
                             sPoolMgr->UpdatePool<GameObject>(poolid, GetSpawnId());
                         else
-                            GetMap()->AddToMap(this); // FIXME ulmetrs: why is this called? Update is ticked by the map, so we are already in a map
+                            GetMap()->AddToMap(this);
                     }
                 }
             }

@@ -892,8 +892,8 @@ class TC_GAME_API Unit : public WorldObject
         bool HasScheduledAIChange() const;
     public:
         void AddToWorld() override;
-        void AddToPartition() override;
         void RemoveFromWorld() override;
+        void AddToPartition() override;
         void RemoveFromPartition() override;
 
         void CleanupBeforeRemoveFromMap(bool finalCleanup);

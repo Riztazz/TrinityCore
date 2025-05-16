@@ -66,8 +66,8 @@ class TC_GAME_API Creature : public Unit, public GridObject<Creature>
         explicit Creature(bool isWorldObject = false);
 
         void AddToWorld() override;
-        void AddToPartition() override;
         void RemoveFromWorld() override;
+        void AddToPartition() override;
         void RemoveFromPartition() override;
 
         float GetNativeObjectScale() const override;
@@ -221,7 +221,6 @@ class TC_GAME_API Creature : public Unit, public GridObject<Creature>
 
         void setDeathState(DeathState s) override;                   // override virtual Unit::setDeathState
 
-        // FIXME ulmetrs: remove addToMap responsibility from LoadFromDB
         bool LoadFromDB(ObjectGuid::LowType spawnId, Map* map, bool addToMap, bool allowDuplicate);
         void SaveToDB();
                                                             // overriden in Pet
