@@ -26517,6 +26517,7 @@ void Player::UpdateMapPartition()
         TeleportTo(m_homebindMapId, m_homebindX, m_homebindY, m_homebindZ, GetOrientation());
         return;
     }
+    // TODO anything else we and can't gracefully handle/cancel we should TeleportOut to Homebind rather than bug out
 
     // Experiment with all of the things we should set off when we cross partitions, these are taken from teleport
     DuelComplete(DUEL_FLED);
