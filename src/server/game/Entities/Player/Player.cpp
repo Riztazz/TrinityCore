@@ -26600,7 +26600,7 @@ void Player::UpdateMapPartition()
                 // TODO try to move these with you
                 UnsummonAllTotems();
 
-                RemoveAllControlled();
+                //RemoveAllControlled();
 
                 //RemoveAreaAurasDueToLeaveWorld();
 
@@ -26658,7 +26658,7 @@ void Player::UpdateMapPartition()
         }
         TC_LOG_DEBUG("partitions", "Before SendRemoveTransports");
         // TRANSPORTS THROUGH PARTITION ARE NOT YET HANDLED
-        currentMap->SendRemoveTransports(this);
+        //currentMap->SendRemoveTransports(this);
 
         //if (!inWorld) // if was in world, RemoveFromWorld() called DestroyForNearbyPlayers()
         //DestroyForNearbyPlayers(); // previous player->UpdateObjectVisibility(true)

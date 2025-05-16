@@ -1917,7 +1917,6 @@ void WorldObject::SetMap(Map* map, bool allowInWorld /*= false*/)
 
 void WorldObject::ResetMap(bool allowInWorld /*= false*/)
 {
-    TC_LOG_DEBUG("partitions", "WorldObject::ResetMap allowInWorld {}", allowInWorld);
     ASSERT(m_currMap);
     ASSERT(!IsInWorld() || allowInWorld);
     if (IsStoredInWorldObjectGridContainer())
