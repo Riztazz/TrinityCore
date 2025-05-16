@@ -3871,21 +3871,23 @@ void Creature::UpdateMapPartition(Map* forcedMap)
     if (!newMap || newMap == currentMap)
         return;
 
-    TC_LOG_DEBUG("partitions", "Creature {} Moving From Partition {} To Partition {} ", GetGUID(), currentMap->GetPartitionId(), newMap->GetPartitionId());
+    TC_LOG_DEBUG("partitions", "Creature::UpdateMapPartition {} Moving From Partition {} To Partition {} ", GetGUID(), currentMap->GetPartitionId(), newMap->GetPartitionId());
+
+    // Now update passengers
+    vehicle->UpdatePassengersMapPartition(newMap);
+
+    TC_LOG_DEBUG("partitions", "Creature::UpdateMapPartition Done Updating Passengers Partition, now move creature vehicle");
 
     currentMap->RemoveFromPartition(this);
 
-    TC_LOG_DEBUG("partitions", "Creature Done RemovingFromPartition, Now Setting New Map");
+    TC_LOG_DEBUG("partitions", "Creature::UpdateMapPartition Done RemovingFromPartition, Now Setting New Map");
 
     // Set the new map (unlike players, ResetMap is called from RemoveFromPartition)
     SetMap(newMap);
 
-    TC_LOG_DEBUG("partitions", "Creature Done Setting New Map, Now AddingToPartition");
+    TC_LOG_DEBUG("partitions", "Creature::UpdateMapPartition Done Setting New Map, Now AddingToPartition");
 
     newMap->AddToPartition(this);
 
-    TC_LOG_DEBUG("partitions", "Creature Done AddingToPartition, Now Updating Passengers");
-
-    // Now update passengers
-    vehicle->UpdatePassengersMapPartition(newMap);
+    TC_LOG_DEBUG("partitions", "Creature::UpdateMapPartition done");
 }

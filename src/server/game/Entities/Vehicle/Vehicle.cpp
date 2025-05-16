@@ -637,11 +637,11 @@ void Vehicle::UpdatePassengersMapPartition(Map* map)
             else if (passenger->IsCreature())
                 creatures.push_back(passenger->ToCreature());
 
-    for (auto creature : creatures)
-        creature->UpdateMapPartition(map);
-
     for (auto player : players)
         player->UpdateMapPartition(map);
+
+    for (auto creature : creatures)
+        creature->UpdateMapPartition(map);
 }
 
 /**
