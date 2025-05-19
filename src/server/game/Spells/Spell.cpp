@@ -3553,6 +3553,11 @@ void Spell::_cast(bool skipCheck)
 
     if (!(_triggeredCastFlags & TRIGGERED_IGNORE_POWER_AND_REAGENT_COST))
     {
+        /** @epoch-start  */
+        // recalculate cost one final time to handle clearcasting better
+        m_powerCost = m_spellInfo->CalcPowerCost(m_caster, m_spellSchoolMask);
+        /** @epoch-end */
+
         // Powers have to be taken before SendSpellGo
         TakePower();
         TakeReagents();                                         // we must remove reagents before HandleEffects to allow place crafted item in same slot
