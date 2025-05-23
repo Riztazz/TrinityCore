@@ -515,7 +515,7 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
         bool SendZoneMessage(uint32 zone, WorldPacket const* packet, WorldSession const* self = nullptr, uint32 team = 0) const;
 
         PlayerList const& GetPlayers() const { return m_mapRefManager; }
-        virtual ChainedRange<PlayerList> GetAllPlayers() const override
+        virtual ChainedRange<PlayerList> GetAllPlayers() const
         {
             std::vector<PlayerList*> lists(1, const_cast<PlayerList*>(&m_mapRefManager));
             return ChainedRange<PlayerList>(lists);
