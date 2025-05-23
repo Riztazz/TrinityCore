@@ -79,6 +79,19 @@ void MapManager::VisualizePartitions(Unit* owner, Seconds duration)
     mapPartitioned->VisualizePartitions(owner, duration);
 }
 
+ChainedRange<PlayerList> MapManager::GetContinentPlayers(uint32 mapId)
+{
+    Map* map = FindBaseMap(mapId);
+    if (!map)
+        return {};
+
+    MapPartitioned* mapPartitioned = map->ToMapPartitioned();
+    if (!mapPartitioned)
+        return {};
+
+    return mapPartitioned->GetAllPlayers();
+}
+
 // This should normally only be called indirectly via CreateMap, but can also be used to
 // create the base maps needed to query for instances or partitions.
 Map* MapManager::CreateBaseMap(uint32 id)

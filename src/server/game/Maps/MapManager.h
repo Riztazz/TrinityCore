@@ -41,12 +41,42 @@ class TC_GAME_API MapManager
 
         // FOR DEBUGGING
         void VisualizePartitions(Unit* owner, Seconds duration);
+        ChainedRange<PlayerList> GetContinentPlayers(uint32 mapId);
 
         Map* CreateBaseMap(uint32 mapId);
         Map* CreateMap(uint32 mapId, Position const& pos, Player* player = nullptr, uint32 loginInstanceId = 0);
         uint32 CalculatePartitionId(uint32 mapid, Position const& pos);
         Map* FindMap(uint32 mapId, Position const& pos, uint32 instanceId = 0) const;
-        Map* FindMap(uint32 mapId, uint32 instanceId = 0) const { return FindMap(mapId, Position(), instanceId); }
+        Map* FindMap(uint32 mapId, uint32 instanceId = 0) const { return FindMap(mapId, Position(), instanceId); } // To support existing references
+        Map* FindBaseMap(uint32 mapId) const
+        {
+            BaseMaps::const_iterator iter = _baseMaps.find(mapId);
+            return (iter == _baseMaps.end() ? nullptr : iter->second.get());
+        }
+        Map* FindContinent(uint32 mapId) const
+        {
+            Map* baseMap = FindBaseMap(mapId);
+            if (!baseMap)
+                return nullptr;
+
+            MapPartitioned* mapPartitioned = baseMap->ToMapPartitioned();
+            if (!mapPartitioned)
+                return nullptr;
+
+            return baseMap;
+        }
+        Map* FindPartition(uint32 mapId, uint32 partitionId) const
+        {
+            Map* baseMap = FindBaseMap(mapId);
+            if (!baseMap)
+                return nullptr;
+
+            MapPartitioned* mapPartitioned = baseMap->ToMapPartitioned();
+            if (!mapPartitioned)
+                return nullptr;
+
+            return mapPartitioned->FindPartition(partitionId);
+        }
 
         uint32 GetAreaId(uint32 phaseMask, uint32 mapid, float x, float y, float z) const
         {
@@ -143,12 +173,6 @@ class TC_GAME_API MapManager
 
         MapManager();
         ~MapManager();
-
-        Map* FindBaseMap(uint32 mapId) const
-        {
-            BaseMaps::const_iterator iter = _baseMaps.find(mapId);
-            return (iter == _baseMaps.end() ? nullptr : iter->second.get());
-        }
 
         MapManager(MapManager const&) = delete;
         MapManager& operator=(MapManager const&) = delete;

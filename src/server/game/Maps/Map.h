@@ -310,6 +310,53 @@ inline bool CompareRespawnInfo::operator()(RespawnInfo const* a, RespawnInfo con
 
 extern template class TypeUnorderedMapContainer<AllMapStoredObjectTypes, ObjectGuid>;
 typedef TypeUnorderedMapContainer<AllMapStoredObjectTypes, ObjectGuid> MapStoredObjectTypesContainer;
+typedef MapRefManager PlayerList;
+
+template<typename ListType>
+class ChainedRange {
+public:
+    using OuterIter = typename std::vector<ListType*>::const_iterator;
+    using InnerIter = typename ListType::const_iterator;
+
+    class Iterator {
+    public:
+        Iterator(OuterIter outer, OuterIter outerEnd)
+            : outer_(outer), outerEnd_(outerEnd), inner_() {
+            if (outer_ != outerEnd_)
+                inner_ = (*outer_)->begin();
+            advanceToValid();
+        }
+
+        auto operator*() const { return *inner_; }
+        Iterator& operator++() {
+            ++inner_;
+            advanceToValid();
+            return *this;
+        }
+        bool operator!=(const Iterator& other) const {
+            return outer_ != other.outer_ || (outer_ != outerEnd_ && inner_ != other.inner_);
+        }
+    private:
+        void advanceToValid() {
+            while (outer_ != outerEnd_ && inner_ == (*outer_)->end()) {
+                ++outer_;
+                if (outer_ != outerEnd_)
+                    inner_ = (*outer_)->begin();
+            }
+        }
+        OuterIter outer_, outerEnd_;
+        InnerIter inner_;
+    };
+
+    ChainedRange(const std::vector<ListType*>& lists)
+        : lists_(lists) {}
+
+    Iterator begin() const { return Iterator(lists_.begin(), lists_.end()); }
+    Iterator end() const { return Iterator(lists_.end(), lists_.end()); }
+
+private:
+    const std::vector<ListType*>& lists_;
+};
 
 class TC_GAME_API Map : public GridRefManager<NGridType>
 {
@@ -467,8 +514,8 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
         void SendToPlayers(WorldPacket const* data) const;
         bool SendZoneMessage(uint32 zone, WorldPacket const* packet, WorldSession const* self = nullptr, uint32 team = 0) const;
 
-        typedef MapRefManager PlayerList;
         PlayerList const& GetPlayers() const { return m_mapRefManager; }
+        virtual ChainedRange<PlayerList> GetAllPlayers() const { return ChainedRange<PlayerList>(std::vector<PlayerList*> { &m_mapRefManager }); }
 
         //per-map script storage
         void ScriptsStart(std::map<uint32, std::multimap<uint32, ScriptInfo>> const& scripts, uint32 id, Object* source, Object* target);

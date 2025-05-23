@@ -85,7 +85,7 @@ void WorldSession::HandleMoveWorldportAck()
     // (Custom) Force InstanceID in case GameMaster is trying to .tele instanceid
     Map* newMap = nullptr;
     if (player->IsGameMaster() && player->GetInstanceId())
-        newMap = sMapMgr->FindMap(loc.GetMapId(), player->GetInstanceId());
+        newMap = sMapMgr->FindMap(loc.GetMapId(), player->GetPosition(), player->GetInstanceId());
 
     if (!newMap)
         newMap = sMapMgr->CreateMap(loc.GetMapId(), loc.GetPosition(), player);
