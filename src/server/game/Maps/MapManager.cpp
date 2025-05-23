@@ -83,11 +83,11 @@ ChainedRange<Map::PlayerList> MapManager::GetContinentPlayers(uint32 mapId)
 {
     Map* map = FindBaseMap(mapId);
     if (!map)
-        return {};
+        return ChainedRange<Map::PlayerList>(std::vector<Map::PlayerList*>{});
 
     MapPartitioned* mapPartitioned = map->ToMapPartitioned();
     if (!mapPartitioned)
-        return {};
+        return ChainedRange<Map::PlayerList>(std::vector<Map::PlayerList*>{});
 
     return mapPartitioned->GetAllPlayers();
 }
