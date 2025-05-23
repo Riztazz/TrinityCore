@@ -310,7 +310,6 @@ inline bool CompareRespawnInfo::operator()(RespawnInfo const* a, RespawnInfo con
 
 extern template class TypeUnorderedMapContainer<AllMapStoredObjectTypes, ObjectGuid>;
 typedef TypeUnorderedMapContainer<AllMapStoredObjectTypes, ObjectGuid> MapStoredObjectTypesContainer;
-typedef MapRefManager PlayerList;
 
 template<typename ListType>
 class ChainedRange {
@@ -514,6 +513,7 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
         void SendToPlayers(WorldPacket const* data) const;
         bool SendZoneMessage(uint32 zone, WorldPacket const* packet, WorldSession const* self = nullptr, uint32 team = 0) const;
 
+        typedef MapRefManager PlayerList;
         PlayerList const& GetPlayers() const { return m_mapRefManager; }
         virtual ChainedRange<PlayerList> GetAllPlayers() const
         {
