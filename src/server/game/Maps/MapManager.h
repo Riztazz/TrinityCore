@@ -41,7 +41,7 @@ class TC_GAME_API MapManager
 
         // FOR DEBUGGING
         void VisualizePartitions(Unit* owner, Seconds duration);
-        ChainedRange<PlayerList> GetContinentPlayers(uint32 mapId);
+        ChainedRange<Map::PlayerList> GetContinentPlayers(uint32 mapId);
 
         Map* CreateBaseMap(uint32 mapId);
         Map* CreateMap(uint32 mapId, Position const& pos, Player* player = nullptr, uint32 loginInstanceId = 0);

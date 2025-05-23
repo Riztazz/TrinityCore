@@ -79,7 +79,7 @@ void MapManager::VisualizePartitions(Unit* owner, Seconds duration)
     mapPartitioned->VisualizePartitions(owner, duration);
 }
 
-ChainedRange<PlayerList> MapManager::GetContinentPlayers(uint32 mapId)
+ChainedRange<Map::PlayerList> MapManager::GetContinentPlayers(uint32 mapId)
 {
     Map* map = FindBaseMap(mapId);
     if (!map)

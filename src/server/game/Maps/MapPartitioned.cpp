@@ -137,16 +137,16 @@ void MapPartitioned::UnloadAll()
     sScriptMgr->OnDestroyMap(this);
 }
 
-ChainedRange<PlayerList> MapPartitioned::GetAllPlayers() const
+ChainedRange<Map::PlayerList> MapPartitioned::GetAllPlayers() const
 {
-    std::vector<PlayerList*> lists;
+    std::vector<Map::PlayerList*> lists;
     for (const auto& pair : _partitions)
     {
         Map* map = pair.second.get();
         if (map)
-            lists.push_back(const_cast<PlayerList*>(&map->GetPlayers())); // const_cast is needed because GetPlayers returns const&
+            lists.push_back(const_cast<Map::PlayerList*>(&map->GetPlayers())); // const_cast is needed because GetPlayers returns const&
     }
-    return ChainedRange<PlayerList>(lists);
+    return ChainedRange<Map::PlayerList>(lists);
 }
 
 bool MapPartitioned::IsPointInPolygon(Position const& pos, PartitionPolygon const& polygon)
