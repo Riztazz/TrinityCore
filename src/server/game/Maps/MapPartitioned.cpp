@@ -97,35 +97,33 @@ void MapPartitioned::VisualizePartitions(Unit* owner, Seconds duration)
 std::vector<uint32> MapPartitioned::GetPartitionIds() const
 {
     std::vector<uint32> ids;
-    ids.reserve(_partitions.size());
-    for (const auto& pair : _partitions)
-        ids.push_back(pair.first);
+    ids.reserve(1 + _partitions.size());
+    ids.push_back(GetPartitionId());
+    for (const auto& [partitionId, _] : _partitions)
+        ids.push_back(partitionId);
     return ids;
 }
 
 ChainedRange<Map::PlayerList> MapPartitioned::GetAllPlayers() const
 {
     std::vector<Map::PlayerList*> lists;
-    for (const auto& pair : _partitions)
-    {
-        Map* map = pair.second.get();
-        if (map)
-            lists.push_back(const_cast<Map::PlayerList*>(&map->GetPlayers())); // const_cast is needed because GetPlayers returns const&
-    }
+    lists.push_back(const_cast<Map::PlayerList*>(GetPlayers()));
+    for (const auto& [_, partitionPtr] : _partitions)
+        lists.push_back(const_cast<Map::PlayerList*>(&partitionPtr->GetPlayers()));
     return ChainedRange<Map::PlayerList>(lists);
 }
 
 void MapPartitioned::InitVisibilityDistance()
 {
-    for (auto& [_, partition] : _partitions)
-        partition->InitVisibilityDistance();
+    for (auto& [_, partitionPtr] : _partitions)
+        partitionPtr->InitVisibilityDistance();
 
     Map::InitVisibilityDistance();
 }
 
 void MapPartitioned::Update(uint32 t)
 {
-    for (auto& [partitionId, partitionPtr] : _partitions)
+    for (auto& [_, partitionPtr] : _partitions)
     {
         if (sMapMgr->GetMapUpdater()->activated())
             sMapMgr->GetMapUpdater()->schedule_update(*partitionPtr, t);
@@ -138,7 +136,7 @@ void MapPartitioned::Update(uint32 t)
 
 void MapPartitioned::DelayedUpdate(uint32 diff)
 {
-    for (auto& [partitionId, partitionPtr] : _partitions)
+    for (auto& [_, partitionPtr] : _partitions)
         partitionPtr->DelayedUpdate(diff);
 
     Map::DelayedUpdate(diff);
@@ -147,7 +145,7 @@ void MapPartitioned::DelayedUpdate(uint32 diff)
 void MapPartitioned::UnloadAll()
 {
     // Clear child maps
-    for (auto& [partitionId, partitionPtr] : _partitions)
+    for (auto& [_, partitionPtr] : _partitions)
         partitionPtr->UnloadAll();
 
     _partitions.clear();
@@ -213,13 +211,6 @@ Map* MapPartitioned::CreatePartition(uint32 mapId, uint32 partitionId)
         TC_LOG_ERROR("maps", "CreatePartition: no entry for map {}", GetId());
         ABORT();
     }
-    // TODO lookup partition entry
-    // PartitionTemplate const* pTemplate = sObjectMgr->GetPartitionTemplate(GetId(), partitionId);
-    // if (!pTemplate)
-    // {
-    //     TC_LOG_ERROR("maps", "CreatePartitionMap: no partition template for map {}", GetId());
-    //     ABORT();
-    // }
 
     Map* map = new PartitionMap(GetId(), partitionId, this);
     ASSERT(map->IsWorldMap());
