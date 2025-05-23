@@ -107,7 +107,7 @@ std::vector<uint32> MapPartitioned::GetPartitionIds() const
 ChainedRange<Map::PlayerList> MapPartitioned::GetAllPlayers() const
 {
     std::vector<Map::PlayerList*> lists;
-    lists.push_back(const_cast<Map::PlayerList*>(GetPlayers()));
+    lists.push_back(const_cast<Map::PlayerList*>(&GetPlayers()));
     for (const auto& [_, partitionPtr] : _partitions)
         lists.push_back(const_cast<Map::PlayerList*>(&partitionPtr->GetPlayers()));
     return ChainedRange<Map::PlayerList>(lists);
