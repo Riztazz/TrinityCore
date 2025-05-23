@@ -38,12 +38,14 @@ class TC_GAME_API MapPartitioned : public Map
         // DEBUG ONLY
         void VisualizePartitions(Unit* owner, Seconds duration);
 
+        std::vector<uint32> GetPartitionIds() const;
+        virtual ChainedRange<Map::PlayerList> GetAllPlayers() const override;
+
         // functions overwrite Map versions
         virtual void InitVisibilityDistance() override;
         void Update(uint32 diff) override;
         void DelayedUpdate(uint32 diff) override;
         void UnloadAll() override;
-        virtual ChainedRange<Map::PlayerList> GetAllPlayers() const override;
 
         uint32 CalculatePartitionId(Position const& pos) const;
         Map* CreatePartition(uint32 mapId, uint32 partitionId);

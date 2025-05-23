@@ -94,6 +94,27 @@ void MapPartitioned::VisualizePartitions(Unit* owner, Seconds duration)
     }
 }
 
+std::vector<uint32> MapPartitioned::GetPartitionIds() const
+{
+    std::vector<uint32> ids;
+    ids.reserve(_partitions.size());
+    for (const auto& pair : _partitions)
+        ids.push_back(pair.first);
+    return ids;
+}
+
+ChainedRange<Map::PlayerList> MapPartitioned::GetAllPlayers() const
+{
+    std::vector<Map::PlayerList*> lists;
+    for (const auto& pair : _partitions)
+    {
+        Map* map = pair.second.get();
+        if (map)
+            lists.push_back(const_cast<Map::PlayerList*>(&map->GetPlayers())); // const_cast is needed because GetPlayers returns const&
+    }
+    return ChainedRange<Map::PlayerList>(lists);
+}
+
 void MapPartitioned::InitVisibilityDistance()
 {
     for (auto& [_, partition] : _partitions)
@@ -135,18 +156,6 @@ void MapPartitioned::UnloadAll()
     Map::UnloadAll();
 
     sScriptMgr->OnDestroyMap(this);
-}
-
-ChainedRange<Map::PlayerList> MapPartitioned::GetAllPlayers() const
-{
-    std::vector<Map::PlayerList*> lists;
-    for (const auto& pair : _partitions)
-    {
-        Map* map = pair.second.get();
-        if (map)
-            lists.push_back(const_cast<Map::PlayerList*>(&map->GetPlayers())); // const_cast is needed because GetPlayers returns const&
-    }
-    return ChainedRange<Map::PlayerList>(lists);
 }
 
 bool MapPartitioned::IsPointInPolygon(Position const& pos, PartitionPolygon const& polygon)

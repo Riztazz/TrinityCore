@@ -79,6 +79,19 @@ void MapManager::VisualizePartitions(Unit* owner, Seconds duration)
     mapPartitioned->VisualizePartitions(owner, duration);
 }
 
+std::vector<uint32> MapManager::GetContinentPartitionIds(uint32 mapId)
+{
+    Map* map = FindBaseMap(mapId);
+    if (!map)
+        return {};
+
+    MapPartitioned* mapPartitioned = map->ToMapPartitioned();
+    if (!mapPartitioned)
+        return {};
+
+    return mapPartitioned->GetPartitionIds();
+}
+
 ChainedRange<Map::PlayerList> MapManager::GetContinentPlayers(uint32 mapId)
 {
     Map* map = FindBaseMap(mapId);
@@ -191,6 +204,32 @@ Map* MapManager::FindMap(uint32 mapid, Position const& pos, uint32 instanceId) c
     // For partitions the base map is the default/fallback partition, so return it
     if (partitionId == mapPartitioned->GetPartitionId())
         return mapPartitioned;
+
+    return mapPartitioned->FindPartition(partitionId);
+}
+
+Map* MapManager::FindContinent(uint32 mapId) const
+{
+    Map* baseMap = FindBaseMap(mapId);
+    if (!baseMap)
+        return nullptr;
+
+    MapPartitioned* mapPartitioned = baseMap->ToMapPartitioned();
+    if (!mapPartitioned)
+        return nullptr;
+
+    return baseMap;
+}
+
+Map* MapManager::FindPartition(uint32 mapId, uint32 partitionId) const
+{
+    Map* baseMap = FindBaseMap(mapId);
+    if (!baseMap)
+        return nullptr;
+
+    MapPartitioned* mapPartitioned = baseMap->ToMapPartitioned();
+    if (!mapPartitioned)
+        return nullptr;
 
     return mapPartitioned->FindPartition(partitionId);
 }
