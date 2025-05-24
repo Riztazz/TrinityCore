@@ -3555,7 +3555,7 @@ void Spell::_cast(bool skipCheck)
     {
         /** @epoch-start  */
         // recalculate cost one final time to handle clearcasting better
-        m_powerCost = m_spellInfo->CalcPowerCost(m_caster, m_spellSchoolMask);
+        m_powerCost = m_CastItem ? 0 : m_spellInfo->CalcPowerCost(m_caster, m_spellSchoolMask, this);
         /** @epoch-end */
 
         // Powers have to be taken before SendSpellGo
