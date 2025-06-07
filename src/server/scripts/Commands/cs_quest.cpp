@@ -46,10 +46,10 @@ public:
     {
         static std::vector<ChatCommand> questCommandTable =
         {
-            { "add",      rbac::RBAC_PERM_COMMAND_QUEST_ADD,      false, &HandleQuestAdd,      "" },
-            { "complete", rbac::RBAC_PERM_COMMAND_QUEST_COMPLETE, false, &HandleQuestComplete, "" },
-            { "remove",   rbac::RBAC_PERM_COMMAND_QUEST_REMOVE,   false, &HandleQuestRemove,   "" },
-            { "reward",   rbac::RBAC_PERM_COMMAND_QUEST_REWARD,   false, &HandleQuestReward,   "" },
+            { "add",      rbac::RBAC_PERM_COMMAND_QUEST_ADD,      true, &HandleQuestAdd,      "" },
+            { "complete", rbac::RBAC_PERM_COMMAND_QUEST_COMPLETE, true, &HandleQuestComplete, "" },
+            { "remove",   rbac::RBAC_PERM_COMMAND_QUEST_REMOVE,   true, &HandleQuestRemove,   "" },
+            { "reward",   rbac::RBAC_PERM_COMMAND_QUEST_REWARD,   true, &HandleQuestReward,   "" },
         };
         static std::vector<ChatCommand> commandTable =
         {
@@ -58,14 +58,31 @@ public:
         return commandTable;
     }
 
-    static bool HandleQuestAdd(ChatHandler* handler, Quest const* quest)
+    static bool HandleQuestAdd(ChatHandler* handler, Quest const* quest, Optional<std::string_view> playerName = {})
     {
-        Player* player = handler->getSelectedPlayerOrSelf();
-        if (!player)
+        Player* player = nullptr;
+
+        // If target player is specified
+        if (playerName)
         {
-            handler->SendSysMessage(LANG_NO_CHAR_SELECTED);
-            handler->SetSentErrorMessage(true);
-            return false;
+            player = ObjectAccessor::FindConnectedPlayerByName(std::string(*playerName));
+            if (!player)
+            {
+                handler->SendSysMessage(LANG_PLAYER_NOT_FOUND);
+                handler->SetSentErrorMessage(true);
+                return false;
+            }
+        }
+        // No target behavior
+        else
+        {
+            player = handler->getSelectedPlayerOrSelf();
+            if (!player)
+            {
+                handler->SendSysMessage(LANG_NO_CHAR_SELECTED);
+                handler->SetSentErrorMessage(true);
+                return false;
+            }
         }
 
         if (DisableMgr::IsDisabledFor(DISABLE_TYPE_QUEST, quest->GetQuestId(), nullptr))
@@ -99,14 +116,31 @@ public:
         return true;
     }
 
-    static bool HandleQuestRemove(ChatHandler* handler, Quest const* quest)
+    static bool HandleQuestRemove(ChatHandler* handler, Quest const* quest, Optional<std::string_view> playerName = {})
     {
-        Player* player = handler->getSelectedPlayer();
-        if (!player)
+        Player* player = nullptr;
+
+        // If target player is specified
+        if (playerName)
         {
-            handler->SendSysMessage(LANG_NO_CHAR_SELECTED);
-            handler->SetSentErrorMessage(true);
-            return false;
+            player = ObjectAccessor::FindConnectedPlayerByName(std::string(*playerName));
+            if (!player)
+            {
+                handler->SendSysMessage(LANG_PLAYER_NOT_FOUND);
+                handler->SetSentErrorMessage(true);
+                return false;
+            }
+        }
+        // No target behavior
+        else
+        {
+            player = handler->getSelectedPlayer();
+            if (!player)
+            {
+                handler->SendSysMessage(LANG_NO_CHAR_SELECTED);
+                handler->SetSentErrorMessage(true);
+                return false;
+            }
         }
 
         if (!quest)
@@ -152,14 +186,31 @@ public:
         }
     }
 
-    static bool HandleQuestComplete(ChatHandler* handler, Quest const* quest)
+    static bool HandleQuestComplete(ChatHandler* handler, Quest const* quest, Optional<std::string_view> playerName = {})
     {
-        Player* player = handler->getSelectedPlayerOrSelf();
-        if (!player)
+        Player* player = nullptr;
+
+        // If target player is specified
+        if (playerName)
         {
-            handler->SendSysMessage(LANG_NO_CHAR_SELECTED);
-            handler->SetSentErrorMessage(true);
-            return false;
+            player = ObjectAccessor::FindConnectedPlayerByName(std::string(*playerName));
+            if (!player)
+            {
+                handler->SendSysMessage(LANG_PLAYER_NOT_FOUND);
+                handler->SetSentErrorMessage(true);
+                return false;
+            }
+        }
+        // No target behavior
+        else
+        {
+            player = handler->getSelectedPlayerOrSelf();
+            if (!player)
+            {
+                handler->SendSysMessage(LANG_NO_CHAR_SELECTED);
+                handler->SetSentErrorMessage(true);
+                return false;
+            }
         }
 
         // If player doesn't have the quest
@@ -252,14 +303,31 @@ public:
         return true;
     }
 
-    static bool HandleQuestReward(ChatHandler* handler, Quest const* quest)
+    static bool HandleQuestReward(ChatHandler* handler, Quest const* quest, Optional<std::string_view> playerName = {})
     {
-        Player* player = handler->getSelectedPlayer();
-        if (!player)
+        Player* player = nullptr;
+
+        // If target player is specified
+        if (playerName)
         {
-            handler->SendSysMessage(LANG_NO_CHAR_SELECTED);
-            handler->SetSentErrorMessage(true);
-            return false;
+            player = ObjectAccessor::FindConnectedPlayerByName(std::string(*playerName));
+            if (!player)
+            {
+                handler->SendSysMessage(LANG_PLAYER_NOT_FOUND);
+                handler->SetSentErrorMessage(true);
+                return false;
+            }
+        }
+        // No target behavior
+        else
+        {
+            player = handler->getSelectedPlayer();
+            if (!player)
+            {
+                handler->SendSysMessage(LANG_NO_CHAR_SELECTED);
+                handler->SetSentErrorMessage(true);
+                return false;
+            }
         }
 
         // If player doesn't have the quest

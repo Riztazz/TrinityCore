@@ -176,8 +176,9 @@ class TC_GAME_API Creature : public Unit, public GridObject<Creature>
 
         uint32 GetShieldBlockValue() const override;
 
-        SpellSchoolMask GetMeleeDamageSchoolMask(WeaponAttackType /*attackType*/ = BASE_ATTACK, uint8 /*damageIndex*/ = 0) const override { return m_meleeDamageSchoolMask; }
-        void SetMeleeDamageSchool(SpellSchools school) { m_meleeDamageSchoolMask = SpellSchoolMask(1 << school); }
+        SpellSchoolMask GetMeleeDamageSchoolMask(WeaponAttackType /*attackType*/ = BASE_ATTACK, uint8 /*damageIndex*/ = 0) const override { return SpellSchoolMask(1 << m_meleeDamageSchool); }
+        SpellSchools GetMeleeDamageSchool(WeaponAttackType /*attackType*/ = BASE_ATTACK, uint8 /*damageIndex*/ = 0) const override { return m_meleeDamageSchool; }
+        void SetMeleeDamageSchool(SpellSchools school) { m_meleeDamageSchool = school; }
 
         bool HasSpell(uint32 spellID) const override;
 
@@ -193,7 +194,7 @@ class TC_GAME_API Creature : public Unit, public GridObject<Creature>
         void UpdateMaxHealth() override;
         void UpdateMaxPower(Powers power) override;
         void UpdateAttackPowerAndDamage(bool ranged = false) override;
-        void CalculateMinMaxDamage(WeaponAttackType attType, bool normalized, bool addTotalPct, float& minDamage, float& maxDamage, uint8 damageIndex) const override;
+        void CalculateMinMaxDamage(WeaponAttackType attType, bool normalized, float& minDamage, float& maxDamage, uint8 damageIndex) const override;
 
         void SetCanDualWield(bool value) override;
         int8 GetOriginalEquipmentId() const { return m_originalEquipmentId; }
@@ -383,6 +384,7 @@ class TC_GAME_API Creature : public Unit, public GridObject<Creature>
         bool IsFreeToMove();
         static constexpr uint32 MOVE_CIRCLE_CHECK_INTERVAL = 3000;
         static constexpr uint32 MOVE_BACKWARDS_CHECK_INTERVAL = 2000;
+        static constexpr uint32 EXTEND_LEASH_CHECK_INTERVAL = 3000;
         CreatureTextRepeatIds GetTextRepeatGroup(uint8 textGroup);
         void SetTextRepeatId(uint8 textGroup, uint8 id);
         void ClearTextRepeatGroup(uint8 textGroup);
@@ -440,6 +442,7 @@ class TC_GAME_API Creature : public Unit, public GridObject<Creature>
         uint32 m_boundaryCheckTime;                         // (msecs) remaining time for next evade boundary check
         uint32 m_backpedalTime;                             // (msecs) remaining time for next move backwards check
         uint32 m_encircleTime;                              // (msecs) remaining time for next encircle movement check
+        uint32 m_extendLeashTime;                           // (msecs) remaining time for extending leash during CC check
         uint32 m_combatPulseTime;                           // (msecs) remaining time for next zone-in-combat pulse
         uint32 m_combatPulseDelay;                          // (secs) how often the creature puts the entire zone in combat (only works in dungeons)
 
@@ -459,7 +462,7 @@ class TC_GAME_API Creature : public Unit, public GridObject<Creature>
         bool m_cannotReachTarget;
         uint32 m_cannotReachTimer;
 
-        SpellSchoolMask m_meleeDamageSchoolMask;
+        SpellSchools m_meleeDamageSchool;
         uint32 m_originalEntry;
 
         Position m_homePosition;
