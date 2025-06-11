@@ -5392,7 +5392,7 @@ void Player::UpdateDamageDoneMods(WeaponAttackType attackType, int32 skipEnchant
     }
 
     float amount = 0.0f;
-    Item* item = GetWeaponForAttack(attackType, true);
+    Item* item = GetWeaponForDamageMods(attackType);
     if (!item)
         return;
 
@@ -7429,6 +7429,10 @@ void Player::DuelComplete(DuelCompleteType type)
             break;
     }
 
+    // Beg emote spell
+    if (type == DUEL_WON)
+        CastSpell(this, 7267, true);
+
     // Victory emote spell
     if (type != DUEL_INTERRUPTED)
         opponent->CastSpell(opponent, 52852, true);
@@ -7471,9 +7475,6 @@ void Player::DuelComplete(DuelCompleteType type)
     SetUInt32Value(PLAYER_DUEL_TEAM, 0);
     opponent->SetGuidValue(PLAYER_DUEL_ARBITER, ObjectGuid::Empty);
     opponent->SetUInt32Value(PLAYER_DUEL_TEAM, 0);
-
-    opponent->duel.reset(nullptr);
-    duel.reset(nullptr);
 }
 
 //---------------------------------------------------------//
@@ -10180,6 +10181,27 @@ Item* Player::GetWeaponForAttack(WeaponAttackType attackType, bool useable /*= f
         return item;
 
     if (item->IsBroken() || IsInFeralForm())
+        return nullptr;
+
+    return item;
+}
+
+Item* Player::GetWeaponForDamageMods(WeaponAttackType attackType) const
+{
+    uint8 slot;
+    switch (attackType)
+    {
+        case BASE_ATTACK:   slot = EQUIPMENT_SLOT_MAINHAND; break;
+        case OFF_ATTACK:    slot = EQUIPMENT_SLOT_OFFHAND;  break;
+        case RANGED_ATTACK: slot = EQUIPMENT_SLOT_RANGED;   break;
+        default: return nullptr;
+    }
+
+    Item* item = GetUseableItemByPos(INVENTORY_SLOT_BAG_0, slot);
+    if (!item || item->GetTemplate()->Class != ITEM_CLASS_WEAPON)
+        return nullptr;
+
+    if (item->IsBroken())
         return nullptr;
 
     return item;
@@ -21060,6 +21082,13 @@ void Player::UpdateDuelFlag(time_t currTime)
 
         duel->State = DUEL_STATE_IN_PROGRESS;
         duel->Opponent->duel->State = DUEL_STATE_IN_PROGRESS;
+    }
+
+    if (duel && duel->State == DUEL_STATE_COMPLETED)
+    {
+        // Delay duel reset until UpdateDuelFlag so that extra attacks like sword spec do not kill duelist
+        duel->Opponent->duel.reset(nullptr);
+        duel.reset(nullptr);
     }
 }
 
