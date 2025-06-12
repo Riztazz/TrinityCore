@@ -305,7 +305,7 @@ bool CreatureGroup::FormationReset()
             {
                 _leader->LoadPath(defaultLeader->GetWaypointPath());
                 _leader->UpdateCurrentWaypointInfo(defaultLeader->GetCurrentWaypointInfo().first, defaultLeader->GetCurrentWaypointInfo().second);
-                _leader->GetMotionMaster()->MovePath(_leader->GetWaypointPath(), true);
+                _leader->GetMotionMaster()->MovePath(_leader->GetWaypointPath(), true, GetCurrentWaypointInfo().first);
             }
             else
             {

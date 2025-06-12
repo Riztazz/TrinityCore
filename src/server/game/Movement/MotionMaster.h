@@ -193,8 +193,8 @@ class TC_GAME_API MotionMaster
         void MoveSeekAssistanceDistract(uint32 timer);
         void MoveTaxiFlight(uint32 path, uint32 pathnode);
         void MoveDistract(uint32 time, float orientation);
-        void MovePath(uint32 pathId, bool repeatable);
-        void MovePath(WaypointPath& path, bool repeatable);
+        void MovePath(uint32 pathId, bool repeatable, uint32 startWaypointId = 0);
+        void MovePath(WaypointPath& path, bool repeatable, uint32 startWaypointId = 0);
         void MoveRotate(uint32 id, uint32 time, RotateDirection direction);
         void MoveFormation(Unit* leader, float range, float angle, uint32 point1, uint32 point2);
 

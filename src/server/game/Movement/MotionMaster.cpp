@@ -1167,19 +1167,19 @@ void MotionMaster::MoveDistract(uint32 timer, float orientation)
     Add(new DistractMovementGenerator(timer, orientation));
 }
 
-void MotionMaster::MovePath(uint32 pathId, bool repeatable)
+void MotionMaster::MovePath(uint32 pathId, bool repeatable, uint32 startWaypointId)
 {
     if (!pathId)
         return;
 
     TC_LOG_DEBUG("movement.motionmaster", "MotionMaster::MovePath: '{}', starts moving over path Id: {} (repeatable: {})", _owner->GetGUID().ToString(), pathId, repeatable ? "YES" : "NO");
-    Add(new WaypointMovementGenerator<Creature>(pathId, repeatable), MOTION_SLOT_DEFAULT);
+    Add(new WaypointMovementGenerator<Creature>(pathId, repeatable, startWaypointId), MOTION_SLOT_DEFAULT);
 }
 
-void MotionMaster::MovePath(WaypointPath& path, bool repeatable)
+void MotionMaster::MovePath(WaypointPath& path, bool repeatable, uint32 startWaypointId)
 {
     TC_LOG_DEBUG("movement.motionmaster", "MotionMaster::MovePath: '{}', starts moving over path Id: {} (repeatable: {})", _owner->GetGUID().ToString(), path.id, repeatable ? "YES" : "NO");
-    Add(new WaypointMovementGenerator<Creature>(path, repeatable), MOTION_SLOT_DEFAULT);
+    Add(new WaypointMovementGenerator<Creature>(path, repeatable, startWaypointId), MOTION_SLOT_DEFAULT);
 }
 
 void MotionMaster::MoveRotate(uint32 id, uint32 time, RotateDirection direction)
