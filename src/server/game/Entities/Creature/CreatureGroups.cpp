@@ -199,28 +199,21 @@ CreatureGroup::~CreatureGroup()
 
 void CreatureGroup::AddMember(Creature* member)
 {
-    TC_LOG_DEBUG("entities.unit", "CreatureGroup::AddMember: Adding unit {}.", member->GetGUID().ToString());
-
-    //Check if it is a leader
-    if (member->GetSpawnId() == _leaderSpawnId)
-    {
-        TC_LOG_DEBUG("entities.unit", "Unit {} is formation leader. Adding group.", member->GetGUID().ToString());
-        _leader = member;
-    }
-
     // formation must be registered at this point
     FormationInfo* formationInfo = ASSERT_NOTNULL(sFormationMgr->GetFormationInfo(member->GetSpawnId()));
     _members.emplace(member, formationInfo);
     member->SetFormation(this);
+    // we wait until Motion_Initialize to call FormationReset
 }
 
 void CreatureGroup::RemoveMember(Creature* member)
 {
-    if (_leader == member)
-        _leader = nullptr;
-
     _members.erase(member);
     member->SetFormation(nullptr);
+
+    // If member is the default leader or current leader ResetFormation
+    if (member->GetSpawnId() == _leaderSpawnId || member == _leader)
+        FormationReset();
 }
 
 void CreatureGroup::MemberEngagingTarget(Creature* member, Unit* target)
@@ -259,21 +252,65 @@ void CreatureGroup::MemberEngagingTarget(Creature* member, Unit* target)
     _engaging = false;
 }
 
-void CreatureGroup::FormationReset(bool dismiss)
+// Smartly reset the CreatureGroup
+void CreatureGroup::FormationReset()
 {
+    Creature* defaultLeader = nullptr;
+    Creature* firstAliveMember = nullptr;
+    bool resetMemberMotion = false;
     for (auto const& pair : _members)
     {
-        if (pair.first != _leader && pair.first->IsAlive())
+        if (pair.first->GetSpawnId() == _leaderSpawnId)
+            defaultLeader = pair.first;
+        else if (!firstAliveMember && pair.first->IsAlive())
+            firstAliveMember = pair.first;
+    }
+
+    // If there is no default leader we dismiss the group (we have no reference to copy motion from)
+    if (!defaultLeader)
+    {
+        _leader = nullptr;
+        resetMemberMotion = true;
+    }
+    // Use default leader when alive
+    else if (defaultLeader->IsAlive())
+    {
+        // Take back leadership
+        if (_leader != defaultLeader)
         {
-            if (dismiss)
-                pair.first->GetMotionMaster()->Remove(FORMATION_MOTION_TYPE, MOTION_SLOT_DEFAULT);
-            else
-                pair.first->GetMotionMaster()->InitializeDefault();
-            TC_LOG_DEBUG("entities.unit", "CreatureGroup::FormationReset: Set {} movement for member {}", dismiss ? "default" : "idle", pair.first->GetGUID().ToString());
+            _leader = defaultLeader; // Default leaders motion never changes so no need to reset it
+            resetMemberMotion = true;
+        }
+    }
+    // No current leader or current leader is not alive
+    else if (!_leader || !_leader->IsAlive())
+    {
+        // Take temporary leadership
+        if (firstAliveMember)
+        {
+            _leader = firstAliveMember;
+            resetMemberMotion = true;
+            // Copy default leaders MotionGenerator, no idea if this will work
+            _leader->GetMotionMaster()->Add(defaultLeader->GetMotionMaster()->GetCurrentMovementGenerator());
+        }
+        // Current leader died and no other member is alive
+        else if (_leader)
+        {
+            _leader = nullptr;
+            resetMemberMotion = true;
         }
     }
 
-    _formed = !dismiss;
+    if (resetMemberMotion)
+    {
+        for (auto const& pair : _members)
+        {
+            if (pair.first != _leader)
+                pair.first->GetMotionMaster()->Initialize(); // Use Initialize to clear before setting default
+        }
+    }
+
+    _formed = _leader != nullptr;
 }
 
 void CreatureGroup::LeaderStartedMoving()
