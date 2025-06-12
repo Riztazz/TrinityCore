@@ -281,8 +281,9 @@ bool CreatureGroup::FormationReset()
         // If the default leader is alive and the _leader is null or temporary, we take leadership
         if (_leader != defaultLeader)
         {
-            // followers should not have a path set 
-            _leader->LoadPath(0);
+            // remove path from temporary leader
+            if (_leader)
+                _leader->LoadPath(0);
 
             TC_LOG_DEBUG("formation", "Default leader {} is alive so taking leadership", _leaderSpawnId);
             _leader = defaultLeader;
