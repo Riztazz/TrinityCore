@@ -106,8 +106,8 @@ namespace FactorySelector
             if (!creature->GetCharmerOrSelfPlayer())
                 type = creature->GetDefaultMovementType();
 
-        if (unit->GetGUID().GetCounter() == 43580 || unit->GetGUID().GetCounter() == 43581)
-            TC_LOG_DEBUG("random", "FactorySelector::SelectMovementGenerator: {}", unit->GetGUID().GetCounter());
+        if (unit->GetSpawnId() == 43580 || unit->GetSpawnId() == 43581)
+            TC_LOG_DEBUG("random", "FactorySelector::SelectMovementGenerator: {}", unit->GetSpawnId());
         MovementGeneratorCreator const* mv_factory = sMovementGeneratorRegistry->GetRegistryItem(type);
         return ASSERT_NOTNULL(mv_factory)->Create(unit);
     }

@@ -17,6 +17,7 @@
 
 #include "RandomMovementGenerator.h"
 #include "Creature.h"
+#include "Log.h"
 #include "Map.h"
 #include "MovementDefines.h"
 #include "MoveSpline.h"
@@ -77,6 +78,8 @@ void RandomMovementGenerator<T>::DoInitialize(T*) { }
 template<>
 void RandomMovementGenerator<Creature>::DoInitialize(Creature* owner)
 {
+    if (owner->GetSpawnId() == 43580 || owner->GetSpawnId() == 43581)
+        TC_LOG_DEBUG("random", "RandomMovementGenerator<Creature>::DoInitialize: {}", owner->GetSpawnId());
     RemoveFlag(MOVEMENTGENERATOR_FLAG_INITIALIZATION_PENDING | MOVEMENTGENERATOR_FLAG_TRANSITORY | MOVEMENTGENERATOR_FLAG_DEACTIVATED | MOVEMENTGENERATOR_FLAG_TIMED_PAUSED);
     AddFlag(MOVEMENTGENERATOR_FLAG_INITIALIZED);
 
