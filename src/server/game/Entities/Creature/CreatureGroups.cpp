@@ -271,7 +271,6 @@ bool CreatureGroup::FormationReset()
         // We can't handle groups without a default leader (from db) so if the default is removed we need to dismiss the group
         if (_leader)
         {
-            TC_LOG_DEBUG("formation", "No default leader found for group with temporary leader so dismissing {}", _leaderSpawnId);
             _leader = nullptr;
             resetMemberMotion = true;
         }
@@ -281,13 +280,17 @@ bool CreatureGroup::FormationReset()
         // If the default leader is alive and the _leader is null or temporary, we take leadership
         if (_leader != defaultLeader)
         {
-            // remove path from temporary leader
+            // remove any waypoint path data from temporary leader (followers cannot have their own waypointPath)
             if (_leader)
+            {
                 _leader->LoadPath(0);
+                _leader->UpdateCurrentWaypointInfo(0, 0);
+            }
 
-            TC_LOG_DEBUG("formation", "Default leader {} is alive so taking leadership", _leaderSpawnId);
+            // set the defaultLeader as the leader
             _leader = defaultLeader;
             resetMemberMotion = true;
+
             _leader->GetMotionMaster()->Initialize();
         }
     }
@@ -296,7 +299,6 @@ bool CreatureGroup::FormationReset()
         // Only take temporary leadership if there is no leader or the leader is not alive
         if (firstAliveMember)
         {
-            TC_LOG_DEBUG("formation", "No current leader {} or current leader is not alive so {} taking temporary leadership", _leaderSpawnId, firstAliveMember->GetSpawnId());
             _leader = firstAliveMember;
             resetMemberMotion = true;
 
@@ -311,19 +313,19 @@ bool CreatureGroup::FormationReset()
             {
                 _leader->GetMotionMaster()->Initialize();
             }
-            TC_LOG_DEBUG("formation", "Temporary Members new default movement generator type after MovePath {}", _leader->GetMotionMaster()->GetCurrentMovementGenerator(MOTION_SLOT_DEFAULT)->GetMovementGeneratorType());
         }
-        // If the current leader died and no other member is alive, dismiss the group
+        // If the current leader died and no other member is alive, 'dismiss' the group (clear var and reset motion)
         else if (_leader)
         {
-            TC_LOG_DEBUG("formation", "Current leader died and no other member is alive so dismissing group {}", _leaderSpawnId);
             _leader = nullptr;
             resetMemberMotion = true;
         }
     }
 
+    // We now consider the group formed if their is a leader (default or temporary)
     _formed = _leader != nullptr;
 
+    // Reset all other members when the formation is adjusted, this will get overridden when Leader signals to members
     if (resetMemberMotion)
     {
         for (auto const& pair : _members)
@@ -333,6 +335,7 @@ bool CreatureGroup::FormationReset()
         }
     }
 
+    // Return whether we adjusted the formation so that we know to not override any motion afterwards
     return resetMemberMotion;
 }
 
