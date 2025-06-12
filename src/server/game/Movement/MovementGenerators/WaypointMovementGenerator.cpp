@@ -123,8 +123,8 @@ void WaypointMovementGenerator<Creature>::DoInitialize(Creature* owner)
 
     _nextMoveTime.Reset(1000);
 
-    if (_startWaypointId)
-        SetWaypoint(startWaypointId);
+    if (_startWaypointId > 0)
+        SetWaypoint(_startWaypointId);
 }
 
 void WaypointMovementGenerator<Creature>::DoReset(Creature* owner)
