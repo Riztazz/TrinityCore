@@ -18,7 +18,6 @@
 #include "MovementGenerator.h"
 #include "Creature.h"
 #include "IdleMovementGenerator.h"
-#include "Log.h"
 #include "MovementDefines.h"
 #include "PathGenerator.h"
 #include "RandomMovementGenerator.h"
@@ -50,9 +49,6 @@ RandomMovementFactory::RandomMovementFactory() : MovementGeneratorCreator(RANDOM
 
 MovementGenerator* RandomMovementFactory::Create(Unit* unit) const
 {
-    if (Creature* creature = unit->ToCreature())
-        if (creature->GetSpawnId() == 43580 || creature->GetSpawnId() == 43581 || creature->GetSpawnId() == 38049)
-            TC_LOG_DEBUG("random", "RandomMovementFactory::Create: {}", creature->GetSpawnId());
     return new RandomMovementGenerator<Creature>();
 }
 

@@ -1178,25 +1178,12 @@ bool Creature::AIM_Initialize(CreatureAI* ai)
 
 void Creature::Motion_Initialize()
 {
-    if (GetSpawnId() == 43580 || GetSpawnId() == 43581 || GetSpawnId() == 38049)
-        TC_LOG_DEBUG("random", "Creature::Motion_Initialize: {}", GetSpawnId());
     if (m_formation)
     {
         if (m_formation->GetLeader() == this)
             m_formation->FormationReset(false);
-        else if (m_formation->IsFormed())
-        {
-            if (GetSpawnId() == 43580 || GetSpawnId() == 43581 || GetSpawnId() == 38049)
-                TC_LOG_DEBUG("random", "Creature::Motion_Initialize: In Formation and formed, so calling previously called GetMotionMaster()->MoveIdle() until order from leader {}", GetSpawnId());
-            // @epoch-begin
-            //GetMotionMaster()->MoveIdle(); // wait the order of leader
-            //return;
-            // @epoch-end
-        }
     }
 
-    if (GetSpawnId() == 43580 || GetSpawnId() == 43581 || GetSpawnId() == 38049)
-        TC_LOG_DEBUG("random", "Creature::Motion_Initialize: Not in Formation or not formed, so caling GetMotionMaster()->Initialize() {}", GetSpawnId());
     GetMotionMaster()->Initialize();
 }
 

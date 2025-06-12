@@ -20,6 +20,7 @@
 
 #include "Define.h"
 #include "FactoryHolder.h"
+#include "Log.h"
 #include "ObjectRegistry.h"
 
 class Creature;
@@ -88,6 +89,9 @@ class MovementGeneratorMedium : public MovementGenerator
     public:
         void Initialize(Unit* owner) override
         {
+            if (Creature* creature = owner->ToCreature())
+                if (creature->GetSpawnId() == 43580 || creature->GetSpawnId() == 43581 || creature->GetSpawnId() == 38049)
+                    TC_LOG_DEBUG("random", "MovementGeneratorMedium::Initialize: {}", creature->GetSpawnId());
             (static_cast<D*>(this))->DoInitialize(static_cast<T*>(owner));
         }
 
