@@ -1178,17 +1178,25 @@ bool Creature::AIM_Initialize(CreatureAI* ai)
 
 void Creature::Motion_Initialize()
 {
+    if (GetGUID().GetCounter() == 43580 || GetGUID().GetCounter() == 43581)
+        TC_LOG_DEBUG("random", "Creature::Motion_Initialize: {}", GetGUID().GetCounter());
     if (m_formation)
     {
         if (m_formation->GetLeader() == this)
             m_formation->FormationReset(false);
         else if (m_formation->IsFormed())
         {
-            GetMotionMaster()->MoveIdle(); // wait the order of leader
-            return;
+            if (GetGUID().GetCounter() == 43580 || GetGUID().GetCounter() == 43581)
+                TC_LOG_DEBUG("random", "Creature::Motion_Initialize: In Formation and formed, so calling previously called GetMotionMaster()->MoveIdle() until order from leader {}", GetGUID().GetCounter());
+            // @epoch-begin
+            //GetMotionMaster()->MoveIdle(); // wait the order of leader
+            //return;
+            // @epoch-end
         }
     }
 
+    if (GetGUID().GetCounter() == 43580 || GetGUID().GetCounter() == 43581)
+        TC_LOG_DEBUG("random", "Creature::Motion_Initialize: Not in Formation or not formed, so caling GetMotionMaster()->Initialize() {}", GetGUID().GetCounter());
     GetMotionMaster()->Initialize();
 }
 
