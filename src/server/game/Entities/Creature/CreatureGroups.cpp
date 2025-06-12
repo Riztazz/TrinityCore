@@ -265,55 +265,65 @@ bool CreatureGroup::FormationReset()
             firstAliveMember = pair.first;
     }
 
+    // We can't handle groups without a default leader (from db)
     if (!defaultLeader)
     {
-        // We can't handle groups without a default leader (from db) so if the default is removed we need to dismiss the group
+        // dismiss the group if their is a temporary leader
         if (_leader)
         {
             _leader = nullptr;
             resetMemberMotion = true;
         }
     }
+    // Default leader should always take leadership when alive
     else if (defaultLeader->IsAlive())
     {
-        // If the default leader is alive and the _leader is null or temporary, we take leadership
+        // take leadership if not already the leader
         if (_leader != defaultLeader)
         {
-            // remove any waypoint path data from temporary leader (followers cannot have their own waypointPath)
-            if (_leader)
+            // If a temporary leader exists AND has a waypoint path
+            if (_leader && _leader->GetWaypointPath())
             {
+                // continue the previous leaders path
+                defaultLeader->UpdateCurrentWaypointInfo(_leader->GetCurrentWaypointInfo().first, _leader->GetCurrentWaypointInfo().second);
+                defaultLeader->GetMotionMaster()->MovePath(_leader->GetWaypointPath(), true, _leader->GetCurrentWaypointInfo().first);
+                // also reset the temporary leader path
                 _leader->LoadPath(0);
                 _leader->UpdateCurrentWaypointInfo(0, 0);
             }
-
-            // set the defaultLeader as the leader
-            _leader = defaultLeader;
-            resetMemberMotion = true;
-
-            _leader->GetMotionMaster()->Initialize();
-        }
-    }
-    else if (!_leader || !_leader->IsAlive())
-    {
-        // Only take temporary leadership if there is no leader or the leader is not alive
-        if (firstAliveMember)
-        {
-            _leader = firstAliveMember;
-            resetMemberMotion = true;
-
-            // If the default leader is a waypoint movement creature we need to copy the path and waypoint info
-            if (defaultLeader->GetWaypointPath())
-            {
-                _leader->LoadPath(defaultLeader->GetWaypointPath());
-                _leader->UpdateCurrentWaypointInfo(defaultLeader->GetCurrentWaypointInfo().first, defaultLeader->GetCurrentWaypointInfo().second);
-                _leader->GetMotionMaster()->MovePath(_leader->GetWaypointPath(), true, _leader->GetCurrentWaypointInfo().first);
-            }
+            // else simply initialize the new leaders motion
             else
             {
-                _leader->GetMotionMaster()->Initialize();
+                defaultLeader->GetMotionMaster()->Initialize();
             }
+
+            _leader = defaultLeader;
+            resetMemberMotion = true;
         }
-        // If the current leader died and no other member is alive, 'dismiss' the group (clear var and reset motion)
+    }
+    // Else if no temporary leader exists or the temporary leader is newly dead
+    else if (!_leader || !_leader->IsAlive())
+    {
+        // set first alive member as leader
+        if (firstAliveMember)
+        {
+            // If the default leader has a waypoint path we need to copy the path and waypoint info
+            if (defaultLeader->GetWaypointPath())
+            {
+                firstAliveMember->LoadPath(defaultLeader->GetWaypointPath());
+                firstAliveMember->UpdateCurrentWaypointInfo(defaultLeader->GetCurrentWaypointInfo().first, defaultLeader->GetCurrentWaypointInfo().second);
+                firstAliveMember->GetMotionMaster()->MovePath(firstAliveMember->GetWaypointPath(), true, firstAliveMember->GetCurrentWaypointInfo().first);
+            }
+            // else simply initialize the new leaders motion
+            else
+            {
+                firstAliveMember->GetMotionMaster()->Initialize();
+            }
+
+            _leader = firstAliveMember;
+            resetMemberMotion = true;
+        }
+        // we have noone left to take leader but we still consider formation as reset
         else if (_leader)
         {
             _leader = nullptr;
@@ -321,10 +331,10 @@ bool CreatureGroup::FormationReset()
         }
     }
 
-    // We now consider the group formed if their is a leader (default or temporary)
+    // We now consider the group as formed if there is a leader (default or temporary)
     _formed = _leader != nullptr;
 
-    // Reset all other members when the formation is adjusted, this will get overridden when Leader signals to members
+    // Reset all other members motion when the formation is adjusted, this will get overridden when Leader signals to members
     if (resetMemberMotion)
     {
         for (auto const& pair : _members)
@@ -334,7 +344,7 @@ bool CreatureGroup::FormationReset()
         }
     }
 
-    // Return whether we adjusted the formation so that we know to not override any motion afterwards
+    // Return whether we adjusted the formation so that we know to not override motion set in this method
     return resetMemberMotion;
 }
 
