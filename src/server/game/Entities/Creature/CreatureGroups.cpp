@@ -211,7 +211,6 @@ void CreatureGroup::RemoveMember(Creature* member)
     _members.erase(member);
     member->SetFormation(nullptr);
 
-    // If member is the default leader or current leader ResetFormation
     if (member->GetSpawnId() == _leaderSpawnId || member == _leader)
         FormationReset();
 }
