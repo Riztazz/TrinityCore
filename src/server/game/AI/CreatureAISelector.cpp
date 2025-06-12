@@ -107,7 +107,7 @@ namespace FactorySelector
                 type = creature->GetDefaultMovementType();
 
         if (Creature* creature = unit->ToCreature())
-            if (creature->GetSpawnId() == 43580 || creature->GetSpawnId() == 43581)
+            if (creature->GetSpawnId() == 43580 || creature->GetSpawnId() == 43581 || creature->GetSpawnId() == 38049)
                 TC_LOG_DEBUG("random", "FactorySelector::SelectMovementGenerator: {}", creature->GetSpawnId());
         MovementGeneratorCreator const* mv_factory = sMovementGeneratorRegistry->GetRegistryItem(type);
         return ASSERT_NOTNULL(mv_factory)->Create(unit);

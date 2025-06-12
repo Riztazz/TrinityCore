@@ -115,7 +115,7 @@ void MotionMaster::Initialize()
 void MotionMaster::InitializeDefault()
 {
     if (Creature* creature = _owner->ToCreature())
-        if (creature->GetSpawnId() == 43580 || creature->GetSpawnId() == 43581)
+        if (creature->GetSpawnId() == 43580 || creature->GetSpawnId() == 43581 || creature->GetSpawnId() == 38049)
             TC_LOG_DEBUG("random", "MotionMaster::InitializeDefault: Adding Factory Selector for {}", creature->GetSpawnId());
     Add(FactorySelector::SelectMovementGenerator(_owner), MOTION_SLOT_DEFAULT);
 }
@@ -604,7 +604,7 @@ void MotionMaster::MoveRandom(float wanderDistance)
     if (_owner->GetTypeId() == TYPEID_UNIT)
     {
         if (Creature* creature = _owner->ToCreature())
-            if (creature->GetSpawnId() == 43580 || creature->GetSpawnId() == 43581)
+            if (creature->GetSpawnId() == 43580 || creature->GetSpawnId() == 43581 || creature->GetSpawnId() == 38049)
                 TC_LOG_DEBUG("random", "MotionMaster::MoveRandom: _owner: {} wanderDistance: {}", creature->GetSpawnId(), wanderDistance);
         TC_LOG_DEBUG("movement.motionmaster", "MotionMaster::MoveRandom: '{}', started random movement (spawnDist: {})", _owner->GetGUID().ToString(), wanderDistance);
         Add(new RandomMovementGenerator<Creature>(wanderDistance), MOTION_SLOT_DEFAULT);

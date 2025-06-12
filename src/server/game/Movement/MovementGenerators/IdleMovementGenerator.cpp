@@ -73,6 +73,9 @@ RotateMovementGenerator::RotateMovementGenerator(uint32 id, uint32 time, RotateD
 
 void RotateMovementGenerator::Initialize(Unit* owner)
 {
+    if (Creature* creature = owner->ToCreature())
+        if (creature->GetSpawnId() == 43580 || creature->GetSpawnId() == 43581 || creature->GetSpawnId() == 38049)
+            TC_LOG_DEBUG("random", "RotateMovementGenerator::Initialize: {}", creature->GetSpawnId());
     RemoveFlag(MOVEMENTGENERATOR_FLAG_INITIALIZATION_PENDING | MOVEMENTGENERATOR_FLAG_DEACTIVATED);
     AddFlag(MOVEMENTGENERATOR_FLAG_INITIALIZED);
 
