@@ -305,7 +305,7 @@ void MotionMaster::Update(uint32 diff)
     MovementGenerator* top = GetCurrentMovementGenerator();
     if (Creature* creature = _owner->ToCreature())
         if (creature->GetSpawnId() == 43580 || creature->GetSpawnId() == 43581 || creature->GetSpawnId() == 38049)
-            TC_LOG_DEBUG("random", "MovementMaster::Update: {} DebugInfo: {}", creature->GetSpawnId(), top->GetDebugInfo());
+            TC_LOG_DEBUG("random", "MovementMaster::Update: {} DebugInfo: {}", creature->GetSpawnId(), top->GetMovementGeneratorType());
     if (HasFlag(MOTIONMASTER_FLAG_STATIC_INITIALIZATION_PENDING) && IsStatic(top))
     {
         RemoveFlag(MOTIONMASTER_FLAG_STATIC_INITIALIZATION_PENDING);
