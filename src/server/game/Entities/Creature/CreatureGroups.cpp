@@ -292,15 +292,15 @@ bool CreatureGroup::FormationReset()
         // Only take temporary leadership if there is no leader or the leader is not alive
         if (firstAliveMember)
         {
-            TC_LOG_DEBUG("formation", "No current leader or current leader is not alive so taking temporary leadership");
+            TC_LOG_DEBUG("formation", "No current leader {} or current leader is not alive so {} taking temporary leadership", _leaderSpawnId, firstAliveMember->GetSpawnId());
             _leader = firstAliveMember;
             _leader->GetMotionMaster()->Initialize();
             resetMemberMotion = true;
-            // Copy default leaders MotionGenerator, no idea if this will work
-            TC_LOG_DEBUG("formation", "Temporary Members current movement generator type {}", _leader->GetMotionMaster()->GetCurrentMovementGenerator()->GetMovementGeneratorType());
-            TC_LOG_DEBUG("formation", "Default leader current movement generator type {}", defaultLeader->GetMotionMaster()->GetCurrentMovementGenerator()->GetMovementGeneratorType());
-            _leader->GetMotionMaster()->Add(defaultLeader->GetMotionMaster()->GetCurrentMovementGenerator());
-            TC_LOG_DEBUG("formation", "Temporary Members new movement generator type after copy {}", _leader->GetMotionMaster()->GetCurrentMovementGenerator()->GetMovementGeneratorType());
+            // Just take over the defaultLeaders movement generator, do not create a new one o re-initialize so we can pick up where the default leader left off
+            TC_LOG_DEBUG("formation", "Temporary Members current default movement generator type {}", _leader->GetMotionMaster()->GetCurrentMovementGenerator(MOTION_SLOT_DEFAULT)->GetMovementGeneratorType());
+            TC_LOG_DEBUG("formation", "Default leader current default movement generator type {}", defaultLeader->GetMotionMaster()->GetCurrentMovementGenerator(MOTION_SLOT_DEFAULT)->GetMovementGeneratorType());
+            _leader->GetMotionMaster()->Add(defaultLeader->GetMotionMaster()->GetCurrentMovementGenerator(MOTION_SLOT_DEFAULT), MOTION_SLOT_DEFAULT);
+            TC_LOG_DEBUG("formation", "Temporary Members new default movement generator type after copy {}", _leader->GetMotionMaster()->GetCurrentMovementGenerator(MOTION_SLOT_DEFAULT)->GetMovementGeneratorType());
         }
         // If the current leader died and no other member is alive, dismiss the group
         else if (_leader)
