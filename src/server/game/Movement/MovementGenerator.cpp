@@ -47,7 +47,7 @@ MovementGenerator* IdleMovementFactory::Create(Unit* /*object*/) const
 
 RandomMovementFactory::RandomMovementFactory() : MovementGeneratorCreator(RANDOM_MOTION_TYPE) { }
 
-MovementGenerator* RandomMovementFactory::Create(Unit* unit) const
+MovementGenerator* RandomMovementFactory::Create(Unit* /*object*/) const
 {
     return new RandomMovementGenerator<Creature>();
 }
