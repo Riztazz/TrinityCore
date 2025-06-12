@@ -253,7 +253,7 @@ void CreatureGroup::MemberEngagingTarget(Creature* member, Unit* target)
 }
 
 // Smartly reset the CreatureGroup
-void CreatureGroup::FormationReset()
+bool CreatureGroup::FormationReset()
 {
     TC_LOG_DEBUG("formation", "CreatureGroup::FormationReset {}", _leaderSpawnId);
     Creature* defaultLeader = nullptr;
