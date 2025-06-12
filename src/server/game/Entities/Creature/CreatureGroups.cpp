@@ -298,7 +298,7 @@ void CreatureGroup::FormationReset()
             resetMemberMotion = true;
             // Copy default leaders MotionGenerator, no idea if this will work
             _leader->GetMotionMaster()->Add(defaultLeader->GetMotionMaster()->GetCurrentMovementGenerator());
-            TC_LOG_DEBUG("formation", "First alive member current movement generator type {}", _leader->GetMotionMaster()->GetCurrentMovementGenerator()->GetMovementType());
+            TC_LOG_DEBUG("formation", "First alive member current movement generator type {}", _leader->GetMotionMaster()->GetCurrentMovementGenerator()->GetMovementGeneratorType());
         }
         // Current leader died and no other member is alive
         else if (_leader)
