@@ -999,6 +999,10 @@ void Creature::Update(uint32 diff)
 
             RegenerateAll(diff);
 
+            // If we are the default leader but not the current leader attempt to reset the formation
+            if (m_formation && !m_formation->IsLeader(this) && m_formation->GetLeaderSpawnId() == GetSpawnId())
+                m_formation->FormationReset();
+
             break;
         }
         default:
@@ -2229,7 +2233,7 @@ void Creature::setDeathState(DeathState s)
         /** @epoch-end */
 
         // We need to adjust the formation if the current leader dies
-        if (m_formation && m_formation->GetLeader() == this)
+        if (IsFormationLeader())
             m_formation->FormationReset();
 
         bool needsFalling = (IsFlying() || IsHovering()) && !IsUnderWater();
