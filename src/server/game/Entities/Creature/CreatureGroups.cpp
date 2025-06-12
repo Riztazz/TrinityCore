@@ -255,7 +255,6 @@ void CreatureGroup::MemberEngagingTarget(Creature* member, Unit* target)
 // Smartly reset the CreatureGroup
 bool CreatureGroup::FormationReset()
 {
-    TC_LOG_DEBUG("formation", "CreatureGroup::FormationReset {}", _leaderSpawnId);
     Creature* defaultLeader = nullptr;
     Creature* firstAliveMember = nullptr;
     bool resetMemberMotion = false;
@@ -267,29 +266,30 @@ bool CreatureGroup::FormationReset()
             firstAliveMember = pair.first;
     }
 
-    // If there is no default leader we dismiss the group (we have no reference to copy motion from)
     if (!defaultLeader)
     {
-        TC_LOG_DEBUG("formation", "No default leader found for group so dismissing {}", _leaderSpawnId);
-        _leader = nullptr;
-        resetMemberMotion = true;
+        // We can't handle groups without a default leader (from db) so if the default is removed we need to dismiss the group
+        if (_leader)
+        {
+            TC_LOG_DEBUG("formation", "No default leader found for group with temporary leader so dismissing {}", _leaderSpawnId);
+            _leader = nullptr;
+            resetMemberMotion = true;
+        }
     }
-    // Use default leader when alive
     else if (defaultLeader->IsAlive())
     {
-        // Take back leadership
+        // If the default leader is alive and the _leader is null or temporary, we take leadership
         if (_leader != defaultLeader)
         {
-            TC_LOG_DEBUG("formation", "Default leader {} is alive so taking back leadership", _leaderSpawnId);
+            TC_LOG_DEBUG("formation", "Default leader {} is alive so taking leadership", _leaderSpawnId);
             _leader = defaultLeader;
             _leader->GetMotionMaster()->Initialize();
             resetMemberMotion = true;
         }
     }
-    // No current leader or current leader is not alive
     else if (!_leader || !_leader->IsAlive())
     {
-        // Take temporary leadership
+        // Only take temporary leadership if there is no leader or the leader is not alive
         if (firstAliveMember)
         {
             TC_LOG_DEBUG("formation", "No current leader or current leader is not alive so taking temporary leadership");
@@ -297,12 +297,15 @@ bool CreatureGroup::FormationReset()
             _leader->GetMotionMaster()->Initialize();
             resetMemberMotion = true;
             // Copy default leaders MotionGenerator, no idea if this will work
+            TC_LOG_DEBUG("formation", "Temporary Members current movement generator type {}", _leader->GetMotionMaster()->GetCurrentMovementGenerator()->GetMovementGeneratorType());
+            TC_LOG_DEBUG("formation", "Default leader current movement generator type {}", defaultLeader->GetMotionMaster()->GetCurrentMovementGenerator()->GetMovementGeneratorType());
             _leader->GetMotionMaster()->Add(defaultLeader->GetMotionMaster()->GetCurrentMovementGenerator());
-            TC_LOG_DEBUG("formation", "First alive member current movement generator type {}", _leader->GetMotionMaster()->GetCurrentMovementGenerator()->GetMovementGeneratorType());
+            TC_LOG_DEBUG("formation", "Temporary Members new movement generator type after copy {}", _leader->GetMotionMaster()->GetCurrentMovementGenerator()->GetMovementGeneratorType());
         }
-        // Current leader died and no other member is alive
+        // If the current leader died and no other member is alive, dismiss the group
         else if (_leader)
         {
+            TC_LOG_DEBUG("formation", "Current leader died and no other member is alive so dismissing group {}", _leaderSpawnId);
             _leader = nullptr;
             resetMemberMotion = true;
         }
@@ -312,7 +315,6 @@ bool CreatureGroup::FormationReset()
 
     if (resetMemberMotion)
     {
-        TC_LOG_DEBUG("formation", "Resetting member motion for group {}", _leaderSpawnId);
         for (auto const& pair : _members)
         {
             if (pair.first != _leader)
