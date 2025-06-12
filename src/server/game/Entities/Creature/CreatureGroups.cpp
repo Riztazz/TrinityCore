@@ -281,10 +281,13 @@ bool CreatureGroup::FormationReset()
         // If the default leader is alive and the _leader is null or temporary, we take leadership
         if (_leader != defaultLeader)
         {
+            // followers should not have a path set 
+            _leader->LoadPath(0);
+
             TC_LOG_DEBUG("formation", "Default leader {} is alive so taking leadership", _leaderSpawnId);
             _leader = defaultLeader;
-            _leader->GetMotionMaster()->Initialize();
             resetMemberMotion = true;
+            _leader->GetMotionMaster()->Initialize();
         }
     }
     else if (!_leader || !_leader->IsAlive())
@@ -294,13 +297,20 @@ bool CreatureGroup::FormationReset()
         {
             TC_LOG_DEBUG("formation", "No current leader {} or current leader is not alive so {} taking temporary leadership", _leaderSpawnId, firstAliveMember->GetSpawnId());
             _leader = firstAliveMember;
-            _leader->GetMotionMaster()->Initialize();
             resetMemberMotion = true;
-            // Just take over the defaultLeaders movement generator, do not create a new one o re-initialize so we can pick up where the default leader left off
-            TC_LOG_DEBUG("formation", "Temporary Members current default movement generator type {}", _leader->GetMotionMaster()->GetCurrentMovementGenerator(MOTION_SLOT_DEFAULT)->GetMovementGeneratorType());
-            TC_LOG_DEBUG("formation", "Default leader current default movement generator type {}", defaultLeader->GetMotionMaster()->GetCurrentMovementGenerator(MOTION_SLOT_DEFAULT)->GetMovementGeneratorType());
-            _leader->GetMotionMaster()->Add(defaultLeader->GetMotionMaster()->GetCurrentMovementGenerator(MOTION_SLOT_DEFAULT), MOTION_SLOT_DEFAULT);
-            TC_LOG_DEBUG("formation", "Temporary Members new default movement generator type after copy {}", _leader->GetMotionMaster()->GetCurrentMovementGenerator(MOTION_SLOT_DEFAULT)->GetMovementGeneratorType());
+
+            // If the default leader is a waypoint movement creature we need to copy the path and waypoint info
+            if (defaultLeader->GetWaypointPath())
+            {
+                _leader->LoadPath(defaultLeader->GetWaypointPath());
+                _leader->UpdateCurrentWaypointInfo(defaultLeader->GetCurrentWaypointInfo().first, defaultLeader->GetCurrentWaypointInfo().second);
+                _leader->GetMotionMaster()->MovePath(_leader->GetWaypointPath(), true);
+            }
+            else
+            {
+                _leader->GetMotionMaster()->Initialize();
+            }
+            TC_LOG_DEBUG("formation", "Temporary Members new default movement generator type after MovePath {}", _leader->GetMotionMaster()->GetCurrentMovementGenerator(MOTION_SLOT_DEFAULT)->GetMovementGeneratorType());
         }
         // If the current leader died and no other member is alive, dismiss the group
         else if (_leader)
