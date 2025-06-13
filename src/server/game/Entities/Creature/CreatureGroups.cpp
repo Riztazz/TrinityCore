@@ -275,9 +275,11 @@ bool CreatureGroup::FormationReset()
     // The CreatureGroup is not yet formed
     if (!_leader)
     {
+        TC_LOG_DEBUG("formation", "Formation {} Not Yet Formed", _leaderSpawnId);
         // Can only form a CreatureGroup initially when the defaultLeader is present and alive
         if (defaultLeader && defaultLeader->IsAlive())
         {
+            TC_LOG_DEBUG("formation", "Formation {} Default Leader Present and Alive, Setting initial leader", _leaderSpawnId);
             defaultLeader->GetMotionMaster()->Initialize();
             _leader = defaultLeader;
             resetMemberMotion = true;
@@ -286,12 +288,14 @@ bool CreatureGroup::FormationReset()
     // The defaultLeader has been removed - we always 'dismiss' groups when the defaultLeader is removed
     else if (!defaultLeader)
     {
+        TC_LOG_DEBUG("formation", "Formation {} Default Leader Removed, Dismissing Group", _leaderSpawnId);
         _leader = nullptr;
         resetMemberMotion = true;
     }
     // The leader is the defaultLeader
     else if (_leader == defaultLeader)
     {
+        TC_LOG_DEBUG("formation", "Formation {} Leader is Default Leader", _leaderSpawnId);
         // Only reset if the leader has died
         if (!_leader->IsAlive())
         {
@@ -322,19 +326,21 @@ bool CreatureGroup::FormationReset()
     // The leader is a temporary leader
     else
     {
+        TC_LOG_DEBUG("formation", "Formation {} Leader is Temporary Leader", _leaderSpawnId);
         // We sometimes reset when the leader is alive
         Creature* newLeader = nullptr;
         // The temp leader is alive
         if (_leader->IsAlive())
         {
             // Switch to defaultLeader if they are alive, but wait until within a reasonable distance if they have a waypoint path
-            TC_LOG_DEBUG("formation", "Formation Default Leader Alive and checking for leadership switch, distance to temp leader {}, temp leader follow distance {}", defaultLeader->GetDistance(_leader), _members[_leader]->FollowDist);
+            TC_LOG_DEBUG("formation", "Formation {} Default Leader Alive {} and checking for leadership switch, distance to temp leader {}, temp leader follow distance {}", _leaderSpawnId, defaultLeader->IsAlive(), defaultLeader->GetDistance(_leader), _members[_leader]->FollowDist);
             if (defaultLeader->IsAlive() && (!defaultLeader->GetWaypointPath() || defaultLeader->GetDistance(_leader) < _members[_leader]->FollowDist + 3.0f))
                 newLeader = defaultLeader;
         }
         // The temp leader is dead so switch to the next leader by priority
         else
         {
+            TC_LOG_DEBUG("formation", "Formation {} Temp Leader is Dead", _leaderSpawnId);
             if (defaultLeader->IsAlive())
                 newLeader = defaultLeader;
             else
