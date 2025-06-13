@@ -275,11 +275,9 @@ bool CreatureGroup::FormationReset()
     // The CreatureGroup is not yet formed
     if (!_leader)
     {
-        TC_LOG_DEBUG("formation", "Formation {} Not Yet Formed", _leaderSpawnId);
         // Can only form a CreatureGroup initially when the defaultLeader is present and alive
         if (defaultLeader && defaultLeader->IsAlive())
         {
-            TC_LOG_DEBUG("formation", "Formation {} Default Leader Present and Alive, Setting initial leader", _leaderSpawnId);
             defaultLeader->GetMotionMaster()->Initialize();
             _leader = defaultLeader;
             resetMemberMotion = true;
@@ -288,7 +286,6 @@ bool CreatureGroup::FormationReset()
     // The leader is the defaultLeader
     else if (defaultLeader && _leader == defaultLeader)
     {
-        TC_LOG_DEBUG("formation", "Formation {} Leader is Default Leader", _leaderSpawnId);
         // Only reset if the leader has died
         if (!_leader->IsAlive())
         {
@@ -298,7 +295,6 @@ bool CreatureGroup::FormationReset()
                 // If the defaultLeader has a waypoint path we need to copy the path and waypoint info to the new leader
                 if (defaultLeader->GetWaypointPath())
                 {
-                    TC_LOG_DEBUG("formation", "Formation {} Default Leader Has Died, Switching to the First Alive Member {}", _leader->GetSpawnId(), firstAliveMember->GetSpawnId());
                     firstAliveMember->LoadPath(defaultLeader->GetWaypointPath());
                     firstAliveMember->UpdateCurrentWaypointInfo(defaultLeader->GetCurrentWaypointInfo().first, defaultLeader->GetCurrentWaypointInfo().second);
                     firstAliveMember->GetMotionMaster()->MovePath(firstAliveMember->GetWaypointPath(), true, firstAliveMember->GetCurrentWaypointInfo().first);
@@ -319,22 +315,18 @@ bool CreatureGroup::FormationReset()
     // The leader is a temporary leader
     else
     {
-        TC_LOG_DEBUG("formation", "Formation {} Leader is Temporary Leader", _leaderSpawnId);
         // We sometimes reset when the leader is alive
         Creature* newLeader = nullptr;
         // The temp leader is alive
         if (_leader->IsAlive())
         {
-            if (defaultLeader)
-                TC_LOG_DEBUG("formation", "Formation {} Default Leader Alive {} and checking for leadership switch, distance to temp leader {}, temp leader follow distance {}", _leaderSpawnId, defaultLeader->IsAlive(), defaultLeader->GetDistance(_leader), _members[_leader]->FollowDist);
             // Switch to defaultLeader if they are alive, but wait until within a reasonable distance if they have a waypoint path
-            if (defaultLeader && defaultLeader->IsAlive() && (!defaultLeader->GetWaypointPath() || defaultLeader->GetDistance(_leader) < _members[_leader]->FollowDist + 3.0f))
+            if (defaultLeader && defaultLeader->IsAlive() && (!defaultLeader->GetWaypointPath() || defaultLeader->GetDistance(_leader) < _members[_leader]->FollowDist + 1.0f))
                 newLeader = defaultLeader;
         }
         // The temp leader is dead so switch to the next leader by priority
         else
         {
-            TC_LOG_DEBUG("formation", "Formation {} Temp Leader is Dead", _leaderSpawnId);
             if (defaultLeader && defaultLeader->IsAlive())
                 newLeader = defaultLeader;
             else
@@ -347,7 +339,6 @@ bool CreatureGroup::FormationReset()
             // If the leader has a waypoint path we need to copy the path and waypoint info to the new leader
             if (_leader->GetWaypointPath())
             {
-                TC_LOG_DEBUG("formation", "Formation {} Temporary Leader Has Died, Switching to the New Leader {}", _leader->GetSpawnId(), newLeader->GetSpawnId());
                 newLeader->UpdateCurrentWaypointInfo(_leader->GetCurrentWaypointInfo().first, _leader->GetCurrentWaypointInfo().second);
                 newLeader->GetMotionMaster()->MovePath(_leader->GetWaypointPath(), true, _leader->GetCurrentWaypointInfo().first);
                 _leader->LoadPath(0);
