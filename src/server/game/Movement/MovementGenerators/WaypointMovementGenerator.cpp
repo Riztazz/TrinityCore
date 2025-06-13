@@ -401,6 +401,7 @@ void WaypointMovementGenerator<Creature>::StartMove(Creature* owner, bool relaun
         init.MoveTo(owner->movespline->FinalDestination(), PositionToVector3({ x, y, z }));
         if (!init.Path().empty())
             init.Path().insert(init.Path().begin(), PositionToVector3(owner->GetPosition()));
+        init.SetSmooth();
     }
     else
     {
