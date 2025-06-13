@@ -211,7 +211,14 @@ void CreatureGroup::RemoveMember(Creature* member)
     _members.erase(member);
     member->SetFormation(nullptr);
 
-    if (member->GetSpawnId() == _leaderSpawnId || member == _leader)
+    // If we remove the leader we need to reset the formation
+    if (member == _leader)
+    {
+        _leader = nullptr;
+        FormationReset();
+    }
+    // In the rare cases where we remove the default leader while we have a temp leader, we also need to reset the formation
+    else if (member->GetSpawnId() == _leaderSpawnId)
         FormationReset();
 }
 
@@ -264,80 +271,98 @@ bool CreatureGroup::FormationReset()
         else if (!firstAliveMember && pair.first->IsAlive())
             firstAliveMember = pair.first;
     }
-
-    // We can't handle groups without a default leader (from db)
-    if (!defaultLeader)
+    
+    // The CreatureGroup is not yet formed
+    if (!_leader)
     {
-        // dismiss the group if their is a temporary leader
-        if (_leader)
+        // Can only form a CreatureGroup initially when the defaultLeader is present and alive
+        if (defaultLeader && defaultLeader->IsAlive())
         {
-            _leader = nullptr;
+            defaultLeader->GetMotionMaster()->Initialize();
+            _leader = defaultLeader;
             resetMemberMotion = true;
         }
     }
-    else if (defaultLeader->IsAlive())
+    // The defaultLeader has been removed - we always 'dismiss' groups when the defaultLeader is removed
+    else if (!defaultLeader)
     {
-        // initial group formation we just need to set the leader, use default motion initialization for all other members
-        if (!_leader || _leader == defaultLeader)
+        _leader = nullptr;
+        resetMemberMotion = true;
+    }
+    // The leader is the defaultLeader
+    else if (_leader == defaultLeader)
+    {
+        // Only reset if the leader has died
+        if (!_leader->IsAlive())
         {
-            TC_LOG_DEBUG("formation", "Default Leader take initial leadership");
-            _leader = defaultLeader;
-        }
-        else
-        {
-            TC_LOG_DEBUG("formation", "Temp Leader Alive {} Default Leader Distance to Temp Leader {} Temp Leader FollowDist {}", _leader->IsAlive(), defaultLeader->GetDistance(_leader), _members[_leader]->FollowDist);
-            // switch leaders if temp leader is dead, or not a waypoint moveer, or if default leader is close enough to take leadership
-            if (!_leader->IsAlive() || !_leader->GetWaypointPath() ||defaultLeader->GetDistance(_leader) < _members[_leader]->FollowDist + 3.0f)
+            // Attempt to find a new leader
+            if (firstAliveMember)
             {
-                TC_LOG_DEBUG("formation", "Default Leader take leadership from temp leader");
-                // If a temporary leader exists AND has a waypoint path
-                if (_leader->GetWaypointPath())
+                // If the defaultLeader has a waypoint path we need to copy the path and waypoint info to the new leader
+                if (defaultLeader->GetWaypointPath())
                 {
-                    // continue the previous leaders path
-                    defaultLeader->UpdateCurrentWaypointInfo(_leader->GetCurrentWaypointInfo().first, _leader->GetCurrentWaypointInfo().second);
-                    defaultLeader->GetMotionMaster()->MovePath(_leader->GetWaypointPath(), true, _leader->GetCurrentWaypointInfo().first);
-                    // also reset the temporary leader path
-                    _leader->LoadPath(0);
-                    _leader->UpdateCurrentWaypointInfo(0, 0);
+                    TC_LOG_DEBUG("formation", "Formation {} Default Leader Has Died, Switching to the First Alive Member {}", _leader->GetSpawnId(), firstAliveMember->GetSpawnId());
+                    firstAliveMember->LoadPath(defaultLeader->GetWaypointPath());
+                    firstAliveMember->UpdateCurrentWaypointInfo(defaultLeader->GetCurrentWaypointInfo().first, defaultLeader->GetCurrentWaypointInfo().second);
+                    firstAliveMember->GetMotionMaster()->MovePath(firstAliveMember->GetWaypointPath(), true, firstAliveMember->GetCurrentWaypointInfo().first);
                 }
-                // else simply initialize the new leaders motion
                 else
-                {
-                    defaultLeader->GetMotionMaster()->Initialize();
-                }
+                    firstAliveMember->GetMotionMaster()->Initialize();
 
-                _leader = defaultLeader;
+                _leader = firstAliveMember;
+                resetMemberMotion = true;
+            }
+            else
+            {
+                _leader = nullptr;
                 resetMemberMotion = true;
             }
         }
     }
-    // Else if no temporary leader exists or the temporary leader is newly dead
-    else if (!_leader || !_leader->IsAlive())
+    // The leader is a temporary leader
+    else
     {
-        // set first alive member as leader
-        if (firstAliveMember)
+        // We sometimes reset when the leader is alive
+        Creature* newLeader = nullptr;
+        // The temp leader is alive
+        if (_leader->IsAlive())
         {
-            // If the default leader has a waypoint path we need to copy the path and waypoint info
-            if (defaultLeader->GetWaypointPath())
-            {
-                firstAliveMember->LoadPath(defaultLeader->GetWaypointPath());
-                firstAliveMember->UpdateCurrentWaypointInfo(defaultLeader->GetCurrentWaypointInfo().first, defaultLeader->GetCurrentWaypointInfo().second);
-                firstAliveMember->GetMotionMaster()->MovePath(firstAliveMember->GetWaypointPath(), true, firstAliveMember->GetCurrentWaypointInfo().first);
-            }
-            // else simply initialize the new leaders motion
+            // Switch to defaultLeader if they are alive, but wait until within a reasonable distance if they have a waypoint path
+            TC_LOG_DEBUG("formation", "Formation Default Leader Alive and checking for leadership switch, distance to temp leader {}, temp leader follow distance {}", defaultLeader->GetDistance(_leader), _members[_leader]->FollowDist);
+            if (defaultLeader->IsAlive() && (!defaultLeader->GetWaypointPath() || defaultLeader->GetDistance(_leader) < _members[_leader]->FollowDist + 3.0f))
+                newLeader = defaultLeader;
+        }
+        // The temp leader is dead so switch to the next leader by priority
+        else
+        {
+            if (defaultLeader->IsAlive())
+                newLeader = defaultLeader;
             else
-            {
-                firstAliveMember->GetMotionMaster()->Initialize();
-            }
+                newLeader = firstAliveMember;
+        }
 
-            _leader = firstAliveMember;
+        // If there is a a new leader
+        if (newLeader)
+        {
+            // If the leader has a waypoint path we need to copy the path and waypoint info to the new leader
+            if (_leader->GetWaypointPath())
+            {
+                TC_LOG_DEBUG("formation", "Formation {} Temporary Leader Has Died, Switching to the New Leader {}", _leader->GetSpawnId(), newLeader->GetSpawnId());
+                newLeader->UpdateCurrentWaypointInfo(_leader->GetCurrentWaypointInfo().first, _leader->GetCurrentWaypointInfo().second);
+                newLeader->GetMotionMaster()->MovePath(_leader->GetWaypointPath(), true, _leader->GetCurrentWaypointInfo().first);
+                _leader->LoadPath(0);
+                _leader->UpdateCurrentWaypointInfo(0, 0);
+            }
+            else
+                newLeader->GetMotionMaster()->Initialize();
+
+            _leader = newLeader;
             resetMemberMotion = true;
         }
-        // we have noone left to take leader but we still consider formation as reset
-        else if (_leader)
+        else if (!_leader->IsAlive())
         {
             _leader = nullptr;
-            resetMemberMotion = true;
+            resetMemberMotion = true; // technically there are no members left, but for consistency we want to return true
         }
     }
 
@@ -356,16 +381,6 @@ bool CreatureGroup::FormationReset()
 
     // Return whether we adjusted the formation so that we know to not override motion set in this method
     return resetMemberMotion;
-}
-
-bool CreatureGroup::ShouldTakeLeadership(Creature* defaultLeader, Creature* temporaryLeader)
-{
-    if (!defaultLeader || !defaultLeader->IsAlive())
-        return false;
-    if (!temporaryLeader || !temporaryLeader->IsAlive())
-        return true;
-
-    
 }
 
 void CreatureGroup::LeaderStartedMoving()
