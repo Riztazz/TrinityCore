@@ -56,6 +56,7 @@ class WaypointMovementGenerator<Creature> : public MovementGeneratorMedium<Creat
         void MovementInform(Creature*);
         void OnArrived(Creature*);
         void StartMove(Creature*, bool relaunch = false);
+        bool HasNextNode();
         bool ComputeNextNode();
         bool UpdateTimer(uint32 diff)
         {
@@ -72,6 +73,7 @@ class WaypointMovementGenerator<Creature> : public MovementGeneratorMedium<Creat
         uint32 _pathId;
         bool _repeating;
         bool _loadedFromDB;
+        uint32 _smoothSplineId;
 };
 
 #endif
