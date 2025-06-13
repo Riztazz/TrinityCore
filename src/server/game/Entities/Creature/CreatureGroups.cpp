@@ -203,7 +203,6 @@ void CreatureGroup::AddMember(Creature* member)
     FormationInfo* formationInfo = ASSERT_NOTNULL(sFormationMgr->GetFormationInfo(member->GetSpawnId()));
     _members.emplace(member, formationInfo);
     member->SetFormation(this);
-    // we wait until Motion_Initialize to call FormationReset
 }
 
 void CreatureGroup::RemoveMember(Creature* member)
@@ -217,9 +216,6 @@ void CreatureGroup::RemoveMember(Creature* member)
         _leader = nullptr;
         FormationReset();
     }
-    // In the rare cases where we remove the default leader while we have a temp leader, we also need to reset the formation
-    else if (member->GetSpawnId() == _leaderSpawnId)
-        FormationReset();
 }
 
 void CreatureGroup::MemberEngagingTarget(Creature* member, Unit* target)

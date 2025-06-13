@@ -1182,8 +1182,8 @@ bool Creature::AIM_Initialize(CreatureAI* ai)
 
 void Creature::Motion_Initialize()
 {
-    // This is called from AddToWorld as well as Respawn, if any group member respawns we potentially need to adjust the formation
-    if (m_formation)
+    // If you are the default leader of a formation allow the FormationGroup FormationReset to initialize the motion
+    if (m_formation && m_formation->GetLeaderSpawnId() == GetSpawnId())
         if (m_formation->FormationReset())
             return; // If the formation reset was successful the motion is already set correctly, do not initialize and reset it.
 
