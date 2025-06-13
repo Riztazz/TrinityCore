@@ -405,7 +405,7 @@ void WaypointMovementGenerator<Creature>::StartMove(Creature* owner, bool relaun
     else
     {
         if (owner->GetSpawnId() == 81531)
-            TC_LOG_DEBUG("smooth", "START MOVE CALLED USE REGULAR MOVETO");
+            TC_LOG_DEBUG("smooth", "START MOVE CALLED USE REGULAR MOVETO finalized {} spline id {} smooth spline id {}", owner->movespline->Finalized(), owner->movespline->GetId(), _smoothSplineId);
         init.MoveTo(x, y, z);
     }
         
