@@ -34,8 +34,8 @@ template<>
 class WaypointMovementGenerator<Creature> : public MovementGeneratorMedium<Creature, WaypointMovementGenerator<Creature>>, public PathMovementBase<Creature, WaypointPath const*>
 {
     public:
-        explicit WaypointMovementGenerator(uint32 pathId = 0, bool repeating = true, uint32 startWaypointId = 0);
-        explicit WaypointMovementGenerator(WaypointPath& path, bool repeating = true, uint32 startWaypointId = 0);
+        explicit WaypointMovementGenerator(uint32 pathId = 0, bool repeating = true);
+        explicit WaypointMovementGenerator(WaypointPath& path, bool repeating = true);
         ~WaypointMovementGenerator() { _path = nullptr; }
 
         MovementGeneratorType GetMovementGeneratorType() const override;
@@ -68,22 +68,10 @@ class WaypointMovementGenerator<Creature> : public MovementGeneratorMedium<Creat
             }
             return false;
         }
-        void SetWaypoint(uint32 waypointId)
-        {
-            for (uint32 i = 0; i < _path->nodes.size(); ++i)
-            {
-                if (_path->nodes[i].id == waypointId)
-                {
-                    _currentNode = i;
-                    return;
-                }
-            }
-        }
 
         TimeTracker _nextMoveTime;
         uint32 _pathId;
         bool _repeating;
-        uint32 _startWaypointId;
         bool _loadedFromDB;
 };
 

@@ -32,7 +32,7 @@
 #include "TSCreature.h"
 // @tswow-end
 
-WaypointMovementGenerator<Creature>::WaypointMovementGenerator(uint32 pathId, bool repeating, uint32 startWaypointId) : _nextMoveTime(0), _pathId(pathId), _repeating(repeating), _startWaypointId(startWaypointId), _loadedFromDB(true)
+WaypointMovementGenerator<Creature>::WaypointMovementGenerator(uint32 pathId, bool repeating) : _nextMoveTime(0), _pathId(pathId), _repeating(repeating), _loadedFromDB(true)
 {
     Mode = MOTION_MODE_DEFAULT;
     Priority = MOTION_PRIORITY_NORMAL;
@@ -40,7 +40,7 @@ WaypointMovementGenerator<Creature>::WaypointMovementGenerator(uint32 pathId, bo
     BaseUnitState = UNIT_STATE_ROAMING;
 }
 
-WaypointMovementGenerator<Creature>::WaypointMovementGenerator(WaypointPath& path, bool repeating, uint32 startWaypointId) : _nextMoveTime(0), _pathId(0), _repeating(repeating), _startWaypointId(startWaypointId), _loadedFromDB(false)
+WaypointMovementGenerator<Creature>::WaypointMovementGenerator(WaypointPath& path, bool repeating) : _nextMoveTime(0), _pathId(0), _repeating(repeating), _loadedFromDB(false)
 {
     _path = &path;
 
@@ -123,8 +123,19 @@ void WaypointMovementGenerator<Creature>::DoInitialize(Creature* owner)
 
     _nextMoveTime.Reset(1000);
 
-    if (_startWaypointId > 0)
-        SetWaypoint(_startWaypointId);
+    uint32 waypointId = owner->GetCurrentWaypointInfo().first;
+    // TODO determine if waypointIds are just indexes
+    if (waypointId > 0)
+    {
+        for (uint32 i = 0; i < _path->nodes.size(); ++i)
+        {
+            if (_path->nodes[i].id == waypointId)
+            {
+                _currentNode = i;
+                return;
+            }
+        }
+    }
 }
 
 void WaypointMovementGenerator<Creature>::DoReset(Creature* owner)

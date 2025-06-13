@@ -297,7 +297,7 @@ bool CreatureGroup::FormationReset()
                 {
                     firstAliveMember->LoadPath(defaultLeader->GetWaypointPath());
                     firstAliveMember->UpdateCurrentWaypointInfo(defaultLeader->GetCurrentWaypointInfo().first, defaultLeader->GetCurrentWaypointInfo().second);
-                    firstAliveMember->GetMotionMaster()->MovePath(firstAliveMember->GetWaypointPath(), true, firstAliveMember->GetCurrentWaypointInfo().first);
+                    firstAliveMember->GetMotionMaster()->MovePath(firstAliveMember->GetWaypointPath(), true);
                 }
                 else
                     firstAliveMember->GetMotionMaster()->Initialize();
@@ -340,7 +340,7 @@ bool CreatureGroup::FormationReset()
             if (_leader->GetWaypointPath())
             {
                 newLeader->UpdateCurrentWaypointInfo(_leader->GetCurrentWaypointInfo().first, _leader->GetCurrentWaypointInfo().second);
-                newLeader->GetMotionMaster()->MovePath(_leader->GetWaypointPath(), true, _leader->GetCurrentWaypointInfo().first);
+                newLeader->GetMotionMaster()->MovePath(_leader->GetWaypointPath(), true);
                 _leader->LoadPath(0);
                 _leader->UpdateCurrentWaypointInfo(0, 0);
             }
