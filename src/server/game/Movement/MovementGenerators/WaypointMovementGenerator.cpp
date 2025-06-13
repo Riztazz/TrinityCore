@@ -398,9 +398,10 @@ void WaypointMovementGenerator<Creature>::StartMove(Creature* owner, bool relaun
         if (owner->GetSpawnId() == 81531)
             TC_LOG_DEBUG("smooth", "START MOVE CALLED WHEN STILL MOVING ON SMOOTH SPLINE spline id {} player position {},{},{} final position {},{},{} new spline position {},{},{}", owner->movespline->GetId(), owner->GetPositionX(), owner->GetPositionY(), owner->GetPositionZ(), owner->movespline->FinalDestination().x, owner->movespline->FinalDestination().y, owner->movespline->FinalDestination().z, x, y, z);
         // Use the previous final destination as starting point for the next path
-        init.MoveTo(owner->movespline->FinalDestination(), PositionToVector3({ x, y, z }));
-        if (!init.Path().empty())
-            init.Path().insert(init.Path().begin(), PositionToVector3(owner->GetPosition()));
+        //init.MoveTo(owner->movespline->FinalDestination(), PositionToVector3({ x, y, z }));
+        //if (!init.Path().empty())
+        //    init.Path().insert(init.Path().begin(), PositionToVector3(owner->GetPosition()));
+        init.MoveTo(PositionToVector3(owner->GetPosition()), PositionToVector3({ x, y, z }));
         init.SetSmooth();
     }
     else
