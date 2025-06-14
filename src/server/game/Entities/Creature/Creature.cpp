@@ -1840,21 +1840,10 @@ bool Creature::LoadFromDB(ObjectGuid::LowType spawnId, Map* map, bool addToMap, 
 
     // Change our spawn/home position to the leader's position if we are in a formation
     Position spawnPoint = data->spawnPoint;
-    TC_LOG_DEBUG("formations", "A");
-    if (FormationInfo const* formationInfo = sFormationMgr->GetFormationInfo(spawnId))
-    {
-        TC_LOG_DEBUG("formations", "B");
-        if (CreatureGroup* formation = sFormationMgr->GetCreatureGroup(formationInfo->LeaderSpawnId, map))
-        {
-            TC_LOG_DEBUG("formations", "C");
-            if (Creature* leader = formation->GetLeader())
-            {
-                TC_LOG_DEBUG("formations", "D");
-                spawnPoint = leader->GetPosition();
-                TC_LOG_DEBUG("formations", "E");
-            }
-        }
-    }
+    // if (FormationInfo const* formationInfo = sFormationMgr->GetFormationInfo(spawnId))
+    //     if (CreatureGroup* formation = sFormationMgr->GetCreatureGroup(formationInfo->LeaderSpawnId, map))
+    //         if (Creature* leader = formation->GetLeader())
+    //             spawnPoint = leader->GetPosition();
 
     if (!Create(map->GenerateLowGuid<HighGuid::Unit>(), map, data->phaseMask, data->id, spawnPoint, data, 0U , !m_respawnCompatibilityMode))
         return false;
