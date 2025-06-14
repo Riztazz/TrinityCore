@@ -77,6 +77,7 @@ class TC_GAME_API CreatureGroup
         ObjectGuid::LowType _leaderSpawnId;
         uint32 _leaderPathId;
         bool _engaging;
+        bool _disengaging;
 
     public:
         typedef std::unordered_map<Creature*, FormationInfo*> FormationMap;
@@ -100,6 +101,7 @@ class TC_GAME_API CreatureGroup
 
         void LeaderStartedMoving();
         void MemberEngagingTarget(Creature* member, Unit* target);
+        void MemberDisengagingTarget(Creature* member, Unit* target);
         bool CanLeaderStartMoving() const;
 };
 

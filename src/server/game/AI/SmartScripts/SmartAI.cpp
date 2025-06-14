@@ -539,20 +539,6 @@ void SmartAI::JustReachedHome()
 {
     GetScript()->OnReset();
     GetScript()->ProcessEventsFor(SMART_EVENT_REACHED_HOME);
-
-    CreatureGroup* formation = me->GetFormation();
-    if (!formation || formation->GetLeader() == me || !formation->IsFormed())
-    {
-        if (me->GetMotionMaster()->GetCurrentMovementGeneratorType(MOTION_SLOT_DEFAULT) != WAYPOINT_MOTION_TYPE)
-        {
-            if (me->GetWaypointPath())
-                me->GetMotionMaster()->MovePath(me->GetWaypointPath(), true);
-        }
-
-        me->ResumeMovement();
-    }
-    else if (formation->IsFormed())
-        me->GetMotionMaster()->MoveIdle(); // wait the order of leader
 }
 
 void SmartAI::JustEngagedWith(Unit* enemy)

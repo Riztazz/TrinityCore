@@ -3644,6 +3644,7 @@ void Creature::AtEngage(Unit* target)
     // @tswow-begin custom boss check
     sTSBossAI->OnJustEngage(this,target);
     // @tswow-end
+
     if (CreatureGroup* formation = GetFormation())
         formation->MemberEngagingTarget(this, target);
 }
@@ -3662,6 +3663,9 @@ void Creature::AtDisengage()
         UpdateSpeed(MOVE_SWIM);
         UpdateSpeed(MOVE_FLIGHT);
     }
+
+    if (CreatureGroup* formation = GetFormation())
+        formation->MemberDisengagingTarget(this);
 }
 
 bool Creature::IsEscorted() const

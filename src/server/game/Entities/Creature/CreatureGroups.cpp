@@ -24,6 +24,7 @@
 #include "MotionMaster.h"
 #include "MovementGenerator.h"
 #include "ObjectMgr.h"
+#include <winscard.h>
 
 #define MAX_DESYNC 5.0f
 
@@ -196,7 +197,7 @@ void FormationMgr::AddFormationMember(ObjectGuid::LowType spawnId, float followA
     _creatureGroupMap.emplace(spawnId, std::move(member));
 }
 
-CreatureGroup::CreatureGroup(ObjectGuid::LowType leaderSpawnId) : _leader(nullptr), _members(), _leaderSpawnId(leaderSpawnId), _engaging(false)
+CreatureGroup::CreatureGroup(ObjectGuid::LowType leaderSpawnId) : _leader(nullptr), _members(), _leaderSpawnId(leaderSpawnId), _engaging(false), _disengaging(false)
 {
 }
 
@@ -229,14 +230,18 @@ void CreatureGroup::AddMember(Creature* member)
     if (_leaderPathId)
     {
         member->UpdateCurrentWaypointInfo(_leader->GetCurrentWaypointInfo().first, _leader->GetCurrentWaypointInfo().second);
+        // order might matter here, reset old leaders motion before moving new leader
+        _leader->GetMotionMaster()->Initialize();
         member->GetMotionMaster()->MovePath(_leaderPathId, true);
     }
-    
-    // reset old leaders motion
-    _leader->GetMotionMaster()->Initialize();
+    else
+        _leader->GetMotionMaster()->Initialize();
 
     // set new leader
     _leader = member;
+
+    if (_leaderSpawnId == 15145)
+        TC_LOG_DEBUG("formations", "CreatureGroup::AddMember {} Set default leader as leader {}", _leaderSpawnId, _leader->GetSpawnId());
 }
 
 void CreatureGroup::RemoveMember(Creature* member)
@@ -268,6 +273,9 @@ void CreatureGroup::RemoveMember(Creature* member)
 
     // set new leader
     _leader = newLeader;
+
+    if (_leaderSpawnId == 15145)
+        TC_LOG_DEBUG("formations", "CreatureGroup::RemoveMember {} Set new leader {}", _leaderSpawnId, _leader->GetSpawnId());
 }
 
 void CreatureGroup::MemberEngagingTarget(Creature* member, Unit* target)
@@ -279,6 +287,9 @@ void CreatureGroup::MemberEngagingTarget(Creature* member, Unit* target)
     uint8 groupAI = ASSERT_NOTNULL(sFormationMgr->GetFormationInfo(member->GetSpawnId()))->GroupAI;
     if (!groupAI)
         return;
+
+    if (_leaderSpawnId == 15145)
+        TC_LOG_DEBUG("formations", "CreatureGroup::MemberEngagingTarget {} Member Engaging Target", _leaderSpawnId);
 
     if (member == _leader)
     {
@@ -306,11 +317,61 @@ void CreatureGroup::MemberEngagingTarget(Creature* member, Unit* target)
     _engaging = false;
 }
 
+void CreatureGroup::MemberDisengagingTarget(Creature* member, Unit* target)
+{
+    // used to prevent recursive calls
+    if (_disengaging)
+        return;
+
+    uint8 groupAI = ASSERT_NOTNULL(sFormationMgr->GetFormationInfo(member->GetSpawnId()))->GroupAI;
+    if (!groupAI)
+        return;
+
+    // we only disengage other members if current member is evading 
+    if (!member->IsInEvadeMode())
+        return;
+
+    if (_leaderSpawnId == 15145)
+        TC_LOG_DEBUG("formations", "CreatureGroup::MemberDisengageTarget {} Member is evading", _leaderSpawnId);
+
+    if (member == _leader)
+    {
+        if (!(groupAI & FLAG_MEMBERS_ASSIST_LEADER))
+            return;
+    }
+    else if (!(groupAI & FLAG_LEADER_ASSISTS_MEMBER))
+        return;
+
+    _disengaging = true;
+
+    for (auto const& pair : _members)
+    {
+        Creature* other = pair.first;
+        if (other == member)
+            continue;
+
+        if (!other->IsAlive() || other->IsInEvadeMode())
+            continue;
+
+        TC_LOG_DEBUG("formations", "CreatureGroup::MemberDisengageTarget {} Other member is alive and not evading, so evade as well", _leaderSpawnId);
+
+        if (((other != _leader && (groupAI & FLAG_MEMBERS_ASSIST_LEADER)) || (other == _leader && (groupAI & FLAG_LEADER_ASSISTS_MEMBER))) && other->IsValidAttackTarget(target))
+        {
+            if (CreatureAI* ai = other->AI())
+                ai->EnterEvadeMode(CreatureAI::EVADE_REASON_OTHER);
+        }
+    }
+
+    _disengaging = false;
+}
+
 void CreatureGroup::LeaderStartedMoving()
 {
     if (!_leader)
         return;
 
+    if (_leaderSpawnId == 15145)
+        TC_LOG_DEBUG("formations", "CreatureGroup::LeaderStartedMoving {} Leader is moving, so set member MoveFormation", _leaderSpawnId);
     for (auto const& pair : _members)
     {
         Creature* member = pair.first;
