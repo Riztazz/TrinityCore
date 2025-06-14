@@ -1841,7 +1841,7 @@ bool Creature::LoadFromDB(ObjectGuid::LowType spawnId, Map* map, bool addToMap, 
     // Change our spawn/home position to the leader's position if we are in a formation
     Position spawnPoint = data->spawnPoint;
     if (FormationInfo const* formationInfo = sFormationMgr->GetFormationInfo(spawnId))
-        if (CreatureGroup* formation = sFormationMgr->GetCreatureGroup(formationInfo->LeaderSpawnId))
+        if (CreatureGroup* formation = sFormationMgr->GetCreatureGroup(formationInfo->LeaderSpawnId, this))
             if (Creature* leader = formation->GetLeader())
                 spawnPoint = leader->GetPosition();
 

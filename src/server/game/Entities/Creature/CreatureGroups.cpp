@@ -42,10 +42,11 @@ FormationMgr* FormationMgr::instance()
     return &instance;
 }
 
-CreatureGroup* FormationMgr::GetCreatureGroup(ObjectGuid::LowType leaderSpawnId)
+CreatureGroup* FormationMgr::GetCreatureGroup(ObjectGuid::LowType leaderSpawnId, Creature* creature)
 {
-    auto itr = CreatureGroupHolder.find(leaderSpawnId);
-    if (itr != CreatureGroupHolder.end())
+    Map* map = creature->GetMap();
+    auto itr = map->CreatureGroupHolder.find(leaderSpawnId);
+    if (itr != map->CreatureGroupHolder.end())
         return itr->second;
     return nullptr;
 }
