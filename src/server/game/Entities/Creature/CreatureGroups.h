@@ -73,6 +73,7 @@ class TC_GAME_API CreatureGroup
         std::unordered_map<Creature*, FormationInfo*> _members;
 
         ObjectGuid::LowType _leaderSpawnId;
+        uint32 _leaderPathId;
         bool _engaging;
 
     public:
@@ -93,7 +94,7 @@ class TC_GAME_API CreatureGroup
         bool HasMember(Creature* member) const { return _members.count(member) > 0; }
         void AddMember(Creature* member);
         void RemoveMember(Creature* member);
-        bool FormationReset();
+        
 
         void LeaderStartedMoving();
         void MemberEngagingTarget(Creature* member, Unit* target);

@@ -322,8 +322,8 @@ void Creature::AddToWorld()
         TC_LOG_DEBUG("entities.unit", "Adding creature {} with DBGUID {} to world in map {}", GetGUID().ToString(), m_spawnId, GetMap()->GetId());
 
         Unit::AddToWorld();
-        SearchFormation();
         AIM_Initialize();
+        SearchFormation();
         if (IsVehicle())
             GetVehicleKit()->Install();
 
@@ -1178,11 +1178,6 @@ bool Creature::AIM_Initialize(CreatureAI* ai)
 
 void Creature::Motion_Initialize()
 {
-    // If you are the default leader of a formation allow the FormationGroup FormationReset to initialize the motion
-    if (m_formation && m_formation->GetLeaderSpawnId() == GetSpawnId())
-        if (m_formation->FormationReset())
-            return; // If the formation reset was successful the motion is already set correctly, do not initialize and reset it.
-
     GetMotionMaster()->Initialize();
 }
 
@@ -2228,9 +2223,8 @@ void Creature::setDeathState(DeathState s)
         }
         /** @epoch-end */
 
-        // We need to adjust the formation if the current leader dies
-        if (IsFormationLeader())
-            m_formation->FormationReset();
+        if (m_formation)
+            sFormationMgr->RemoveCreatureFromGroup(m_formation, this);
 
         bool needsFalling = (IsFlying() || IsHovering()) && !IsUnderWater();
         SetHover(false, false);
