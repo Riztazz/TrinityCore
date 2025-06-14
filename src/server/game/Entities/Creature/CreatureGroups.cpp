@@ -355,7 +355,7 @@ void CreatureGroup::MemberDisengaging(Creature* member)
 
         TC_LOG_DEBUG("formations", "CreatureGroup::MemberDisengaging {} Other member is alive and not evading, so evade as well", _leaderSpawnId);
 
-        if (((other != _leader && (groupAI & FLAG_MEMBERS_ASSIST_LEADER)) || (other == _leader && (groupAI & FLAG_LEADER_ASSISTS_MEMBER))) && other->IsValidAttackTarget(target))
+        if ((other != _leader && (groupAI & FLAG_MEMBERS_ASSIST_LEADER)) || (other == _leader && (groupAI & FLAG_LEADER_ASSISTS_MEMBER)))
         {
             if (CreatureAI* ai = other->AI())
                 ai->EnterEvadeMode(CreatureAI::EVADE_REASON_OTHER);
