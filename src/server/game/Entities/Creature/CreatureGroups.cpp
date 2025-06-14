@@ -270,11 +270,15 @@ void CreatureGroup::RemoveMember(Creature* member)
         // It really doesn't matter that we set this, as if we lose leadership in a waypoint formation we will just get formation movement
         // anyway
         newLeader->LoadPath(_leaderPathId);
-        newLeader->SetDefaultMovementType(WAYPOINT_MOTION_TYPE);
         newLeader->UpdateCurrentWaypointInfo(_leader->GetCurrentWaypointInfo().first, _leader->GetCurrentWaypointInfo().second);
-        //newLeader->GetMotionMaster()->MovePath(_leaderPathId, true);
-        if (!newLeader->IsEngaged())
-            newLeader->GetMotionMaster()->Initialize();
+        newLeader->SetDefaultMovementType(WAYPOINT_MOTION_TYPE);
+        newLeader->GetMotionMaster()->Initialize();
+        if (newLeader->IsEngaged())
+        {
+            TC_LOG_DEBUG("formations", "CreatureGroup::RemoveMember {} New Leader is Engaged, Set Chase Target {}", _leaderSpawnId, _leader->GetSpawnId());
+            newLeader->GetMotionMaster()->MoveChase(newLeader->GetThreatManager().GetCurrentVictim());
+        }
+           
     }
 
     // set new leader
