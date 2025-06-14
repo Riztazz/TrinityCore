@@ -210,7 +210,7 @@ void CreatureGroup::AddMember(Creature* member)
     if (_leader && _leaderPathId)
     {
         TC_LOG_DEBUG("formations", "AddMember {} Relocation to Leader Position: {}", _leaderSpawnId, _leader->GetSpawnId());
-        member->UpdatePosition(_leader->GetPositionX(), _leader->GetPositionY(), _leader->GetPositionZ(), _leader->GetOrientation(), true);
+        member->NearTeleportTo(_leader->GetPositionX(), _leader->GetPositionY(), _leader->GetPositionZ(), _leader->GetOrientation());
     }
 
     // If the new member is not the default leader do nothing

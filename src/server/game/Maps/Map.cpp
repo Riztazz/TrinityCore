@@ -1254,8 +1254,6 @@ void Map::PlayerRelocation(Player* player, float x, float y, float z, float orie
 
 void Map::CreatureRelocation(Creature* creature, float x, float y, float z, float ang, bool respawnRelocationOnFail)
 {
-    if (creature->GetSpawnId() == 15145)
-        TC_LOG_DEBUG("formations", "CreatureRelocation {}", creature->GetSpawnId());
     ASSERT(CheckGridIntegrity(creature, false));
 
     Cell old_cell = creature->GetCurrentCell();
@@ -1743,8 +1741,6 @@ bool Map::DynamicObjectCellRelocation(DynamicObject* go, Cell new_cell)
 
 bool Map::CreatureRespawnRelocation(Creature* c, bool diffGridOnly)
 {
-    if (c->GetSpawnId() == 15145)
-        TC_LOG_DEBUG("formations", "CreatureRespawnRelocation {}", c->GetSpawnId());
     float resp_x, resp_y, resp_z, resp_o;
     c->GetRespawnPosition(resp_x, resp_y, resp_z, &resp_o);
     Cell resp_cell(resp_x, resp_y);
