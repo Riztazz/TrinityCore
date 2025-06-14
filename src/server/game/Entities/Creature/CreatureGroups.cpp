@@ -269,7 +269,7 @@ void CreatureGroup::RemoveMember(Creature* member)
     {
         Unit* engagedTarget = nullptr;
         if (newLeader->IsEngaged())
-            engagedTarget = newLeader->GetThreatManager()->GetCurrentVictim();
+            engagedTarget = newLeader->GetThreatManager().GetCurrentVictim();
 
         newLeader->UpdateCurrentWaypointInfo(_leader->GetCurrentWaypointInfo().first, _leader->GetCurrentWaypointInfo().second);
         newLeader->GetMotionMaster()->MovePath(_leaderPathId, true);
