@@ -239,9 +239,6 @@ void CreatureGroup::AddMember(Creature* member)
 
     // set new leader
     _leader = member;
-
-    if (_leaderSpawnId == 15145)
-        TC_LOG_DEBUG("formations", "CreatureGroup::AddMember {} Set default leader as leader {}", _leaderSpawnId, _leader->GetSpawnId());
 }
 
 void CreatureGroup::RemoveMember(Creature* member)
@@ -260,32 +257,22 @@ void CreatureGroup::RemoveMember(Creature* member)
         _leaderPathId = 0;
         return;
     }
-
-    // Reset the new leader to the default motion
-    newLeader->GetMotionMaster()->Initialize(); 
-
+    
     // Copy old leaders waypoint info
     if (_leaderPathId)
     {
-        // It really doesn't matter that we set this, as if we lose leadership in a waypoint formation we will just get formation movement
-        // anyway
         newLeader->LoadPath(_leaderPathId);
         newLeader->UpdateCurrentWaypointInfo(_leader->GetCurrentWaypointInfo().first, _leader->GetCurrentWaypointInfo().second);
         newLeader->SetDefaultMovementType(WAYPOINT_MOTION_TYPE);
         newLeader->GetMotionMaster()->Initialize();
         if (newLeader->IsEngaged())
-        {
-            TC_LOG_DEBUG("formations", "CreatureGroup::RemoveMember {} New Leader is Engaged, Set Chase Target {}", _leaderSpawnId, _leader->GetSpawnId());
             newLeader->GetMotionMaster()->MoveChase(newLeader->GetThreatManager().GetCurrentVictim());
-        }
-           
     }
+    else
+        newLeader->GetMotionMaster()->Initialize(); 
 
     // set new leader
     _leader = newLeader;
-
-    if (_leaderSpawnId == 15145)
-        TC_LOG_DEBUG("formations", "CreatureGroup::RemoveMember {} Set new leader {}", _leaderSpawnId, _leader->GetSpawnId());
 }
 
 void CreatureGroup::MemberEngagingTarget(Creature* member, Unit* target)
@@ -297,9 +284,6 @@ void CreatureGroup::MemberEngagingTarget(Creature* member, Unit* target)
     uint8 groupAI = ASSERT_NOTNULL(sFormationMgr->GetFormationInfo(member->GetSpawnId()))->GroupAI;
     if (!groupAI)
         return;
-
-    if (_leaderSpawnId == 15145)
-        TC_LOG_DEBUG("formations", "CreatureGroup::MemberEngagingTarget {} Member Engaging Target", _leaderSpawnId);
 
     if (member == _leader)
     {
@@ -341,9 +325,6 @@ void CreatureGroup::MemberDisengaging(Creature* member)
     if (!member->IsAlive())
         return;
 
-    if (_leaderSpawnId == 15145)
-        TC_LOG_DEBUG("formations", "CreatureGroup::MemberDisengaging {} Member is evading", _leaderSpawnId);
-
     if (member == _leader)
     {
         if (!(groupAI & FLAG_MEMBERS_ASSIST_LEADER))
@@ -363,8 +344,6 @@ void CreatureGroup::MemberDisengaging(Creature* member)
         if (!other->IsAlive() || other->IsInEvadeMode())
             continue;
 
-        TC_LOG_DEBUG("formations", "CreatureGroup::MemberDisengaging {} Other member is alive and not evading, so evade as well", _leaderSpawnId);
-
         if ((other != _leader && (groupAI & FLAG_MEMBERS_ASSIST_LEADER)) || (other == _leader && (groupAI & FLAG_LEADER_ASSISTS_MEMBER)))
         {
             if (CreatureAI* ai = other->AI())
@@ -380,8 +359,6 @@ void CreatureGroup::LeaderStartedMoving()
     if (!_leader)
         return;
 
-    if (_leaderSpawnId == 15145)
-        TC_LOG_DEBUG("formations", "CreatureGroup::LeaderStartedMoving {} Leader is moving, so set member MoveFormation", _leaderSpawnId);
     for (auto const& pair : _members)
     {
         Creature* member = pair.first;
