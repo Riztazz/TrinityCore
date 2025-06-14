@@ -1839,11 +1839,6 @@ bool Creature::LoadFromDB(ObjectGuid::LowType spawnId, Map* map, bool addToMap, 
     m_respawnDelay = data->spawntimesecs;
     Position spawnPoint = data->spawnPoint;
 
-    if (spawnId == 15145)
-    {
-        TC_LOG_DEBUG("formations", "Initial Spawn Point to {},{},{}", spawnPoint.GetPositionX(), spawnPoint.GetPositionY(), spawnPoint.GetPositionZ());
-    }
-
     // Change our spawn/home position to the leader's position if we are in a formation
     
     if (FormationInfo const* formationInfo = sFormationMgr->GetFormationInfo(spawnId))
@@ -1851,18 +1846,8 @@ bool Creature::LoadFromDB(ObjectGuid::LowType spawnId, Map* map, bool addToMap, 
             if (Creature* leader = formation->GetLeader())
                 spawnPoint = leader->GetPosition();
 
-    if (spawnId == 15145)
-    {
-        TC_LOG_DEBUG("formations", "Overrode Spawn Point to {},{},{}", spawnPoint.GetPositionX(), spawnPoint.GetPositionY(), spawnPoint.GetPositionZ());
-    }
-
     if (!Create(map->GenerateLowGuid<HighGuid::Unit>(), map, data->phaseMask, data->id, spawnPoint, data, 0U , !m_respawnCompatibilityMode))
         return false;
-
-    if (spawnId == 15145)
-    {
-        TC_LOG_DEBUG("formations", "Creature Created at {},{},{}", spawnPoint.GetPositionX(), spawnPoint.GetPositionY(), spawnPoint.GetPositionZ());
-    }
 
     //We should set first home position, because then AI calls home movement
     SetHomePosition(*this);

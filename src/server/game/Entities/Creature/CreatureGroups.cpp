@@ -51,7 +51,6 @@ CreatureGroup* FormationMgr::GetCreatureGroup(ObjectGuid::LowType leaderSpawnId,
 
 void FormationMgr::AddCreatureToGroup(ObjectGuid::LowType leaderSpawnId, Creature* creature)
 {
-    TC_LOG_DEBUG("formations", "AddCreatureToGroup {}: {}", leaderSpawnId, creature->GetSpawnId());
     Map* map = creature->GetMap();
 
     auto itr = map->CreatureGroupHolder.find(leaderSpawnId);
@@ -86,7 +85,6 @@ void FormationMgr::AddCreatureToGroup(ObjectGuid::LowType leaderSpawnId, Creatur
 
 void FormationMgr::RemoveCreatureFromGroup(CreatureGroup* group, Creature* member)
 {
-    TC_LOG_DEBUG("formations", "RemoveCreatureFromGroup {}: {}", group->GetLeaderSpawnId(), member->GetSpawnId());
     TC_LOG_DEBUG("entities.unit", "Deleting member pointer to GUID: {} from group {}", group->GetLeaderSpawnId(), member->GetSpawnId());
     group->RemoveMember(member);
 
@@ -208,7 +206,6 @@ CreatureGroup::~CreatureGroup()
 
 void CreatureGroup::AddMember(Creature* member)
 {
-    TC_LOG_DEBUG("formations", "AddMember {}: {}", _leaderSpawnId, member->GetSpawnId());
     FormationInfo* formationInfo = ASSERT_NOTNULL(sFormationMgr->GetFormationInfo(member->GetSpawnId()));
     _members.emplace(member, formationInfo);
     member->SetFormation(this);
@@ -239,13 +236,11 @@ void CreatureGroup::AddMember(Creature* member)
     _leader->GetMotionMaster()->Initialize();
 
     // set new leader
-    TC_LOG_DEBUG("formations", "AddMember {} Set New Leader: {}", _leaderSpawnId, member->GetSpawnId());
     _leader = member;
 }
 
 void CreatureGroup::RemoveMember(Creature* member)
 {
-    TC_LOG_DEBUG("formations", "RemoveMember {}: {}", _leaderSpawnId, member->GetSpawnId());
     _members.erase(member);
     member->SetFormation(nullptr);
     if (!_leader || member != _leader)
@@ -272,7 +267,6 @@ void CreatureGroup::RemoveMember(Creature* member)
     }
 
     // set new leader
-    TC_LOG_DEBUG("formations", "RemoveMember {} Set New Leader: {}", _leaderSpawnId, newLeader->GetSpawnId());
     _leader = newLeader;
 }
 
