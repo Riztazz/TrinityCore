@@ -317,7 +317,7 @@ void CreatureGroup::MemberEngagingTarget(Creature* member, Unit* target)
     _engaging = false;
 }
 
-void CreatureGroup::MemberDisengagingTarget(Creature* member, Unit* target)
+void CreatureGroup::MemberDisengaging(Creature* member)
 {
     // used to prevent recursive calls
     if (_disengaging)
@@ -332,7 +332,7 @@ void CreatureGroup::MemberDisengagingTarget(Creature* member, Unit* target)
         return;
 
     if (_leaderSpawnId == 15145)
-        TC_LOG_DEBUG("formations", "CreatureGroup::MemberDisengageTarget {} Member is evading", _leaderSpawnId);
+        TC_LOG_DEBUG("formations", "CreatureGroup::MemberDisengaging {} Member is evading", _leaderSpawnId);
 
     if (member == _leader)
     {
@@ -353,7 +353,7 @@ void CreatureGroup::MemberDisengagingTarget(Creature* member, Unit* target)
         if (!other->IsAlive() || other->IsInEvadeMode())
             continue;
 
-        TC_LOG_DEBUG("formations", "CreatureGroup::MemberDisengageTarget {} Other member is alive and not evading, so evade as well", _leaderSpawnId);
+        TC_LOG_DEBUG("formations", "CreatureGroup::MemberDisengaging {} Other member is alive and not evading, so evade as well", _leaderSpawnId);
 
         if (((other != _leader && (groupAI & FLAG_MEMBERS_ASSIST_LEADER)) || (other == _leader && (groupAI & FLAG_LEADER_ASSISTS_MEMBER))) && other->IsValidAttackTarget(target))
         {

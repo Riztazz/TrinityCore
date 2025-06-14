@@ -101,7 +101,7 @@ class TC_GAME_API CreatureGroup
 
         void LeaderStartedMoving();
         void MemberEngagingTarget(Creature* member, Unit* target);
-        void MemberDisengagingTarget(Creature* member, Unit* target);
+        void MemberDisengaging(Creature* member);
         bool CanLeaderStartMoving() const;
 };
 

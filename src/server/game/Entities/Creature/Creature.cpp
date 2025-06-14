@@ -3665,7 +3665,7 @@ void Creature::AtDisengage()
     }
 
     if (CreatureGroup* formation = GetFormation())
-        formation->MemberDisengagingTarget(this);
+        formation->MemberDisengaging(this);
 }
 
 bool Creature::IsEscorted() const
