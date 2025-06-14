@@ -210,7 +210,7 @@ void CreatureGroup::AddMember(Creature* member)
     if (_leader && _leaderPathId)
     {
         TC_LOG_DEBUG("formations", "AddMember {} Relocation to Leader Position: {}", _leaderSpawnId, _leader->GetSpawnId());
-        member->Relocate(_leader->GetPosition());
+        member->UpdatePosition(_leader->GetPositionX(), _leader->GetPositionY(), _leader->GetPositionZ(), _leader->GetOrientation(), true);
     }
 
     // If the new member is not the default leader do nothing
@@ -239,6 +239,7 @@ void CreatureGroup::AddMember(Creature* member)
     _leader->GetMotionMaster()->Initialize();
 
     // set new leader
+    TC_LOG_DEBUG("formations", "AddMember {} Set New Leader: {}", _leaderSpawnId, member->GetSpawnId());
     _leader = member;
 }
 
@@ -271,6 +272,7 @@ void CreatureGroup::RemoveMember(Creature* member)
     }
 
     // set new leader
+    TC_LOG_DEBUG("formations", "RemoveMember {} Set New Leader: {}", _leaderSpawnId, newLeader->GetSpawnId());
     _leader = newLeader;
 }
 
