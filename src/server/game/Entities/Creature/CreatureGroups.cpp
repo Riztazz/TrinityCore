@@ -267,19 +267,13 @@ void CreatureGroup::RemoveMember(Creature* member)
     // Copy old leaders waypoint info
     if (_leaderPathId)
     {
-        Unit* engagedTarget = nullptr;
-        if (newLeader->IsEngaged())
-            engagedTarget = newLeader->GetThreatManager().GetCurrentVictim();
-
+        // It really doesn't matter that we set this, as if we lose leadership in a waypoint formation we will just get formation movement
+        // anyway
+        newLeader->LoadPath(_leaderPathId);
         newLeader->UpdateCurrentWaypointInfo(_leader->GetCurrentWaypointInfo().first, _leader->GetCurrentWaypointInfo().second);
-        newLeader->GetMotionMaster()->MovePath(_leaderPathId, true);
-
-        // Reengage if needed
-        if (engagedTarget)
-        {
-            TC_LOG_DEBUG("formations", "CreatureGroup::RemoveMember {} New leader engaging target {}", _leaderSpawnId, engagedTarget->GetGUID().ToString());
-            newLeader->EngageWithTarget(engagedTarget);
-        }
+        //newLeader->GetMotionMaster()->MovePath(_leaderPathId, true);
+        if (!newLeader->IsEngaged())
+            newLeader->GetMotionMaster()->Initialize();
     }
 
     // set new leader
