@@ -44,6 +44,7 @@ FormationMgr* FormationMgr::instance()
 
 void FormationMgr::AddCreatureToGroup(ObjectGuid::LowType leaderSpawnId, Creature* creature)
 {
+    TC_LOG_DEBUG("formations", "AddCreatureToGroup {}: {}", leaderSpawnId, creature->GetSpawnId());
     Map* map = creature->GetMap();
 
     auto itr = map->CreatureGroupHolder.find(leaderSpawnId);
@@ -78,6 +79,7 @@ void FormationMgr::AddCreatureToGroup(ObjectGuid::LowType leaderSpawnId, Creatur
 
 void FormationMgr::RemoveCreatureFromGroup(CreatureGroup* group, Creature* member)
 {
+    TC_LOG_DEBUG("formations", "RemoveCreatureFromGroup {}: {}", group->GetLeaderSpawnId(), member->GetSpawnId());
     TC_LOG_DEBUG("entities.unit", "Deleting member pointer to GUID: {} from group {}", group->GetLeaderSpawnId(), member->GetSpawnId());
     group->RemoveMember(member);
 
@@ -199,13 +201,17 @@ CreatureGroup::~CreatureGroup()
 
 void CreatureGroup::AddMember(Creature* member)
 {
+    TC_LOG_DEBUG("formations", "AddMember {}: {}", _leaderSpawnId, member->GetSpawnId());
     FormationInfo* formationInfo = ASSERT_NOTNULL(sFormationMgr->GetFormationInfo(member->GetSpawnId()));
     _members.emplace(member, formationInfo);
     member->SetFormation(this);
 
     // If the group is formed and following a path relocate the member to the leader position
     if (_leader && _leaderPathId)
+    {
+        TC_LOG_DEBUG("formations", "AddMember {} Relocation to Leader Position: {}", _leaderSpawnId, _leader->GetSpawnId());
         member->Relocate(_leader->GetPosition());
+    }
 
     // If the new member is not the default leader do nothing
     if (member->GetSpawnId() != _leaderSpawnId)
@@ -238,6 +244,7 @@ void CreatureGroup::AddMember(Creature* member)
 
 void CreatureGroup::RemoveMember(Creature* member)
 {
+    TC_LOG_DEBUG("formations", "RemoveMember {}: {}", _leaderSpawnId, member->GetSpawnId());
     _members.erase(member);
     member->SetFormation(nullptr);
     if (!_leader || member != _leader)
