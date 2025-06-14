@@ -256,6 +256,7 @@ void CreatureGroup::MemberEngagingTarget(Creature* member, Unit* target)
 // Smartly reset the CreatureGroup
 bool CreatureGroup::FormationReset()
 {
+    TC_LOG_DEBUG("formation", "CreatureGroup::FormationReset called {}", _leaderSpawnId);
     Creature* currentLeader = nullptr;
     Creature* defaultLeader = nullptr;
     Creature* firstAliveMember = nullptr;
@@ -273,9 +274,11 @@ bool CreatureGroup::FormationReset()
     // The CreatureGroup is not yet formed
     if (!_leader)
     {
+        TC_LOG_DEBUG("formation", "Creature Group not yet formed {}", _leaderSpawnId);
         // Can only form a CreatureGroup initially when the defaultLeader is present and alive
         if (defaultLeader && defaultLeader->IsAlive())
         {
+            TC_LOG_DEBUG("formation", "Default Leader found and alive, forming initial group {}", _leaderSpawnId);
             defaultLeader->GetMotionMaster()->Initialize();
             _leader = defaultLeader;
             resetMemberMotion = true;
@@ -284,9 +287,11 @@ bool CreatureGroup::FormationReset()
     // The leader is the present defaultLeader
     else if (_leader == defaultLeader)
     {
+        TC_LOG_DEBUG("formation", "Existing Group Leader is the Default Leader {}", _leaderSpawnId);
         // If the defaultLeader is dead we need to find a new leader
         if (!defaultLeader->IsAlive())
         {
+            TC_LOG_DEBUG("formation", "Default Leader is dead, finding new leader {}", _leaderSpawnId);
             // Attempt to find a new leader
             if (firstAliveMember)
             {
@@ -313,13 +318,20 @@ bool CreatureGroup::FormationReset()
     // The leader is or was a temporary leader
     else
     {
+        TC_LOG_DEBUG("formation", "Existing Group Leader is or was a temporary Leader {}", _leaderSpawnId);
         Creature* newLeader = nullptr;
         // Always switch to the defaultLeader if it is present and alive
         if (defaultLeader && defaultLeader->IsAlive())
+        {
+            TC_LOG_DEBUG("formation", "Default Leader is present and alive, switching to default leader {}", _leaderSpawnId);
             newLeader = defaultLeader;
+        }
         // Else if the leader was removed or newly dead switch to the first alive member (or null if none)
         else if (!currentLeader || !currentLeader->IsAlive())
+        {
+            TC_LOG_DEBUG("formation", "Current Leader is removed or newly dead, switching to first alive member {}", _leaderSpawnId);
             newLeader = firstAliveMember;
+        }
 
         // If there is a a new leader
         if (newLeader)
@@ -329,8 +341,12 @@ bool CreatureGroup::FormationReset()
             {
                 newLeader->UpdateCurrentWaypointInfo(_leader->GetCurrentWaypointInfo().first, _leader->GetCurrentWaypointInfo().second);
                 newLeader->GetMotionMaster()->MovePath(_leader->GetWaypointPath(), true);
-                _leader->LoadPath(0);
-                _leader->UpdateCurrentWaypointInfo(0, 0);
+                // If not the default leader we can lear the path and waypoint info
+                if (_leader->GetSpawnId() != _leaderSpawnId)
+                {
+                    _leader->LoadPath(0);
+                    _leader->UpdateCurrentWaypointInfo(0, 0);
+                }
             }
             else
                 newLeader->GetMotionMaster()->Initialize();
@@ -340,6 +356,7 @@ bool CreatureGroup::FormationReset()
         }
         else if (!currentLeader || !currentLeader->IsAlive())
         {
+            TC_LOG_DEBUG("formation", "No new leader found, resetting formation {}", _leaderSpawnId);
             _leader = nullptr;
             resetMemberMotion = true;
         }
