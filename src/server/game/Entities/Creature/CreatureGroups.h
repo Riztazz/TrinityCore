@@ -57,6 +57,7 @@ class TC_GAME_API FormationMgr
     public:
         static FormationMgr* instance();
 
+        CreatureGroup* GetCreatureGroup(ObjectGuid::LowType leaderSpawnId);
         void AddCreatureToGroup(ObjectGuid::LowType leaderSpawnId, Creature* creature);
         void RemoveCreatureFromGroup(CreatureGroup* group, Creature* creature);
 

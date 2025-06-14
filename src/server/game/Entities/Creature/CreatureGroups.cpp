@@ -42,6 +42,14 @@ FormationMgr* FormationMgr::instance()
     return &instance;
 }
 
+CreatureGroup* FormationMgr::GetCreatureGroup(ObjectGuid::LowType leaderSpawnId)
+{
+    auto itr = CreatureGroupHolder.find(leaderSpawnId);
+    if (itr != CreatureGroupHolder.end())
+        return itr->second;
+    return nullptr;
+}
+
 void FormationMgr::AddCreatureToGroup(ObjectGuid::LowType leaderSpawnId, Creature* creature)
 {
     TC_LOG_DEBUG("formations", "AddCreatureToGroup {}: {}", leaderSpawnId, creature->GetSpawnId());

@@ -1838,7 +1838,14 @@ bool Creature::LoadFromDB(ObjectGuid::LowType spawnId, Map* map, bool addToMap, 
     m_wanderDistance = data->wander_distance;
     m_respawnDelay = data->spawntimesecs;
 
-    if (!Create(map->GenerateLowGuid<HighGuid::Unit>(), map, data->phaseMask, data->id, data->spawnPoint, data, 0U , !m_respawnCompatibilityMode))
+    // Change our spawn/home position to the leader's position if we are in a formation
+    Position spawnPoint = data->spawnPoint;
+    if (FormationInfo const* formationInfo = sFormationMgr->GetFormationInfo(spawnId))
+        if (CreatureGroup* formation = sFormationMgr->GetCreatureGroup(formationInfo->LeaderSpawnId))
+            if (Creature* leader = formation->GetLeader())
+                spawnPoint = leader->GetPosition();
+
+    if (!Create(map->GenerateLowGuid<HighGuid::Unit>(), map, data->phaseMask, data->id, spawnPoint, data, 0U , !m_respawnCompatibilityMode))
         return false;
 
     //We should set first home position, because then AI calls home movement
