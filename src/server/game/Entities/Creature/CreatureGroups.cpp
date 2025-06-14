@@ -21,7 +21,6 @@
 #include "CreatureAI.h"
 #include "DatabaseEnv.h"
 #include "Log.h"
-#include "Map.h"
 #include "MotionMaster.h"
 #include "MovementGenerator.h"
 #include "ObjectMgr.h"
@@ -42,9 +41,8 @@ FormationMgr* FormationMgr::instance()
     return &instance;
 }
 
-CreatureGroup* FormationMgr::GetCreatureGroup(ObjectGuid::LowType leaderSpawnId, Creature* creature)
+CreatureGroup* FormationMgr::GetCreatureGroup(ObjectGuid::LowType leaderSpawnId, Map* map)
 {
-    Map* map = creature->GetMap();
     auto itr = map->CreatureGroupHolder.find(leaderSpawnId);
     if (itr != map->CreatureGroupHolder.end())
         return itr->second;

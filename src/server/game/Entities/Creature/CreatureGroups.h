@@ -19,6 +19,7 @@
 #define _FORMATIONS_H
 
 #include "Define.h"
+#include "Map.h"
 #include "ObjectGuid.h"
 #include <unordered_map>
 #include <map>
@@ -57,7 +58,7 @@ class TC_GAME_API FormationMgr
     public:
         static FormationMgr* instance();
 
-        CreatureGroup* GetCreatureGroup(ObjectGuid::LowType leaderSpawnId, Creature* creature);
+        CreatureGroup* GetCreatureGroup(ObjectGuid::LowType leaderSpawnId, Map* map);
         void AddCreatureToGroup(ObjectGuid::LowType leaderSpawnId, Creature* creature);
         void RemoveCreatureFromGroup(CreatureGroup* group, Creature* creature);
 
