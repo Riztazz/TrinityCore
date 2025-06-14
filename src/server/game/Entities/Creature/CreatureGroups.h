@@ -73,7 +73,6 @@ class TC_GAME_API CreatureGroup
         std::unordered_map<Creature*, FormationInfo*> _members;
 
         ObjectGuid::LowType _leaderSpawnId;
-        bool _formed;
         bool _engaging;
 
     public:
@@ -88,7 +87,7 @@ class TC_GAME_API CreatureGroup
         FormationMap::iterator GetMembersBegin() { return _members.begin(); }
         FormationMap::iterator GetMembersEnd() { return _members.end(); }
         bool IsEmpty() const { return _members.empty(); }
-        bool IsFormed() const { return _formed; }
+        bool IsFormed() const { return _leader != nullptr; }
         bool IsLeader(Creature const* creature) const { return _leader == creature; }
 
         bool HasMember(Creature* member) const { return _members.count(member) > 0; }

@@ -999,10 +999,6 @@ void Creature::Update(uint32 diff)
 
             RegenerateAll(diff);
 
-            // If we are the default leader but not the current leader attempt to reset the formation
-            if (m_formation && m_formation->GetLeaderSpawnId() == GetSpawnId() && !IsFormationLeader())
-                m_formation->FormationReset();
-
             break;
         }
         default:

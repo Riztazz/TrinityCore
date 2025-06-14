@@ -189,7 +189,7 @@ void FormationMgr::AddFormationMember(ObjectGuid::LowType spawnId, float followA
     _creatureGroupMap.emplace(spawnId, std::move(member));
 }
 
-CreatureGroup::CreatureGroup(ObjectGuid::LowType leaderSpawnId) : _leader(nullptr), _members(), _leaderSpawnId(leaderSpawnId), _formed(false), _engaging(false)
+CreatureGroup::CreatureGroup(ObjectGuid::LowType leaderSpawnId) : _leader(nullptr), _members(), _leaderSpawnId(leaderSpawnId), _engaging(false)
 {
 }
 
@@ -199,10 +199,12 @@ CreatureGroup::~CreatureGroup()
 
 void CreatureGroup::AddMember(Creature* member)
 {
-    // formation must be registered at this point
     FormationInfo* formationInfo = ASSERT_NOTNULL(sFormationMgr->GetFormationInfo(member->GetSpawnId()));
     _members.emplace(member, formationInfo);
     member->SetFormation(this);
+
+    if (_leader)
+        member->Relocate(_leader->GetPosition());
 }
 
 void CreatureGroup::RemoveMember(Creature* member)
@@ -212,10 +214,7 @@ void CreatureGroup::RemoveMember(Creature* member)
 
     // If we remove the leader we need to reset the formation
     if (member == _leader)
-    {
-        _leader = nullptr;
         FormationReset();
-    }
 }
 
 void CreatureGroup::MemberEngagingTarget(Creature* member, Unit* target)
@@ -257,11 +256,14 @@ void CreatureGroup::MemberEngagingTarget(Creature* member, Unit* target)
 // Smartly reset the CreatureGroup
 bool CreatureGroup::FormationReset()
 {
+    Creature* currentLeader = nullptr;
     Creature* defaultLeader = nullptr;
     Creature* firstAliveMember = nullptr;
     bool resetMemberMotion = false;
     for (auto const& pair : _members)
     {
+        if (pair.first == _leader)
+            currentLeader = pair.first;
         if (pair.first->GetSpawnId() == _leaderSpawnId)
             defaultLeader = pair.first;
         else if (!firstAliveMember && pair.first->IsAlive())
@@ -279,11 +281,11 @@ bool CreatureGroup::FormationReset()
             resetMemberMotion = true;
         }
     }
-    // The leader is the defaultLeader
-    else if (defaultLeader && _leader == defaultLeader)
+    // The leader is the present defaultLeader
+    else if (_leader == defaultLeader)
     {
-        // Only reset if the leader has died
-        if (!_leader->IsAlive())
+        // If the defaultLeader is dead we need to find a new leader
+        if (!defaultLeader->IsAlive())
         {
             // Attempt to find a new leader
             if (firstAliveMember)
@@ -308,31 +310,21 @@ bool CreatureGroup::FormationReset()
             }
         }
     }
-    // The leader is a temporary leader
+    // The leader is or was a temporary leader
     else
     {
-        // We sometimes reset when the leader is alive
         Creature* newLeader = nullptr;
-        // The temp leader is alive
-        if (_leader->IsAlive())
-        {
-            // Switch to defaultLeader if they are alive, but wait until within a reasonable distance if they have a waypoint path
-            if (defaultLeader && defaultLeader->IsAlive() && (!defaultLeader->GetWaypointPath() || defaultLeader->GetDistance(_leader) < _members[_leader]->FollowDist + 1.0f))
-                newLeader = defaultLeader;
-        }
-        // The temp leader is dead so switch to the next leader by priority
-        else
-        {
-            if (defaultLeader && defaultLeader->IsAlive())
-                newLeader = defaultLeader;
-            else
-                newLeader = firstAliveMember;
-        }
+        // Always switch to the defaultLeader if it is present and alive
+        if (defaultLeader && defaultLeader->IsAlive())
+            newLeader = defaultLeader;
+        // Else if the leader was removed or newly dead switch to the first alive member (or null if none)
+        else if (!currentLeader || !currentLeader->IsAlive())
+            newLeader = firstAliveMember;
 
         // If there is a a new leader
         if (newLeader)
         {
-            // If the leader has a waypoint path we need to copy the path and waypoint info to the new leader
+            // If the old leader has a waypoint path we need to copy the path and waypoint info to the new leader
             if (_leader->GetWaypointPath())
             {
                 newLeader->UpdateCurrentWaypointInfo(_leader->GetCurrentWaypointInfo().first, _leader->GetCurrentWaypointInfo().second);
@@ -346,15 +338,12 @@ bool CreatureGroup::FormationReset()
             _leader = newLeader;
             resetMemberMotion = true;
         }
-        else if (!_leader->IsAlive())
+        else if (!currentLeader || !currentLeader->IsAlive())
         {
             _leader = nullptr;
-            resetMemberMotion = true; // technically there are no members left, but for consistency we want to return true
+            resetMemberMotion = true;
         }
     }
-
-    // We now consider the group as formed if there is a leader (default or temporary)
-    _formed = _leader != nullptr;
 
     // Reset all other members motion when the formation is adjusted, this will get overridden when Leader signals to members
     if (resetMemberMotion)
