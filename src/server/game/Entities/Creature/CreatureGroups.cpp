@@ -327,8 +327,8 @@ void CreatureGroup::MemberDisengaging(Creature* member)
     if (!groupAI)
         return;
 
-    // we only disengage other members if current member is evading 
-    if (!member->IsInEvadeMode())
+    // we only disengage other members if disengaging member is alive
+    if (!member->IsAlive())
         return;
 
     if (_leaderSpawnId == 15145)
