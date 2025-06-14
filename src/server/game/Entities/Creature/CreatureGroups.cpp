@@ -214,13 +214,6 @@ void CreatureGroup::AddMember(Creature* member)
     _members.emplace(member, formationInfo);
     member->SetFormation(this);
 
-    // If the group is formed and following a path relocate the member to the leader position
-    if (_leader && _leaderPathId)
-    {
-        TC_LOG_DEBUG("formations", "AddMember {} Relocation to Leader Position: {}", _leaderSpawnId, _leader->GetSpawnId());
-        member->NearTeleportTo(_leader->GetPositionX(), _leader->GetPositionY(), _leader->GetPositionZ(), _leader->GetOrientation());
-    }
-
     // If the new member is not the default leader do nothing
     if (member->GetSpawnId() != _leaderSpawnId)
         return;
