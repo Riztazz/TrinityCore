@@ -197,7 +197,8 @@ void FormationMgr::AddFormationMember(ObjectGuid::LowType spawnId, float followA
     _creatureGroupMap.emplace(spawnId, std::move(member));
 }
 
-CreatureGroup::CreatureGroup(ObjectGuid::LowType leaderSpawnId) : _leader(nullptr), _members(), _leaderSpawnId(leaderSpawnId), _engaging(false), _disengaging(false)
+CreatureGroup::CreatureGroup(ObjectGuid::LowType leaderSpawnId) : _leader(nullptr), _members(),
+_leaderSpawnId(leaderSpawnId), _tempLeaderDefaultMovementType(IDLE_MOTION_TYPE), _engaging(false), _disengaging(false)
 {
 }
 
@@ -229,13 +230,25 @@ void CreatureGroup::AddMember(Creature* member)
     // Copy old leaders waypoint info
     if (_leaderPathId)
     {
+        // Copy the temp leaders waypoint info back to the default leader
         member->UpdateCurrentWaypointInfo(_leader->GetCurrentWaypointInfo().first, _leader->GetCurrentWaypointInfo().second);
-        // order might matter here, reset old leaders motion before moving new leader
+
+        // If we respawn while the temp leader is in combat, we need to set the default leader as engaged with the current target
+        if (_leader->IsEngaged())
+        {
+            member->EngageWithTarget(_leader->GetThreatManager().GetCurrentVictim());
+            member->GetMotionMaster()->MoveChase(_leader->GetThreatManager().GetCurrentVictim());
+        }
+        else
+            member->GetMotionMaster()->Initialize();
+
+        // Reset the temp leaders motion type (idle or random)
+        _leader->LoadPath(0);
+        _leader->SetDefaultMovementType(_tempLeaderDefaultMovementType);
         _leader->GetMotionMaster()->Initialize();
-        member->GetMotionMaster()->MovePath(_leaderPathId, true);
     }
     else
-        _leader->GetMotionMaster()->Initialize();
+        member->GetMotionMaster()->Initialize();
 
     // set new leader
     _leader = member;
@@ -258,21 +271,29 @@ void CreatureGroup::RemoveMember(Creature* member)
         return;
     }
     
-    // Copy old leaders waypoint info
+    
     if (_leaderPathId)
     {
-        newLeader->LoadPath(_leaderPathId);
+        // Store the temp leaders motion type so that we can restore it later
+        _tempLeaderDefaultMovementType = newLeader->GetDefaultMovementType();
+        
+        // Copy old leaders waypoint info
         newLeader->UpdateCurrentWaypointInfo(_leader->GetCurrentWaypointInfo().first, _leader->GetCurrentWaypointInfo().second);
+        // Override temp leaders movement
+        newLeader->LoadPath(_leaderPathId);
         newLeader->SetDefaultMovementType(WAYPOINT_MOTION_TYPE);
-        newLeader->GetMotionMaster()->Initialize();
+        // If engaged we need to chage, otherwise initialize new default movement
         if (newLeader->IsEngaged())
             newLeader->GetMotionMaster()->MoveChase(newLeader->GetThreatManager().GetCurrentVictim());
+        else
+            newLeader->GetMotionMaster()->Initialize();
     }
     else
         newLeader->GetMotionMaster()->Initialize(); 
 
     // set new leader
     _leader = newLeader;
+    
 }
 
 void CreatureGroup::MemberEngagingTarget(Creature* member, Unit* target)

@@ -33,6 +33,8 @@ enum GroupAIFlags
     FLAG_IDLE_IN_FORMATION     = 0x00000200,                                                // The member will follow the leader when pathing idly
 };
 
+enum MovementGeneratorType : uint8;
+
 class Creature;
 class CreatureGroup;
 class Unit;
@@ -76,6 +78,7 @@ class TC_GAME_API CreatureGroup
 
         ObjectGuid::LowType _leaderSpawnId;
         uint32 _leaderPathId;
+        MovementGeneratorType _tempLeaderDefaultMovementType;
         bool _engaging;
         bool _disengaging;
 
