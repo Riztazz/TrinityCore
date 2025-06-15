@@ -17,6 +17,7 @@
 
 #include "RandomMovementGenerator.h"
 #include "Creature.h"
+#include "G3DPosition.hpp"
 #include "Map.h"
 #include "MovementDefines.h"
 #include "MoveSpline.h"
@@ -28,7 +29,8 @@
 #include <G3D/Vector3.h>
 
 template<class T>
-RandomMovementGenerator<T>::RandomMovementGenerator(float distance) : _timer(0), _reference(), _wanderDistance(distance), _wanderSteps(0), _angleIndex(0), _pathIndex(0)
+RandomMovementGenerator<T>::RandomMovementGenerator(float distance) : _timer(0), _reference(),
+_wanderDistance(distance), _wanderSteps(0), _needsPause(false), _angleIndex(0), _pathIndex(0), _smoothSplineId(0)
 {
     this->Mode = MOTION_MODE_DEFAULT;
     this->Priority = MOTION_PRIORITY_NORMAL;
@@ -84,17 +86,19 @@ void RandomMovementGenerator<Creature>::DoInitialize(Creature* owner)
         return;
 
     owner->StopMoving();
+    _timer.Reset(0);
+    
     _pathIndex = 0;
     _paths.clear();
+    _smoothSplineId = 0;
     _pathGenerator = nullptr;
-
-    _timer.Reset(0);
 
     if (_wanderDistance == 0.f)
         _wanderDistance = owner->GetWanderDistance();
 
     // Retail seems to let a creature walk 2 up to 10 splines before triggering a pause
     _wanderSteps = urand(1, ((_wanderDistance <= 1.0f) ? 2 : 8));
+    _needsPause = false;
 
     // Only set these on first initialize
     if (_angles.empty())
@@ -140,6 +144,7 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
         owner->StopMoving();
         _pathIndex = 0;
         _paths.clear();
+        _smoothSplineId = 0;
         _pathGenerator = nullptr;
         return;
     }
@@ -172,6 +177,7 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
             // Always clear the cache if we fail to complete the loop at any step
             _pathIndex = 0;
             _paths.clear();
+            _smoothSplineId = 0;
             return;
         }
 
@@ -192,6 +198,7 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
             // Always clear the cache if we fail to complete the loop at any step
             _pathIndex = 0;
             _paths.clear();
+            _smoothSplineId = 0;
             return;
         }
 
@@ -216,9 +223,21 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
     }
 
     Movement::MoveSplineInit init(owner);
-    init.MovebyPath(_paths[_pathIndex]);
+    // If we are still moving on the smooth spline
+    if (!owner->movespline->Finalized() && owner->movespline->GetId() == _smoothSplineId)
+    {
+        PointsArray smoothPath;
+        smoothPath.reserve(_paths[_pathIndex].size() + 1);
+        smoothPath.push_back(PositionToVector3(owner->GetPosition()));
+        smoothPath.insert(smoothPath.end(), _paths[_pathIndex].begin(), _paths[_pathIndex].end());
+        init.MovebyPath(smoothPath);
+        _smoothSplineId = 0;
+    }
+    else
+        init.MovebyPath(_paths[_pathIndex]);
+    init.SetSmooth();
     init.SetWalk(walk);
-    int32 splineDuration = init.Launch();
+    init.Launch();
 
     if (sWorld->getBoolConfig(CONFIG_DONT_CACHE_RANDOM_MOVEMENT_PATHS))
         _paths.clear();
@@ -226,13 +245,10 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
         _pathIndex = (_pathIndex + 1) % (NUM_WANDER_POINTS + 1);
 
     --_wanderSteps;
-    if (_wanderSteps) // Creature has yet to do steps before pausing
-        _timer.Reset(splineDuration);
-    else
+    if (!_wanderSteps)
     {
-        // Creature has made all its steps, time for a little break
-        _timer.Reset(splineDuration + urand(6, 12) * IN_MILLISECONDS); // Retails seems to use rounded numbers so we do as well
         _wanderSteps = urand(1, ((_wanderDistance <= 1.0f) ? 2 : 8));
+        _needsPause = true; // We need to pause at the end of this spline
     }
 
     // Call for creature group update
@@ -260,6 +276,7 @@ bool RandomMovementGenerator<Creature>::DoUpdate(Creature* owner, uint32 diff)
         owner->StopMoving();
         _pathIndex = 0;
         _paths.clear();
+        _smoothSplineId = 0;
         _pathGenerator = nullptr;
         return true;
     }
@@ -268,14 +285,39 @@ bool RandomMovementGenerator<Creature>::DoUpdate(Creature* owner, uint32 diff)
 
     _timer.Update(diff);
 
-    // Not sure why we are breaking the current movement here, but since we are we need to clear the cache
+    // We have to make new splines on speed change
     if (HasFlag(MOVEMENTGENERATOR_FLAG_SPEED_UPDATE_PENDING) && !owner->movespline->Finalized()) {
         _pathIndex = 0;
         _paths.clear();
+        _smoothSplineId = 0;
         SetRandomLocation(owner);
     }
-    else if (_timer.Passed() && owner->movespline->Finalized())
-        SetRandomLocation(owner);
+    // Wait out any timer
+    else if (_timer.Passed())
+    {
+        // We can only do spline smoothing under certain conditions:
+        // 1. We have the next path needed cached - we need to ensure we have a valid path to splice to
+        // 2. We are not pausing at the end of the current path - otherwise we need to walk to the last point and wait
+        // 3. The spline is not finalized - if we are finalized it is too late to splice paths anyway
+        // 4. The current path index is the next to last path index - here we will try to splice the remaining segment to the next path
+        if (_paths.size() >= NUM_WANDER_POINTS && !_needsPause && !owner->movespline->Finalized() && owner->movespline->MaxPathIdx() >= 1 && owner->movespline->currentPathIdx() >= owner->movespline->MaxPathIdx() - 1)
+        {
+            _smoothSplineId = owner->movespline->GetId();
+            SetRandomLocation(owner);
+        }
+        // Else we need to wait until the spline is finalized
+        else if (owner->movespline->Finalized())
+        {
+            // If we have indicated we need to pause then set the timer and wait
+            if (_needsPause)
+            {
+                _needsPause = false;
+                _timer.Reset(urand(6, 12) * IN_MILLISECONDS); // Retails seems to use rounded numbers so we do as well
+            }
+            else
+                SetRandomLocation(owner);
+        }
+    }
 
     return true;
 }
