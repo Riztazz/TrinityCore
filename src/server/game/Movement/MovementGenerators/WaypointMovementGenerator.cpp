@@ -132,6 +132,9 @@ void WaypointMovementGenerator<Creature>::DoInitialize(Creature* owner)
             if (_path->nodes[i].id == waypointId)
             {
                 _currentNode = i;
+                // TODO doing this inline to not interferre with the waypoint PR
+                if (_repeating)
+                    _currentNode = (_currentNode + 1) % _path->nodes.size();
                 return;
             }
         }
