@@ -243,8 +243,10 @@ void CreatureGroup::AddMember(Creature* member)
             member->GetMotionMaster()->Initialize();
 
         // Reset the temp leaders motion type (idle or random)
-        _leader->LoadPath(0);
         _leader->SetDefaultMovementType(_tempLeaderDefaultMovementType);
+        _tempLeaderDefaultMovementType = IDLE_MOTION_TYPE;
+        _leader->LoadPath(0);
+        TC_LOG_DEBUG("formations", "reverted the temp leaders motion type {}: {}", _leader->GetSpawnId(), _leader->GetDefaultMovementType());
         _leader->GetMotionMaster()->Initialize();
     }
     else
@@ -280,8 +282,8 @@ void CreatureGroup::RemoveMember(Creature* member)
         // Copy old leaders waypoint info
         newLeader->UpdateCurrentWaypointInfo(_leader->GetCurrentWaypointInfo().first, _leader->GetCurrentWaypointInfo().second);
         // Override temp leaders movement
-        newLeader->LoadPath(_leaderPathId);
         newLeader->SetDefaultMovementType(WAYPOINT_MOTION_TYPE);
+        newLeader->LoadPath(_leaderPathId);
         // If engaged we need to chage, otherwise initialize new default movement
         if (newLeader->IsEngaged())
             newLeader->GetMotionMaster()->MoveChase(newLeader->GetThreatManager().GetCurrentVictim());
