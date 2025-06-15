@@ -226,7 +226,7 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
     // If we are still moving on the smooth spline
     if (!owner->movespline->Finalized() && owner->movespline->GetId() == _smoothSplineId)
     {
-        PointsArray smoothPath;
+        Movement::PointsArray smoothPath;
         smoothPath.reserve(_paths[_pathIndex].size() + 1);
         smoothPath.push_back(PositionToVector3(owner->GetPosition()));
         smoothPath.insert(smoothPath.end(), _paths[_pathIndex].begin(), _paths[_pathIndex].end());
