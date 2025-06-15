@@ -300,10 +300,8 @@ void CreatureGroup::RemoveMember(Creature* member)
         // Override temp leaders movement
         newLeader->SetDefaultMovementType(WAYPOINT_MOTION_TYPE);
         newLeader->LoadPath(_leaderPathId);
-        // If engaged we need to chase, otherwise initialize new default movement
-        if (newLeader->IsEngaged())
-            //newLeader->GetMotionMaster()->MoveChase(newLeader->GetThreatManager().GetCurrentVictim());
-        else
+        // Re-initialize the motion if not engaged
+        if (!newLeader->IsEngaged())
             newLeader->GetMotionMaster()->Initialize();
     }
     else
