@@ -218,9 +218,8 @@ void CreatureGroup::AddMember(Creature* member)
         // If the leader is engaged, we need to set the member as engaged with the same target (which also overrides movement)
         if (_leader && _leader->IsEngaged())
         {
-            member->SetHomePosition(_leader->GetHomePosition());
             member->EngageWithTarget(_leader->GetThreatManager().GetCurrentVictim());
-            //member->GetMotionMaster()->MoveChase(_leader->GetThreatManager().GetCurrentVictim());
+            member->SetHomePosition(_leader->GetHomePosition());
         }
             
         // No need to do anything else
@@ -250,9 +249,8 @@ void CreatureGroup::AddMember(Creature* member)
         // If we respawn while the temp leader is in combat, we need to set the default leader as engaged with the current target
         if (_leader->IsEngaged())
         {
-            defaultLeader->SetHomePosition(_leader->GetHomePosition());
             defaultLeader->EngageWithTarget(_leader->GetThreatManager().GetCurrentVictim());
-            //defaultLeader->GetMotionMaster()->MoveChase(_leader->GetThreatManager().GetCurrentVictim());
+            defaultLeader->SetHomePosition(_leader->GetHomePosition());
         }
         else
             defaultLeader->GetMotionMaster()->Initialize();
