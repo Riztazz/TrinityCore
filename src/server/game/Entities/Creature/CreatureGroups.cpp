@@ -212,9 +212,20 @@ void CreatureGroup::AddMember(Creature* member)
     _members.emplace(member, formationInfo);
     member->SetFormation(this);
 
-    // If the new member is not the default leader do nothing
+    // If the new member is not the default leader
     if (member->GetSpawnId() != _leaderSpawnId)
+    {
+        // If the leader is engaged, we need to set the member as engaged with the same target (which also overrides movement)
+        if (_leader && _leader->IsEngaged())
+        {
+            member->SetHomePosition(_leader->GetHomePosition());
+            member->EngageWithTarget(_leader->GetThreatManager().GetCurrentVictim());
+            //member->GetMotionMaster()->MoveChase(_leader->GetThreatManager().GetCurrentVictim());
+        }
+            
+        // No need to do anything else
         return;
+    }
 
     // Just to make the logic legible
     Creature* defaultLeader = member;
@@ -230,7 +241,7 @@ void CreatureGroup::AddMember(Creature* member)
         return;
     }
     
-    // Copy old leaders waypoint info
+    // If waypoint moving formation
     if (_leaderPathId)
     {
         // Copy the temp leaders waypoint info back to the default leader
@@ -239,8 +250,9 @@ void CreatureGroup::AddMember(Creature* member)
         // If we respawn while the temp leader is in combat, we need to set the default leader as engaged with the current target
         if (_leader->IsEngaged())
         {
+            defaultLeader->SetHomePosition(_leader->GetHomePosition());
             defaultLeader->EngageWithTarget(_leader->GetThreatManager().GetCurrentVictim());
-            defaultLeader->GetMotionMaster()->MoveChase(_leader->GetThreatManager().GetCurrentVictim());
+            //defaultLeader->GetMotionMaster()->MoveChase(_leader->GetThreatManager().GetCurrentVictim());
         }
         else
             defaultLeader->GetMotionMaster()->Initialize();
@@ -251,12 +263,10 @@ void CreatureGroup::AddMember(Creature* member)
         // Reset temp variable
         _tempLeaderDefaultMovementType = IDLE_MOTION_TYPE;
         
-        // If the temp leader is not engaged, initialize the motion
+        // If the temp leader is not engaged, initialize the default motion
         if (!_leader->IsEngaged())
             _leader->GetMotionMaster()->Initialize();
     }
-    else
-        defaultLeader->GetMotionMaster()->Initialize();
 
     // set new leader
     _leader = defaultLeader;
@@ -290,9 +300,9 @@ void CreatureGroup::RemoveMember(Creature* member)
         // Override temp leaders movement
         newLeader->SetDefaultMovementType(WAYPOINT_MOTION_TYPE);
         newLeader->LoadPath(_leaderPathId);
-        // If engaged we need to chage, otherwise initialize new default movement
+        // If engaged we need to chase, otherwise initialize new default movement
         if (newLeader->IsEngaged())
-            newLeader->GetMotionMaster()->MoveChase(newLeader->GetThreatManager().GetCurrentVictim());
+            //newLeader->GetMotionMaster()->MoveChase(newLeader->GetThreatManager().GetCurrentVictim());
         else
             newLeader->GetMotionMaster()->Initialize();
     }
