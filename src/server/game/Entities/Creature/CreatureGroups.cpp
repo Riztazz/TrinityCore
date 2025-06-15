@@ -216,12 +216,15 @@ void CreatureGroup::AddMember(Creature* member)
     if (member->GetSpawnId() != _leaderSpawnId)
         return;
 
+    // Just to make the logic legible
+    Creature* defaultLeader = member;
+
     // If the group is not yet formed then form it
     if (!_leader)
     {
-        _leader = member;
-        if (member->GetWaypointPath())
-            _leaderPathId = member->GetWaypointPath();
+        _leader = defaultLeader;
+        if (defaultLeader->GetWaypointPath())
+            _leaderPathId = defaultLeader->GetWaypointPath();
 
         // The motion is already initialized to the default so simply return
         return;
@@ -231,29 +234,32 @@ void CreatureGroup::AddMember(Creature* member)
     if (_leaderPathId)
     {
         // Copy the temp leaders waypoint info back to the default leader
-        member->UpdateCurrentWaypointInfo(_leader->GetCurrentWaypointInfo().first, _leader->GetCurrentWaypointInfo().second);
+        defaultLeader->UpdateCurrentWaypointInfo(_leader->GetCurrentWaypointInfo().first, _leader->GetCurrentWaypointInfo().second);
 
         // If we respawn while the temp leader is in combat, we need to set the default leader as engaged with the current target
         if (_leader->IsEngaged())
         {
-            member->EngageWithTarget(_leader->GetThreatManager().GetCurrentVictim());
-            member->GetMotionMaster()->MoveChase(_leader->GetThreatManager().GetCurrentVictim());
+            defaultLeader->EngageWithTarget(_leader->GetThreatManager().GetCurrentVictim());
+            defaultLeader->GetMotionMaster()->MoveChase(_leader->GetThreatManager().GetCurrentVictim());
         }
         else
-            member->GetMotionMaster()->Initialize();
+            defaultLeader->GetMotionMaster()->Initialize();
 
         // Reset the temp leaders motion type (idle or random)
         _leader->SetDefaultMovementType(_tempLeaderDefaultMovementType);
-        _tempLeaderDefaultMovementType = IDLE_MOTION_TYPE;
         _leader->LoadPath(0);
-        TC_LOG_DEBUG("formations", "reverted the temp leaders motion type {}: {}", _leader->GetSpawnId(), _leader->GetDefaultMovementType());
-        _leader->GetMotionMaster()->Initialize();
+        // Reset temp variable
+        _tempLeaderDefaultMovementType = IDLE_MOTION_TYPE;
+        
+        // If the temp leader is not engaged, initialize the motion
+        if (!_leader->IsEngaged())
+            _leader->GetMotionMaster()->Initialize();
     }
     else
-        member->GetMotionMaster()->Initialize();
+        defaultLeader->GetMotionMaster()->Initialize();
 
     // set new leader
-    _leader = member;
+    _leader = defaultLeader;
 }
 
 void CreatureGroup::RemoveMember(Creature* member)
