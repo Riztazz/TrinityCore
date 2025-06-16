@@ -51,10 +51,10 @@ class RandomMovementGenerator : public MovementGeneratorMedium<T, RandomMovement
         float _wanderDistance;
         uint8 _wanderSteps;
         Position _reference;
-        uint8 _angleIndex;
+        int _angleIndex;
         std::vector<float> _angles;
         int _angleIterationSign;
-        uint8 _angleIterationIndex;
+        int _angleIterationIndex;
         uint8 _pathIndex;
         std::vector<Movement::PointsArray> _paths;
         std::unique_ptr<PathGenerator> _pathGenerator;
