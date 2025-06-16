@@ -34,7 +34,7 @@ namespace
     // We will iterate our angles vector by this amount to create a less sharp path e.g if we are at index 0, we will lookup offset[0] = 3, so we will iterate to next angle of [3].
     constexpr int ANGLE_ITERATION_OFFSET[] = {3, 3, 3, 2, 3, -1, -3, -2, -1, -2, -1};
     constexpr float SMOOTH_CORNER_RADIUS = 1.0f;
-    constexpr uint32 SMOOTH_CORNER_NUM_POINTS = 0;
+    constexpr uint32 SMOOTH_CORNER_NUM_POINTS = 10;
 }
 
 template<class T>
@@ -230,7 +230,7 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
     // The first path we just need to truncate the end so we can smooth the next
     else if (_paths.size() == 1)
     {
-        Movement::PointsArray truncatedPath = PathGenerator::TruncateLastSegment(_paths[_pathIndex], SMOOTH_CORNER_RADIUS);
+        Movement::PointsArray truncatedPath = PathGenerator::TruncateLastSegment(owner, _paths[_pathIndex], SMOOTH_CORNER_RADIUS);
         init.MovebyPath(truncatedPath);
         //init.SetSmooth();
     }
@@ -240,8 +240,8 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
         Movement::PointsArray prevPath;
         prevPath.push_back(PositionToVector3(owner->GetPosition()));
         prevPath.push_back(_paths[_pathIndex == 0 ? _paths.size() - 1 : _pathIndex - 1].back());
-        Movement::PointsArray nextPath = PathGenerator::TruncateLastSegment(_paths[_pathIndex], SMOOTH_CORNER_RADIUS);
-        Movement::PointsArray smoothPath = PathGenerator::SpliceAndSmoothPaths(prevPath, nextPath, SMOOTH_CORNER_RADIUS, SMOOTH_CORNER_NUM_POINTS);
+        Movement::PointsArray nextPath = PathGenerator::TruncateLastSegment(owner, _paths[_pathIndex], SMOOTH_CORNER_RADIUS);
+        Movement::PointsArray smoothPath = PathGenerator::SpliceAndSmoothPaths(owner, prevPath, nextPath, SMOOTH_CORNER_RADIUS, SMOOTH_CORNER_NUM_POINTS);
         init.MovebyPath(smoothPath);
         //init.SetSmooth();
     }

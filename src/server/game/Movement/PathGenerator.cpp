@@ -26,7 +26,7 @@
 #include "Metric.h"
 #include "Transport.h"
 
-Movement::PointsArray PathGenerator::TruncateLastSegment(const Movement::PointsArray& path, float radius)
+Movement::PointsArray PathGenerator::TruncateLastSegment(WorldObject const* owner, const Movement::PointsArray& path, float radius)
 {
     if (path.size() < 2 || radius <= 0.f)
         return path;
@@ -45,13 +45,14 @@ Movement::PointsArray PathGenerator::TruncateLastSegment(const Movement::PointsA
     float newX = prev.x + dx * t;
     float newY = prev.y + dy * t;
     float newZ = last.z;
+    owner->UpdateAllowedPositionZ(newX, newY, newZ);
 
     Movement::PointsArray result = path;
     result.back() = G3D::Vector3(newX, newY, newZ);
     return result;
 }
 
-Movement::PointsArray PathGenerator::SpliceAndSmoothPaths(const Movement::PointsArray& prevPath, const Movement::PointsArray& nextPath, float radius, uint32 numPoints)
+Movement::PointsArray PathGenerator::SpliceAndSmoothPaths(WorldObject const* owner, const Movement::PointsArray& prevPath, const Movement::PointsArray& nextPath, float radius, uint32 numPoints)
 {
     // If either path is too short, just return nextPath
     if (prevPath.size() < 2 || nextPath.size() < 2)
@@ -94,6 +95,7 @@ Movement::PointsArray PathGenerator::SpliceAndSmoothPaths(const Movement::Points
         float x = one_minus_t * one_minus_t * P0.x + 2 * one_minus_t * t * B.x + t * t * P2.x;
         float y = one_minus_t * one_minus_t * P0.y + 2 * one_minus_t * t * B.y + t * t * P2.y;
 
+        owner->UpdateAllowedPositionZ(x, y, B.z);
         bezierPoints.emplace_back(x, y, B.z);
     }
 
