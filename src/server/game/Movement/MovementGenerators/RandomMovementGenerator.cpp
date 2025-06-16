@@ -183,7 +183,7 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
             {
                 TC_LOG_DEBUG("smooth", "angle index after mod: {}, iter index {}, sign {}, angle: {}, distance: {}", _angleIndex, _angleIterationIndex, _angleIterationSign, angle, distance);
             }
-            ++_angleIterationIndex;
+            _angleIterationIndex = (_angleIterationIndex + 1) % NUM_WANDER_POINTS;
 
             // Modify the wander point accounting for collision
             owner->MovePositionToFirstCollision(src, dest, distance, angle);
