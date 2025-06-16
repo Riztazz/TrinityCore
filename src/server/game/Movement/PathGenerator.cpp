@@ -18,6 +18,7 @@
 #include "PathGenerator.h"
 #include "Map.h"
 #include "Creature.h"
+#include "G3DPosition.hpp"
 #include "MMapFactory.h"
 #include "MMapManager.h"
 #include "Log.h"
