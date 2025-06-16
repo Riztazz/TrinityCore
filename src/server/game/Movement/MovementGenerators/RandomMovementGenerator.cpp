@@ -145,7 +145,7 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
     // No cached paths so create a new one
     if (_paths.size() <= NUM_WANDER_POINTS)
     {
-        Position src = _smoothSplineId ? owner->movespline->FinalDestination() : owner->GetPosition();
+        Position src = _smoothSplineId ? Vector3ToPosition(owner->movespline->FinalDestination()) : owner->GetPosition();
         Position dest;
         // Last path needs to connect to the first point
         if (_paths.size() == NUM_WANDER_POINTS)
