@@ -155,7 +155,11 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
         // Last path needs to connect to the first point of the first path
         if (_paths.size() == NUM_WANDER_POINTS)
         {
-            G3D::Vector3& v = _paths.front().front();
+            if (owner->GetSpawnId() == 80043)
+            {
+                TC_LOG_DEBUG("smooth", "picking final dest from front of path[1]: {},{},{}", _paths[1].front().x, _paths[1].front().y, _paths[1].front().z);
+            }
+            G3D::Vector3& v = _paths[1].front();
             dest.Relocate(v.x, v.y, v.z);
         }
         // Otherwise we need to construct a path to a wander point
@@ -165,11 +169,17 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
             dest = _reference;
             float distance = frand(MIN_WANDER_DISTANCE, std::max(MIN_WANDER_DISTANCE, _wanderDistance));
             float angle = _angles[_angleIndex];
-            _angleIndex = (_angleIndex + _angleIterationSign * ANGLE_ITERATION_OFFSET[_angleIndex]) % NUM_WANDER_POINTS;
+            if (owner->GetSpawnId() == 80043)
+            {
+                TC_LOG_DEBUG("smooth", "picking dest for angle index: {}, angle: {}, distance: {}");
+            }
+            _angleIndex = _angleIndex + _angleIterationSign * ANGLE_ITERATION_OFFSET[_angleIndex];
             _angleIndex = (_angleIndex + NUM_WANDER_POINTS) % NUM_WANDER_POINTS;
 
             // Modify the wander point accounting for collision
             owner->MovePositionToFirstCollision(src, dest, distance, angle);
+
+            
         }
 
         // Check if the destination is in LOS
