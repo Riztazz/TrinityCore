@@ -247,7 +247,7 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
     else
     {
         Movement::PointsArray modPath = PathGenerator::TruncatePath(owner, path, SMOOTH_CORNER_RADIUS, true);
-        modPath = PathGenerator::SpliceAndSmoothPath(owner, path[0], path[1], SMOOTH_CORNER_RADIUS, SMOOTH_CORNER_NUM_POINTS);
+        modPath = PathGenerator::SpliceAndSmoothPath(owner, path[0], path[1], SMOOTH_CORNER_NUM_POINTS);
         init.MovebyPath(modPath);
         init.SetSmooth();
     }
