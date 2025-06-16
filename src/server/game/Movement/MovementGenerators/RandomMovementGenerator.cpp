@@ -29,8 +29,8 @@
 #include <G3D/Vector3.h>
 
 template<class T>
-RandomMovementGenerator<T>::RandomMovementGenerator(float distance) : _timer(0), _reference(),
-_wanderDistance(distance), _wanderSteps(0), _needsPause(false), _angleIndex(0), _pathIndex(0), _smoothSplineId(0)
+RandomMovementGenerator<T>::RandomMovementGenerator(float distance) : _wanderDistance(distance), _wanderSteps(0), _reference(), _angleIndex(0),
+ _timer(0), _needsPause(false),  _pathIndex(0), _smoothSplineId(0)
 {
     this->Mode = MOTION_MODE_DEFAULT;
     this->Priority = MOTION_PRIORITY_NORMAL;
@@ -86,18 +86,14 @@ void RandomMovementGenerator<Creature>::DoInitialize(Creature* owner)
         return;
 
     owner->StopMoving();
-    _timer.Reset(0);
-    
-    _pathIndex = 0;
-    _paths.clear();
-    _smoothSplineId = 0;
-    _pathGenerator = nullptr;
+    ResetPaths(owner);
 
     if (_wanderDistance == 0.f)
         _wanderDistance = owner->GetWanderDistance();
 
     // Retail seems to let a creature walk 2 up to 10 splines before triggering a pause
     _wanderSteps = urand(1, ((_wanderDistance <= 1.0f) ? 2 : 8));
+    // Should we reset timer? _timer.Reset(0);
     _needsPause = false;
 
     // Only set these on first initialize
@@ -142,42 +138,40 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
     {
         AddFlag(MOVEMENTGENERATOR_FLAG_INTERRUPTED);
         owner->StopMoving();
-        _pathIndex = 0;
-        _paths.clear();
-        _smoothSplineId = 0;
-        _pathGenerator = nullptr;
+        ResetPaths(owner);
         return;
     }
 
     // No cached paths so create a new one
     if (_paths.size() <= NUM_WANDER_POINTS)
     {
-        Position position;
+        Position src = _smoothSplineId ? owner->movespline->FinalDestination() : owner->GetPosition();
+        Position dest;
+        // Last path needs to connect to the first point
         if (_paths.size() == NUM_WANDER_POINTS)
         {
-            // Last path needs to connect to the first point
             G3D::Vector3& v = _paths[0][0];
-            position.Relocate(v.x, v.y, v.z);
+            dest.Relocate(v.x, v.y, v.z);
         }
+        // Otherwise we need to construct a path to a wander point
         else
         {
-            position = _reference;
+            // Using our initial spawn point construct the distance and angle to a new point
+            dest = _reference;
             float distance = frand(MIN_WANDER_DISTANCE, std::max(MIN_WANDER_DISTANCE, _wanderDistance));
             float angle = _angles[_angleIndex];
             _angleIndex = (_angleIndex + 1) % NUM_WANDER_POINTS;
-            // Project destination position to the first collision
-            owner->MovePositionToFirstCollision(position, distance, angle);
+
+            // Modify the wander point accounting for collision
+            owner->MovePositionToFirstCollision(src, dest, distance, angle);
         }
 
         // Check if the destination is in LOS
-        if (!owner->IsWithinLOS(position.GetPositionX(), position.GetPositionY(), position.GetPositionZ()))
+        if (!owner->IsWithinLOS(src, dest.GetPositionX(), dest.GetPositionY(), dest.GetPositionZ()))
         {
             // Retry later on
             _timer.Reset(200);
-            // Always clear the cache if we fail to complete the loop at any step
-            _pathIndex = 0;
-            _paths.clear();
-            _smoothSplineId = 0;
+            ResetPaths(owner);
             return;
         }
 
@@ -188,17 +182,14 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
             _pathGenerator->SetPathLengthLimit(30.0f);
         }
 
-        bool result = _pathGenerator->CalculatePath(position.GetPositionX(), position.GetPositionY(), position.GetPositionZ());
+        bool result = _pathGenerator->CalculatePath(src, dest);
         // PATHFIND_FARFROMPOLY shouldn't be checked as creatures in water are most likely far from poly
         if (!result || (_pathGenerator->GetPathType() & PATHFIND_NOPATH)
                     || (_pathGenerator->GetPathType() & PATHFIND_SHORTCUT)
                     /*|| (_pathGenerator->GetPathType() & PATHFIND_FARFROMPOLY)*/)
         {
             _timer.Reset(100);
-            // Always clear the cache if we fail to complete the loop at any step
-            _pathIndex = 0;
-            _paths.clear();
-            _smoothSplineId = 0;
+            ResetPaths(owner);
             return;
         }
 
@@ -223,8 +214,9 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
     }
 
     Movement::MoveSplineInit init(owner);
-    // If we are still moving on the smooth spline
-    if (!owner->movespline->Finalized() && owner->movespline->GetId() == _smoothSplineId)
+
+    // In this case we are not yet at the end of the spline, we need to splice our current position into the next path
+    if (_smoothSplineId)
     {
         Movement::PointsArray smoothPath;
         smoothPath.reserve(_paths[_pathIndex].size() + 1);
@@ -235,6 +227,7 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
     }
     else
         init.MovebyPath(_paths[_pathIndex]);
+
     init.SetSmooth();
     init.SetWalk(walk);
     init.Launch();
@@ -256,6 +249,18 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
 }
 
 template<class T>
+void RandomMovementGenerator<T>::ResetPaths(T*) { }
+
+template<>
+void RandomMovementGenerator<Creature>::ResetPaths(Creature* owner)
+{
+    _pathIndex = 0;
+    _paths.clear();
+    _pathGenerator = nullptr;
+    _smoothSplineId = 0;
+}
+
+template<class T>
 bool RandomMovementGenerator<T>::DoUpdate(T*, uint32)
 {
     return false;
@@ -274,10 +279,7 @@ bool RandomMovementGenerator<Creature>::DoUpdate(Creature* owner, uint32 diff)
     {
         AddFlag(MOVEMENTGENERATOR_FLAG_INTERRUPTED);
         owner->StopMoving();
-        _pathIndex = 0;
-        _paths.clear();
-        _smoothSplineId = 0;
-        _pathGenerator = nullptr;
+        ResetPaths(owner);
         return true;
     }
     else
@@ -286,10 +288,9 @@ bool RandomMovementGenerator<Creature>::DoUpdate(Creature* owner, uint32 diff)
     _timer.Update(diff);
 
     // We have to make new splines on speed change
-    if (HasFlag(MOVEMENTGENERATOR_FLAG_SPEED_UPDATE_PENDING) && !owner->movespline->Finalized()) {
-        _pathIndex = 0;
-        _paths.clear();
-        _smoothSplineId = 0;
+    if (HasFlag(MOVEMENTGENERATOR_FLAG_SPEED_UPDATE_PENDING) && !owner->movespline->Finalized())
+    {
+        ResetPaths(owner);
         SetRandomLocation(owner);
     }
     // Wait out any timer

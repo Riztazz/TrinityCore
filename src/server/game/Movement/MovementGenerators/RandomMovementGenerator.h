@@ -49,18 +49,19 @@ class RandomMovementGenerator : public MovementGeneratorMedium<T, RandomMovement
 
     private:
         void SetRandomLocation(T*);
+        void ResetPaths();
 
-        Position _reference;
-        TimeTracker _timer;
         float _wanderDistance;
         uint8 _wanderSteps;
-        bool _needsPause;
+        Position _reference;
         uint8 _angleIndex;
         std::vector<float> _angles;
+        TimeTracker _timer;
+        bool _needsPause;
         uint8 _pathIndex;
-        uint32 _smoothSplineId;
         std::vector<Movement::PointsArray> _paths;
         std::unique_ptr<PathGenerator> _pathGenerator;
+        uint32 _smoothSplineId;
 };
 
 #endif
