@@ -1248,7 +1248,7 @@ bool WorldObject::IsWithinDistInMap(WorldObject const* obj, float dist2compare, 
 
 Position WorldObject::GetHitSpherePointFor(Position const& dest) const
 {
-    return GetHitSpherePointFor(GetPosition(), Position const& dest);
+    return GetHitSpherePointFor(GetPosition(), dest);
 }
 
 Position WorldObject::GetHitSpherePointFor(Position const& src, Position const& dest) const
