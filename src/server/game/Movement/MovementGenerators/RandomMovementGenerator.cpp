@@ -38,7 +38,7 @@ namespace
 }
 
 template<class T>
-RandomMovementGenerator<T>::RandomMovementGenerator(float distance) : _wanderDistance(distance), _wanderSteps(0), _reference(), _angleIndex(0), _pathIndex(0), _storePaths(false), _timer(0)
+RandomMovementGenerator<T>::RandomMovementGenerator(float distance) : _wanderDistance(distance), _wanderSteps(0), _reference(), _angleIndex(0), _pathIndex(0), _timer(0)
 {
     this->Mode = MOTION_MODE_DEFAULT;
     this->Priority = MOTION_PRIORITY_NORMAL;
@@ -262,7 +262,6 @@ template<class T>
 void RandomMovementGenerator<T>::ResetPaths()
 {
     _pathIndex = 0;
-    _storePaths = false;
     _paths.clear();
     _pathGenerator = nullptr;
 }
