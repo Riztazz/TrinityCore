@@ -157,7 +157,7 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
         {
             if (owner->GetSpawnId() == 80043)
             {
-                TC_LOG_DEBUG("smooth", "picking final dest from front of path[1]: {},{},{}", _paths[1].front().x, _paths[1].front().y, _paths[1].front().z);
+                TC_LOG_DEBUG("smooth", "picking final dest from front of path[1]");
             }
             G3D::Vector3& v = _paths[1].front();
             dest.Relocate(v.x, v.y, v.z);
