@@ -29,7 +29,10 @@
 Movement::PointsArray PathGenerator::TruncateLastSegment(const Movement::PointsArray& path, float radius)
 {
     if (path.size() < 2 || radius <= 0.f)
+    {
+        TC_LOG_DEBUG("smooth", "Could NOT TruncateLastSegment called with path size {} and radius {}", path.size(), radius);
         return path;
+    }
 
     const G3D::Vector3& last = path.back();
     const G3D::Vector3& prev = path[path.size() - 2];
@@ -55,13 +58,19 @@ Movement::PointsArray PathGenerator::SpliceAndSmoothPaths(const Movement::Points
 {
     // If either path is too short, just return nextPath
     if (prevPath.size() < 2 || nextPath.size() < 2)
+    {
+        TC_LOG_DEBUG("smooth", "Could NOT SpliceAndSmoothPaths called with prevPath size {} and nextPath size {}", prevPath.size(), nextPath.size());
         return nextPath;
+    }
 
     // Ensure the paths connect at the splice point
     const G3D::Vector3& splicePrev = prevPath.back();
     const G3D::Vector3& spliceNext = nextPath.front();
     if (splicePrev.x != spliceNext.x || splicePrev.y != spliceNext.y || splicePrev.z != spliceNext.z)
+    {
+        TC_LOG_DEBUG("smooth", "Could NOT SpliceAndSmoothPaths called with prevPath size {} and nextPath size {}", prevPath.size(), nextPath.size());
         return nextPath;
+    }
 
     // Points for smoothing
     const G3D::Vector3& A = prevPath[prevPath.size() - 2];

@@ -18,6 +18,7 @@
 #include "RandomMovementGenerator.h"
 #include "Creature.h"
 #include "G3DPosition.hpp"
+#include "Log.h"
 #include "Map.h"
 #include "MovementDefines.h"
 #include "MoveSpline.h"
