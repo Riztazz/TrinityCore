@@ -182,7 +182,7 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
             _pathGenerator->SetPathLengthLimit(30.0f);
         }
 
-        bool result = _pathGenerator->CalculatePath(src, dest);
+        bool result = _pathGenerator->CalculatePath(PositionToVector3(src), PositionToVector3(dest));
         // PATHFIND_FARFROMPOLY shouldn't be checked as creatures in water are most likely far from poly
         if (!result || (_pathGenerator->GetPathType() & PATHFIND_NOPATH)
                     || (_pathGenerator->GetPathType() & PATHFIND_SHORTCUT)
