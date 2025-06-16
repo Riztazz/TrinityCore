@@ -94,9 +94,10 @@ Movement::PointsArray PathGenerator::SpliceAndSmoothPaths(WorldObject const* own
 
         float x = one_minus_t * one_minus_t * P0.x + 2 * one_minus_t * t * B.x + t * t * P2.x;
         float y = one_minus_t * one_minus_t * P0.y + 2 * one_minus_t * t * B.y + t * t * P2.y;
+        float z = B.z;
 
-        owner->UpdateAllowedPositionZ(x, y, B.z);
-        bezierPoints.emplace_back(x, y, B.z);
+        owner->UpdateAllowedPositionZ(x, y, z);
+        bezierPoints.emplace_back(x, y, z);
     }
 
     // Build the new path: all of prevPath except the last point, then the smoothed points, then all of nextPath except the first point
