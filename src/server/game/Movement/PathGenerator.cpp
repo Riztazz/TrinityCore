@@ -27,7 +27,7 @@
 #include "Metric.h"
 #include "Transport.h"
 
-static float ComputePathLength(const Movement::PointsArray& path)
+float PathGenerator::ComputePathLength(const Movement::PointsArray& path)
 {
     float length = 0.0f;
     for (size_t i = 1; i < path.size(); ++i)
