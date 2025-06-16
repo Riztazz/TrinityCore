@@ -32,7 +32,7 @@ namespace
     constexpr float MIN_WANDER_DISTANCE = 1.0f;
     constexpr uint8 NUM_WANDER_POINTS = 12;
     // We will iterate our angles vector by this amount to create a less sharp path e.g if we are at index 0, we will lookup offset[0] = 3, so we will iterate to next angle of [3].
-    constexpr int ANGLE_ITERATION_OFFSET[] = {3, 3, 3, -2, -3, -3, -3, 1, 3, 3, 3};
+    constexpr int ANGLE_ITERATION_OFFSET[] = {3, 3, 3,  2, 3, 3, 3,  2, 3, 3, 3};
     constexpr float SMOOTH_CORNER_RADIUS = 1.0f;
     constexpr uint32 SMOOTH_CORNER_NUM_POINTS = 5;
 }
