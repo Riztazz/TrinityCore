@@ -56,8 +56,9 @@ enum PathType
 class TC_GAME_API PathGenerator
 {
     public:
-        static Movement::PointsArray TruncateLastSegment(WorldObject const* owner, const Movement::PointsArray& path, float radius);
-        static Movement::PointsArray SpliceAndSmoothPath(WorldObject const* owner, const Movement::PointsArray& path, float radius, uint32 numPoints);
+        static float ComputePathLength(const Movement::PointsArray& path);
+        static Movement::PointsArray TruncatePath(WorldObject const* owner, const Movement::PointsArray& path, float radius, bool truncateFront /*= false*/);
+        static Movement::PointsArray SpliceAndSmoothPath(WorldObject const* owner, const G3D::Vector3& midpoint, const G3D::Vector3& endpoint, uint32 numPoints);
 
         explicit PathGenerator(WorldObject const* owner);
         ~PathGenerator();

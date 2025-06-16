@@ -33,12 +33,12 @@ namespace
     constexpr uint8 NUM_WANDER_POINTS = 12;
     // We will iterate our angles vector by this amount to create a less sharp path e.g if we are at index 0, we will lookup offset[0] = 3, so we will iterate to next angle of [3].
     constexpr int ANGLE_ITERATION_OFFSET[] = {3, 3, 3, 2, 3, -1, -3, -2, -1, -2, -1};
-    constexpr float SMOOTH_CORNER_RADIUS = 1.5f;
+    constexpr float SMOOTH_CORNER_RADIUS = 1.0f;
     constexpr uint32 SMOOTH_CORNER_NUM_POINTS = 3;
 }
 
 template<class T>
-RandomMovementGenerator<T>::RandomMovementGenerator(float distance) : _wanderDistance(distance), _wanderSteps(0), _reference(), _angleIndex(0), _pathIndex(0), _timer(0)
+RandomMovementGenerator<T>::RandomMovementGenerator(float distance) : _wanderDistance(distance), _wanderSteps(0), _reference(), _angleIndex(0), _pathIndex(0), _storePaths(false), _timer(0)
 {
     this->Mode = MOTION_MODE_DEFAULT;
     this->Priority = MOTION_PRIORITY_NORMAL;
@@ -147,14 +147,14 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
     }
 
     // No cached paths so create a new one
-    if (_paths.size() <= NUM_WANDER_POINTS)
+    Movement::PointsArray path;
+    if (_paths.size() < NUM_WANDER_POINTS)
     {
-        // If this our first path we need to start from the owner position
-        // If not, we actually stopped short of the end of the path to smooth the transition, so we need to start from the end of the current path
+        // Our paths are actually hypothetical paths and not the actual paths we will be moving on
         Position src = _paths.empty() ? owner->GetPosition() : Vector3ToPosition(_paths.back().back());
         Position dest;
         // Last path needs to connect to the first point of the first path
-        if (_paths.size() == NUM_WANDER_POINTS)
+        if (_paths.size() == NUM_WANDER_POINTS - 1)
         {
             G3D::Vector3& v = _paths.front().front();
             dest.Relocate(v.x, v.y, v.z);
@@ -162,7 +162,7 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
         // Otherwise we need to construct a path to a wander point
         else
         {
-            // Using our initial spawn point construct the distance and angle to a new point
+            // Using our reference (spawn) point construct the distance and angle to a new point
             dest = _reference;
             float distance = frand(MIN_WANDER_DISTANCE, std::max(MIN_WANDER_DISTANCE, _wanderDistance));
             float angle = _angles[_angleIndex];
@@ -200,7 +200,16 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
             return;
         }
 
-        _paths.push_back(_pathGenerator->GetPath());
+        path = _pathGenerator->GetPath();
+        // Do not store the first path after reset as we don't want to cache and repeat the partial paths to our pathing cycle
+        if (_storePaths)
+            _paths.push_back(path);
+        else
+            _storePaths = true;
+    }
+    else
+    {
+        path = _paths[_pathIndex];
     }
 
     RemoveFlag(MOVEMENTGENERATOR_FLAG_TRANSITORY | MOVEMENTGENERATOR_FLAG_TIMED_PAUSED);
@@ -223,32 +232,34 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
     Movement::MoveSplineInit init(owner);
 
     // For debugging purposes move with no smoothing
-    if (SMOOTH_CORNER_RADIUS <= 0.0f || SMOOTH_CORNER_NUM_POINTS <= 1)
+    if (SMOOTH_CORNER_RADIUS <= 0.0f || SMOOTH_CORNER_NUM_POINTS <= 1 || path.size() < 2)
     {
-        init.MovebyPath(_paths[_pathIndex]);
+        init.MovebyPath(path);
     }
     // The first path we just need to truncate the end so we can smooth the next
-    else if (_paths.size() == 1)
+    else if (_paths.empty())
     {
-        Movement::PointsArray path = PathGenerator::TruncateLastSegment(owner, _paths[_pathIndex], SMOOTH_CORNER_RADIUS);
-        init.MovebyPath(path);
+        Movement::PointsArray modPath = PathGenerator::TruncatePath(owner, path, SMOOTH_CORNER_RADIUS);
+        init.MovebyPath(modPath);
         init.SetSmooth();
     }
     // We want to smooth to the next path by splicing the end of the current path with the start of the next path and smoothing the corner
     else
     {
-        Movement::PointsArray path = PathGenerator::TruncateLastSegment(owner, _paths[_pathIndex], SMOOTH_CORNER_RADIUS);
-        path = PathGenerator::SpliceAndSmoothPath(owner, path, SMOOTH_CORNER_RADIUS, SMOOTH_CORNER_NUM_POINTS);
-        //path.insert(path.begin(), PositionToVector3(owner->GetPosition()));
-        init.MovebyPath(path);
+        Movement::PointsArray modPath = PathGenerator::TruncatePath(owner, path, SMOOTH_CORNER_RADIUS, true);
+        modPath = PathGenerator::SpliceAndSmoothPath(owner, path[0], path[1], SMOOTH_CORNER_RADIUS, SMOOTH_CORNER_NUM_POINTS);
+        init.MovebyPath(modPath);
         init.SetSmooth();
     }
 
     init.SetWalk(walk);
     init.Launch();
 
-    _pathIndex = (_pathIndex + 1) % (NUM_WANDER_POINTS + 1);
-    --_wanderSteps;
+    if (!_paths.empty())
+    {
+        _pathIndex = (_pathIndex + 1) % (NUM_WANDER_POINTS + 1);
+        --_wanderSteps;
+    }
 
     // Call for creature group update
     owner->SignalFormationMovement();
@@ -258,6 +269,7 @@ template<class T>
 void RandomMovementGenerator<T>::ResetPaths()
 {
     _pathIndex = 0;
+    _storePaths = false;
     _paths.clear();
     _pathGenerator = nullptr;
 }
