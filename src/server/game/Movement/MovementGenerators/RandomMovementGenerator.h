@@ -23,9 +23,6 @@
 #include "Timer.h"
 #include "Movement/Spline/MoveSplineInitArgs.h"
 
-#define MIN_WANDER_DISTANCE 1.0f
-#define NUM_WANDER_POINTS 12
-
 class PathGenerator;
 
 template<class T>
@@ -56,6 +53,7 @@ class RandomMovementGenerator : public MovementGeneratorMedium<T, RandomMovement
         Position _reference;
         uint8 _angleIndex;
         std::vector<float> _angles;
+        int _angleIterationSign;
         uint8 _pathIndex;
         std::vector<Movement::PointsArray> _paths;
         std::unique_ptr<PathGenerator> _pathGenerator;

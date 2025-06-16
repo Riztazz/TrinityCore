@@ -25,12 +25,14 @@
 #include "MoveSplineInit.h"
 #include "PathGenerator.h"
 #include "Random.h"
-#include <random>
-#include <algorithm>
 #include <G3D/Vector3.h>
 
 namespace
 {
+    constexpr float MIN_WANDER_DISTANCE = 1.0f;
+    constexpr uint8 NUM_WANDER_POINTS = 12;
+    // We will iterate our angles vector by this amount to create a less sharp path e.g if we are at index 0, we will lookup offset[0] = 3, so we will iterate to next angle of [3].
+    constexpr int ANGLE_ITERATION_OFFSET[] = {3, 3, 3, -2, -3, -3, -3, 1, 3, 3, 3};
     constexpr float SMOOTH_CORNER_RADIUS = 1.0f;
     constexpr uint32 SMOOTH_CORNER_NUM_POINTS = 5;
 }
@@ -107,15 +109,12 @@ void RandomMovementGenerator<Creature>::DoInitialize(Creature* owner)
         _reference = owner->GetPosition();
         // Precalculate a spread of angles to use for our wander points, this gives us a more even distribution of 'random' points
         float initAngle = frand(0.f, M_PI * 2.0f);
-        std::vector<float> tempAngles;
         for (uint8 i = 0; i < NUM_WANDER_POINTS; ++i)
         {
-            tempAngles.push_back(initAngle + (M_PI * 2.0f / (float)NUM_WANDER_POINTS) * i);
+            _angles.push_back(initAngle + (M_PI * 2.0f / (float)NUM_WANDER_POINTS) * i);
         }
-        std::random_device rd;
-        std::mt19937 g(rd());
-        std::shuffle(tempAngles.begin(), tempAngles.end(), g);
-        _angles.insert(_angles.end(), tempAngles.begin(), tempAngles.end());
+        // Pick an iteration direction for this spawn, we do not reset these 
+        _angleIterationSign = urand(0, 1) ? 1 : -1;
     }
 }
 
@@ -167,7 +166,8 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
             dest = _reference;
             float distance = frand(MIN_WANDER_DISTANCE, std::max(MIN_WANDER_DISTANCE, _wanderDistance));
             float angle = _angles[_angleIndex];
-            _angleIndex = (_angleIndex + 1) % NUM_WANDER_POINTS;
+            _angleIndex = (_angleIndex + _angleIterationSign * ANGLE_ITERATION_OFFSET[_angleIndex]) % NUM_WANDER_POINTS;
+            _angleIndex = (_angleIndex + NUM_WANDER_POINTS) % NUM_WANDER_POINTS;
 
             // Modify the wander point accounting for collision
             owner->MovePositionToFirstCollision(src, dest, distance, angle);
