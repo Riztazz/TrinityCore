@@ -248,7 +248,8 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
     owner->SignalFormationMovement();
 }
 
-void RandomMovementGenerator<Creature>::ResetPaths()
+template<class T>
+void RandomMovementGenerator<T>::ResetPaths()
 {
     _pathIndex = 0;
     _paths.clear();
