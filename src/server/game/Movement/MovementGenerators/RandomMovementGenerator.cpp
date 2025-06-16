@@ -30,7 +30,7 @@
 
 template<class T>
 RandomMovementGenerator<T>::RandomMovementGenerator(float distance) : _wanderDistance(distance), _wanderSteps(0), _reference(), _angleIndex(0),
- _timer(0), _needsPause(false),  _pathIndex(0), _smoothSplineId(0)
+ _timer(0), _needsPause(false), _smoothSpline(false), _pathIndex(0)
 {
     this->Mode = MOTION_MODE_DEFAULT;
     this->Priority = MOTION_PRIORITY_NORMAL;
@@ -145,7 +145,8 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
     // No cached paths so create a new one
     if (_paths.size() <= NUM_WANDER_POINTS)
     {
-        Position src = _smoothSplineId ? Vector3ToPosition(owner->movespline->FinalDestination()) : owner->GetPosition();
+        // If we can smooth the spline transition, but we don't have the next path yet, so we need to calculate from the end of our current path
+        Position src = _smoothSpline ? Vector3ToPosition(owner->movespline->FinalDestination()) : owner->GetPosition();
         Position dest;
         // Last path needs to connect to the first point
         if (_paths.size() == NUM_WANDER_POINTS)
@@ -215,15 +216,15 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
 
     Movement::MoveSplineInit init(owner);
 
-    // In this case we are not yet at the end of the spline, we need to splice our current position into the next path
-    if (_smoothSplineId)
+    // Smooth the transition to the next path
+    if (_smoothSpline)
     {
+        _smoothSpline = false;
         Movement::PointsArray smoothPath;
         smoothPath.reserve(_paths[_pathIndex].size() + 1);
         smoothPath.push_back(PositionToVector3(owner->GetPosition()));
         smoothPath.insert(smoothPath.end(), _paths[_pathIndex].begin(), _paths[_pathIndex].end());
         init.MovebyPath(smoothPath);
-        _smoothSplineId = 0;
     }
     else
         init.MovebyPath(_paths[_pathIndex]);
@@ -254,7 +255,7 @@ void RandomMovementGenerator<T>::ResetPaths()
     _pathIndex = 0;
     _paths.clear();
     _pathGenerator = nullptr;
-    _smoothSplineId = 0;
+    _smoothSpline = false;
 }
 
 template<class T>
@@ -293,14 +294,13 @@ bool RandomMovementGenerator<Creature>::DoUpdate(Creature* owner, uint32 diff)
     // Wait out any timer
     else if (_timer.Passed())
     {
-        // We can only do spline smoothing under certain conditions:
-        // 1. We have the next path needed cached - we need to ensure we have a valid path to splice to
-        // 2. We are not pausing at the end of the current path - otherwise we need to walk to the last point and wait
-        // 3. The spline is not finalized - if we are finalized it is too late to splice paths anyway
-        // 4. The current path index is the next to last path index - here we will try to splice the remaining segment to the next path
-        if (_paths.size() >= NUM_WANDER_POINTS && !_needsPause && !owner->movespline->Finalized() && owner->movespline->MaxPathIdx() >= 1 && owner->movespline->currentPathIdx() >= owner->movespline->MaxPathIdx() - 1)
+        // We should only do spline smoothing when:
+        // 1. We are not pausing at the end of the current path (we need to walk to the end of the path and pause)
+        // 2. The spline is not finalized (if we are finalized it is too late to splice paths anyway)
+        // Here we check each tick for when we are on the last segment of a path, if so and conditions are met we can build a spliced spline with the next path
+        if (!_needsPause && !owner->movespline->Finalized() && owner->movespline->MaxPathIdx() >= 1 && owner->movespline->currentPathIdx() >= owner->movespline->MaxPathIdx() - 1)
         {
-            _smoothSplineId = owner->movespline->GetId();
+            _smoothSpline = true;
             SetRandomLocation(owner);
         }
         // Else we need to wait until the spline is finalized
