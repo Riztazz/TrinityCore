@@ -86,7 +86,7 @@ void RandomMovementGenerator<Creature>::DoInitialize(Creature* owner)
         return;
 
     owner->StopMoving();
-    ResetPaths(owner);
+    ResetPaths();
 
     if (_wanderDistance == 0.f)
         _wanderDistance = owner->GetWanderDistance();
@@ -138,7 +138,7 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
     {
         AddFlag(MOVEMENTGENERATOR_FLAG_INTERRUPTED);
         owner->StopMoving();
-        ResetPaths(owner);
+        ResetPaths();
         return;
     }
 
@@ -171,7 +171,7 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
         {
             // Retry later on
             _timer.Reset(200);
-            ResetPaths(owner);
+            ResetPaths();
             return;
         }
 
@@ -189,7 +189,7 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
                     /*|| (_pathGenerator->GetPathType() & PATHFIND_FARFROMPOLY)*/)
         {
             _timer.Reset(100);
-            ResetPaths(owner);
+            ResetPaths();
             return;
         }
 
@@ -248,11 +248,7 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
     owner->SignalFormationMovement();
 }
 
-template<class T>
-void RandomMovementGenerator<T>::ResetPaths(T*) { }
-
-template<>
-void RandomMovementGenerator<Creature>::ResetPaths(Creature* owner)
+void RandomMovementGenerator<Creature>::ResetPaths()
 {
     _pathIndex = 0;
     _paths.clear();
@@ -279,7 +275,7 @@ bool RandomMovementGenerator<Creature>::DoUpdate(Creature* owner, uint32 diff)
     {
         AddFlag(MOVEMENTGENERATOR_FLAG_INTERRUPTED);
         owner->StopMoving();
-        ResetPaths(owner);
+        ResetPaths();
         return true;
     }
     else
@@ -290,7 +286,7 @@ bool RandomMovementGenerator<Creature>::DoUpdate(Creature* owner, uint32 diff)
     // We have to make new splines on speed change
     if (HasFlag(MOVEMENTGENERATOR_FLAG_SPEED_UPDATE_PENDING) && !owner->movespline->Finalized())
     {
-        ResetPaths(owner);
+        ResetPaths();
         SetRandomLocation(owner);
     }
     // Wait out any timer
