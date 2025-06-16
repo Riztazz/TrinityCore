@@ -29,12 +29,12 @@
 
 namespace
 {
-    constexpr float MIN_WANDER_DISTANCE = 1.0f;
+    constexpr float MIN_WANDER_DISTANCE = 2.0f;
+    constexpr float SMOOTH_CORNER_RADIUS = 0.5f;
     constexpr uint8 NUM_WANDER_POINTS = 12;
-    // We will iterate our angles vector by this amount to create a less sharp path e.g if we are at index 0, we will lookup offset[0] = 3, so we will iterate to next angle of [3].
-    constexpr int ANGLE_ITERATION_OFFSET[] = {3, 3, 3, 2, 3, -1, -3, -2, -1, -2, -1};
-    constexpr float SMOOTH_CORNER_RADIUS = 1.0f;
     constexpr uint32 SMOOTH_CORNER_NUM_POINTS = 3;
+    // We will iterate our angles vector by this amount to create a less sharp path e.g if we are at index 0, we will lookup offset[0] = 3, so we will iterate to next angle of [3].
+    constexpr int ANGLE_ITERATION_OFFSET[] = {2, 2, 2, 2, 2, 2, -2, -2, -2, -2, -2, -3};
 }
 
 template<class T>
@@ -100,7 +100,7 @@ void RandomMovementGenerator<Creature>::DoInitialize(Creature* owner)
         _wanderDistance = owner->GetWanderDistance();
 
     // Retail seems to let a creature walk 2 up to 10 splines before triggering a pause
-    _wanderSteps = urand(1, ((_wanderDistance <= 1.0f) ? 2 : 8));
+    _wanderSteps = urand(1, ((_wanderDistance <= MIN_WANDER_DISTANCE) ? 2 : 8));
     // Should we reset timer? _timer.Reset(0);
 
     // Only set these on first initialize
@@ -232,7 +232,7 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
     Movement::MoveSplineInit init(owner);
 
     // For debugging purposes move with no smoothing
-    if (SMOOTH_CORNER_RADIUS <= 0.0f || SMOOTH_CORNER_NUM_POINTS <= 1 || path.size() < 2)
+    if (SMOOTH_CORNER_NUM_POINTS <= 1 || path.size() < 2)
     {
         init.MovebyPath(path);
     }
