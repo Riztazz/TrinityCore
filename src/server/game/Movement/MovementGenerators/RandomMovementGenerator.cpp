@@ -171,16 +171,22 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
             float angle = _angles[_angleIndex];
             if (owner->GetSpawnId() == 80043)
             {
-                TC_LOG_DEBUG("smooth", "picking dest for angle index: {}, angle: {}, distance: {}", _angleIndex, angle, distance);
+                TC_LOG_DEBUG("smooth", "picking dest for angle index: {}, iter index {}, sign {}, angle: {}, distance: {}", _angleIndex, _angleIterationIndex, _angleIterationSign, angle, distance);
             }
             _angleIndex = _angleIndex + _angleIterationSign * ANGLE_ITERATION_OFFSET[_angleIterationIndex];
+            if (owner->GetSpawnId() == 80043)
+            {
+                TC_LOG_DEBUG("smooth", "angle index after offset: {}, iter index {}, sign {}, angle: {}, distance: {}", _angleIndex, _angleIterationIndex, _angleIterationSign, angle, distance);
+            }
             _angleIndex = (_angleIndex + NUM_WANDER_POINTS) % NUM_WANDER_POINTS;
+            if (owner->GetSpawnId() == 80043)
+            {
+                TC_LOG_DEBUG("smooth", "angle index after mod: {}, iter index {}, sign {}, angle: {}, distance: {}", _angleIndex, _angleIterationIndex, _angleIterationSign, angle, distance);
+            }
             ++_angleIterationIndex;
 
             // Modify the wander point accounting for collision
             owner->MovePositionToFirstCollision(src, dest, distance, angle);
-
-            
         }
 
         // Check if the destination is in LOS
@@ -272,6 +278,7 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
 template<class T>
 void RandomMovementGenerator<T>::ResetPaths()
 {
+    TC_LOG_DEBUG("smooth", "Resetting paths");
     _pathIndex = 0;
     _paths.clear();
     _pathGenerator = nullptr;
