@@ -1165,27 +1165,3 @@ void PathGenerator::AddFarFromPolyFlags(bool startFarFromPoly, bool endFarFromPo
     if (endFarFromPoly)
         _type = PathType(_type | PATHFIND_FARFROMPOLY_END);
 }
-
-void PathGenerator::TruncateLastSegment(float radius)
-{
-    if (_pathPoints.size() < 2 || radius <= 0.f)
-        return;
-
-    G3D::Vector3& last = _pathPoints.back();
-    G3D::Vector3& prev = _pathPoints[_pathPoints.size() - 2];
-
-    // 2D vector from prev to last
-    float dx = last.x - prev.x;
-    float dy = last.y - prev.y;
-    float dist = std::sqrt(dx * dx + dy * dy);
-
-    if (dist <= radius)
-        return;
-
-    float t = (dist - radius) / dist; // how far from prev to new point
-    float newX = prev.x + dx * t;
-    float newY = prev.y + dy * t;
-    float newZ = last.z;
-
-    last = G3D::Vector3(newX, newY, newZ);
-}
