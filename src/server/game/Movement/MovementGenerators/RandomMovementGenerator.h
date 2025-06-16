@@ -56,12 +56,10 @@ class RandomMovementGenerator : public MovementGeneratorMedium<T, RandomMovement
         Position _reference;
         uint8 _angleIndex;
         std::vector<float> _angles;
-        TimeTracker _timer;
-        bool _needsPause;
-        bool _smoothSpline;
         uint8 _pathIndex;
         std::vector<Movement::PointsArray> _paths;
         std::unique_ptr<PathGenerator> _pathGenerator;
+        TimeTracker _timer;
 };
 
 #endif

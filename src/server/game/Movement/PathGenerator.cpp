@@ -26,6 +26,87 @@
 #include "Metric.h"
 #include "Transport.h"
 
+Movement::PointsArray PathGenerator::TruncateLastSegment(const Movement::PointsArray& path, float radius)
+{
+    if (path.size() < 2 || radius <= 0.f)
+        return path;
+
+    const G3D::Vector3& last = path.back();
+    const G3D::Vector3& prev = path[path.size() - 2];
+
+    float dx = last.x - prev.x;
+    float dy = last.y - prev.y;
+    float dist = std::sqrt(dx * dx + dy * dy);
+
+    if (dist <= radius)
+        return path;
+
+    float t = (dist - radius) / dist;
+    float newX = prev.x + dx * t;
+    float newY = prev.y + dy * t;
+    float newZ = last.z;
+
+    Movement::PointsArray result = path;
+    result.back() = G3D::Vector3(newX, newY, newZ);
+    return result;
+}
+
+Movement::PointsArray PathGenerator::SpliceAndSmoothPaths(const Movement::PointsArray& prevPath, const Movement::PointsArray& nextPath, float radius, uint32 numPoints)
+{
+    // If either path is too short, just return nextPath
+    if (prevPath.size() < 2 || nextPath.size() < 2)
+        return nextPath;
+
+    // Ensure the paths connect at the splice point
+    const G3D::Vector3& splicePrev = prevPath.back();
+    const G3D::Vector3& spliceNext = nextPath.front();
+    if (splicePrev.x != spliceNext.x || splicePrev.y != spliceNext.y || splicePrev.z != spliceNext.z)
+        return nextPath;
+
+    // Points for smoothing
+    const G3D::Vector3& A = prevPath[prevPath.size() - 2];
+    const G3D::Vector3& B = prevPath.back();
+    const G3D::Vector3& C = nextPath[1];
+
+    // 2D vectors
+    G3D::Vector2 AB(B.x - A.x, B.y - A.y);
+    G3D::Vector2 BC(C.x - B.x, C.y - B.y);
+
+    float lenAB = AB.length();
+    float lenBC = BC.length();
+
+    float rAB = std::min(radius, lenAB);
+    float rBC = std::min(radius, lenBC);
+
+    G3D::Vector2 dirAB = lenAB > 0 ? AB.direction() : G3D::Vector2(0,0);
+    G3D::Vector2 dirBC = lenBC > 0 ? BC.direction() : G3D::Vector2(0,0);
+
+    // Start and end points of the curve
+    G3D::Vector2 P0(B.x - dirAB.x * rAB, B.y - dirAB.y * rAB);
+    G3D::Vector2 P2(B.x + dirBC.x * rBC, B.y + dirBC.y * rBC);
+
+    std::vector<G3D::Vector3> bezierPoints;
+    for (uint32 i = 0; i < numPoints; ++i)
+    {
+        float t = float(i + 1) / float(numPoints + 1);
+        float one_minus_t = 1.0f - t;
+
+        float x = one_minus_t * one_minus_t * P0.x + 2 * one_minus_t * t * B.x + t * t * P2.x;
+        float y = one_minus_t * one_minus_t * P0.y + 2 * one_minus_t * t * B.y + t * t * P2.y;
+
+        bezierPoints.emplace_back(x, y, B.z);
+    }
+
+    // Build the new path: all of prevPath except the last point, then the smoothed points, then all of nextPath except the first point
+    Movement::PointsArray result;
+    result.reserve(prevPath.size() - 1 + bezierPoints.size() + nextPath.size() - 1);
+    result.insert(result.end(), prevPath.begin(), prevPath.end() - 1);
+    result.insert(result.end(), bezierPoints.begin(), bezierPoints.end());
+    result.insert(result.end(), nextPath.begin() + 1, nextPath.end());
+
+    return result;
+}
+
 ////////////////// PathGenerator //////////////////
 PathGenerator::PathGenerator(WorldObject const* owner) :
     _polyLength(0), _type(PATHFIND_BLANK), _useStraightPath(false),
@@ -1083,4 +1164,28 @@ void PathGenerator::AddFarFromPolyFlags(bool startFarFromPoly, bool endFarFromPo
         _type = PathType(_type | PATHFIND_FARFROMPOLY_START);
     if (endFarFromPoly)
         _type = PathType(_type | PATHFIND_FARFROMPOLY_END);
+}
+
+void PathGenerator::TruncateLastSegment(float radius)
+{
+    if (_pathPoints.size() < 2 || radius <= 0.f)
+        return;
+
+    G3D::Vector3& last = _pathPoints.back();
+    G3D::Vector3& prev = _pathPoints[_pathPoints.size() - 2];
+
+    // 2D vector from prev to last
+    float dx = last.x - prev.x;
+    float dy = last.y - prev.y;
+    float dist = std::sqrt(dx * dx + dy * dy);
+
+    if (dist <= radius)
+        return;
+
+    float t = (dist - radius) / dist; // how far from prev to new point
+    float newX = prev.x + dx * t;
+    float newY = prev.y + dy * t;
+    float newZ = last.z;
+
+    last = G3D::Vector3(newX, newY, newZ);
 }

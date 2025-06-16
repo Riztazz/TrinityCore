@@ -28,9 +28,14 @@
 #include <algorithm>
 #include <G3D/Vector3.h>
 
+namespace
+{
+    constexpr float SMOOTH_CORNER_RADIUS = 1.0f;
+    constexpr uint32 SMOOTH_CORNER_NUM_POINTS = 5;
+}
+
 template<class T>
-RandomMovementGenerator<T>::RandomMovementGenerator(float distance) : _wanderDistance(distance), _wanderSteps(0), _reference(), _angleIndex(0),
- _timer(0), _needsPause(false), _smoothSpline(false), _pathIndex(0)
+RandomMovementGenerator<T>::RandomMovementGenerator(float distance) : _wanderDistance(distance), _wanderSteps(0), _reference(), _angleIndex(0), _pathIndex(0), _timer(0)
 {
     this->Mode = MOTION_MODE_DEFAULT;
     this->Priority = MOTION_PRIORITY_NORMAL;
@@ -94,7 +99,6 @@ void RandomMovementGenerator<Creature>::DoInitialize(Creature* owner)
     // Retail seems to let a creature walk 2 up to 10 splines before triggering a pause
     _wanderSteps = urand(1, ((_wanderDistance <= 1.0f) ? 2 : 8));
     // Should we reset timer? _timer.Reset(0);
-    _needsPause = false;
 
     // Only set these on first initialize
     if (_angles.empty())
@@ -145,13 +149,14 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
     // No cached paths so create a new one
     if (_paths.size() <= NUM_WANDER_POINTS)
     {
-        // If we can smooth the spline transition, but we don't have the next path yet, so we need to calculate from the end of our current path
-        Position src = _smoothSpline ? Vector3ToPosition(owner->movespline->FinalDestination()) : owner->GetPosition();
+        // If this our first path we need to start from the owner position
+        // If not, we actually stopped short of the end of the path to smooth the transition, so we need to start from the end of the current path
+        Position src = _paths.empty() ? owner->GetPosition() : Vector3ToPosition(_paths.back().back());
         Position dest;
-        // Last path needs to connect to the first point
+        // Last path needs to connect to the first point of the first path
         if (_paths.size() == NUM_WANDER_POINTS)
         {
-            G3D::Vector3& v = _paths[0][0];
+            G3D::Vector3& v = _paths.front().front();
             dest.Relocate(v.x, v.y, v.z);
         }
         // Otherwise we need to construct a path to a wander point
@@ -216,34 +221,29 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
 
     Movement::MoveSplineInit init(owner);
 
-    // Smooth the transition to the next path
-    if (_smoothSpline)
+    // The first path we just need to truncate the end so we can smooth the next
+    if (_paths.size() == 1)
     {
-        _smoothSpline = false;
-        Movement::PointsArray smoothPath;
-        smoothPath.reserve(_paths[_pathIndex].size() + 1);
-        smoothPath.push_back(PositionToVector3(owner->GetPosition()));
-        smoothPath.insert(smoothPath.end(), _paths[_pathIndex].begin(), _paths[_pathIndex].end());
+        Movement::PointsArray truncatedPath = PathGenerator::TruncateLastSegment(_paths[_pathIndex], SMOOTH_CORNER_RADIUS);
+        init.MovebyPath(truncatedPath);
+    }
+    // We want to smooth to the next path by splicing the end of the current path with the start of the next path and smoothing the corner
+    else
+    {
+        Movement::PointsArray prevPath;
+        prevPath.push_back(PositionToVector3(owner->GetPosition()));
+        prevPath.push_back(_paths[_pathIndex - 1].back());
+        Movement::PointsArray nextPath = PathGenerator::TruncateLastSegment(_paths[_pathIndex], SMOOTH_CORNER_RADIUS);
+        Movement::PointsArray smoothPath = PathGenerator::SpliceAndSmoothPaths(prevPath, nextPath, SMOOTH_CORNER_RADIUS, SMOOTH_CORNER_NUM_POINTS);
         init.MovebyPath(smoothPath);
     }
-    else
-        init.MovebyPath(_paths[_pathIndex]);
 
     init.SetSmooth();
     init.SetWalk(walk);
     init.Launch();
 
-    if (sWorld->getBoolConfig(CONFIG_DONT_CACHE_RANDOM_MOVEMENT_PATHS))
-        _paths.clear();
-    else
-        _pathIndex = (_pathIndex + 1) % (NUM_WANDER_POINTS + 1);
-
+    _pathIndex = (_pathIndex + 1) % (NUM_WANDER_POINTS + 1);
     --_wanderSteps;
-    if (!_wanderSteps)
-    {
-        _wanderSteps = urand(1, ((_wanderDistance <= 1.0f) ? 2 : 8));
-        _needsPause = true; // We need to pause at the end of this spline
-    }
 
     // Call for creature group update
     owner->SignalFormationMovement();
@@ -255,7 +255,6 @@ void RandomMovementGenerator<T>::ResetPaths()
     _pathIndex = 0;
     _paths.clear();
     _pathGenerator = nullptr;
-    _smoothSpline = false;
 }
 
 template<class T>
@@ -291,30 +290,15 @@ bool RandomMovementGenerator<Creature>::DoUpdate(Creature* owner, uint32 diff)
         ResetPaths();
         SetRandomLocation(owner);
     }
-    // Wait out any timer
-    else if (_timer.Passed())
+    else if (owner->movespline->Finalized())
     {
-        // We should only do spline smoothing when:
-        // 1. We are not pausing at the end of the current path (we need to walk to the end of the path and pause)
-        // 2. The spline is not finalized (if we are finalized it is too late to splice paths anyway)
-        // Here we check each tick for when we are on the last segment of a path, if so and conditions are met we can build a spliced spline with the next path
-        if (!_needsPause && !owner->movespline->Finalized() && owner->movespline->MaxPathIdx() >= 1 && owner->movespline->currentPathIdx() >= owner->movespline->MaxPathIdx() - 1)
+        if (!_wanderSteps)
         {
-            _smoothSpline = true;
+            _wanderSteps = urand(1, ((_wanderDistance <= 1.0f) ? 2 : 8));
+            _timer.Reset(urand(6, 12) * IN_MILLISECONDS); // Retails seems to use rounded numbers so we do as well
+        }
+        if (_timer.Passed())
             SetRandomLocation(owner);
-        }
-        // Else we need to wait until the spline is finalized
-        else if (owner->movespline->Finalized())
-        {
-            // If we have indicated we need to pause then set the timer and wait
-            if (_needsPause)
-            {
-                _needsPause = false;
-                _timer.Reset(urand(6, 12) * IN_MILLISECONDS); // Retails seems to use rounded numbers so we do as well
-            }
-            else
-                SetRandomLocation(owner);
-        }
     }
 
     return true;
