@@ -147,14 +147,13 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
     }
 
     // No cached paths so create a new one
-    Movement::PointsArray path;
-    if (_paths.size() < NUM_WANDER_POINTS)
+    if (_paths.size() <= NUM_WANDER_POINTS)
     {
         // Our paths are actually hypothetical paths and not the actual paths we will be moving on
         Position src = _paths.empty() ? owner->GetPosition() : Vector3ToPosition(_paths.back().back());
         Position dest;
         // Last path needs to connect to the first point of the first path
-        if (_paths.size() == NUM_WANDER_POINTS - 1)
+        if (_paths.size() == NUM_WANDER_POINTS)
         {
             G3D::Vector3& v = _paths.front().front();
             dest.Relocate(v.x, v.y, v.z);
@@ -200,16 +199,7 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
             return;
         }
 
-        path = _pathGenerator->GetPath();
-        // Do not store the first path after reset as we don't want to cache and repeat the partial paths to our pathing cycle
-        if (_storePaths)
-            _paths.push_back(path);
-        else
-            _storePaths = true;
-    }
-    else
-    {
-        path = _paths[_pathIndex];
+        _paths.push_back(_pathGenerator->GetPath());
     }
 
     RemoveFlag(MOVEMENTGENERATOR_FLAG_TRANSITORY | MOVEMENTGENERATOR_FLAG_TIMED_PAUSED);
@@ -232,22 +222,22 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
     Movement::MoveSplineInit init(owner);
 
     // For debugging purposes move with no smoothing
-    if (SMOOTH_CORNER_NUM_POINTS <= 1 || path.size() < 2)
+    if (SMOOTH_CORNER_NUM_POINTS <= 1 || _paths[_pathIndex].size() < 2)
     {
-        init.MovebyPath(path);
+        init.MovebyPath(_paths[_pathIndex]);
     }
     // The first path we just need to truncate the end so we can smooth the next
-    else if (_paths.empty())
+    else if (_paths.size() == 1)
     {
-        Movement::PointsArray modPath = PathGenerator::TruncatePath(owner, path, SMOOTH_CORNER_RADIUS);
+        Movement::PointsArray modPath = PathGenerator::TruncatePath(owner, _paths[_pathIndex], SMOOTH_CORNER_RADIUS);
         init.MovebyPath(modPath);
         init.SetSmooth();
     }
     // We want to smooth to the next path by splicing the end of the current path with the start of the next path and smoothing the corner
     else
     {
-        Movement::PointsArray modPath = PathGenerator::SpliceAndSmoothPath(owner, path[0], path[1], SMOOTH_CORNER_NUM_POINTS);
-        Movement::PointsArray nextPath = PathGenerator::TruncatePath(owner, path, SMOOTH_CORNER_RADIUS, true);
+        Movement::PointsArray modPath = PathGenerator::SpliceAndSmoothPath(owner, _paths[_pathIndex][0], _paths[_pathIndex][1], SMOOTH_CORNER_NUM_POINTS);
+        Movement::PointsArray nextPath = PathGenerator::TruncatePath(owner, _paths[_pathIndex], SMOOTH_CORNER_RADIUS, true);
         modPath.insert(modPath.end(), nextPath.begin(), nextPath.end());
         init.MovebyPath(modPath);
         init.SetSmooth();
@@ -258,7 +248,9 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
 
     if (!_paths.empty())
     {
-        _pathIndex = (_pathIndex + 1) % (NUM_WANDER_POINTS + 1);
+        ++_pathIndex;
+        if (_pathIndex > NUM_WANDER_POINTS) // We have NUM_WANDER_POINTS + 1 paths in the cache, so NUM_WANDER_POINTS is max index
+            _pathIndex = 1; // We actually skip the first path after cache is constructed
         --_wanderSteps;
     }
 
