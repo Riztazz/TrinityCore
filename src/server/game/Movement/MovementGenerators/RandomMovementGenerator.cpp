@@ -222,7 +222,7 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
 
     Movement::MoveSplineInit init(owner);
 
-    // For debugging purposes, if we are not smoothing the path we just move by it
+    // For debugging purposes move with no smoothing
     if (SMOOTH_CORNER_RADIUS <= 0.0f || SMOOTH_CORNER_NUM_POINTS <= 1)
     {
         init.MovebyPath(_paths[_pathIndex]);
@@ -232,7 +232,7 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
     {
         Movement::PointsArray path = PathGenerator::TruncateLastSegment(owner, _paths[_pathIndex], SMOOTH_CORNER_RADIUS);
         init.MovebyPath(path);
-        //init.SetSmooth();
+        init.SetSmooth();
     }
     // We want to smooth to the next path by splicing the end of the current path with the start of the next path and smoothing the corner
     else
@@ -241,7 +241,7 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
         path = PathGenerator::SpliceAndSmoothPath(owner, path, SMOOTH_CORNER_RADIUS, SMOOTH_CORNER_NUM_POINTS);
         //path.insert(path.begin(), PositionToVector3(owner->GetPosition()));
         init.MovebyPath(path);
-        //init.SetSmooth();
+        init.SetSmooth();
     }
 
     init.SetWalk(walk);
