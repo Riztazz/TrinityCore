@@ -32,7 +32,7 @@ namespace
     constexpr float MIN_WANDER_DISTANCE = 2.0f;
     constexpr float SMOOTH_CORNER_RADIUS = 0.5f;
     constexpr uint8 NUM_WANDER_POINTS = 12;
-    constexpr uint32 SMOOTH_CORNER_NUM_POINTS = 3;
+    constexpr uint8 SMOOTH_CORNER_NUM_POINTS = 0;
     // We will iterate our angles vector by this amount to create a less sharp path e.g if we are at index 0, we will lookup offset[0] = 3, so we will iterate to next angle of [3].
     constexpr int ANGLE_ITERATION_OFFSET[] = {2, 2, 2, 2, 2, 2, -2, -2, -2, -2, -2, -3};
 }
@@ -185,7 +185,7 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
         if (!_pathGenerator)
         {
             _pathGenerator = std::make_unique<PathGenerator>(owner);
-            _pathGenerator->SetPathLengthLimit(30.0f);
+            _pathGenerator->SetPathLengthLimit(50.0f);
         }
 
         bool result = _pathGenerator->CalculatePath(PositionToVector3(src), PositionToVector3(dest));
