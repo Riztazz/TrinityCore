@@ -238,8 +238,8 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
     else
     {
         Movement::PointsArray path = PathGenerator::TruncateLastSegment(owner, _paths[_pathIndex], SMOOTH_CORNER_RADIUS);
-        //Movement::PointsArray smoothPath = PathGenerator::SpliceAndSmoothPath(owner, path, SMOOTH_CORNER_RADIUS, SMOOTH_CORNER_NUM_POINTS);
-        path.insert(path.begin(), PositionToVector3(owner->GetPosition()));
+        path = PathGenerator::SpliceAndSmoothPath(owner, path, SMOOTH_CORNER_RADIUS, SMOOTH_CORNER_NUM_POINTS);
+        //path.insert(path.begin(), PositionToVector3(owner->GetPosition()));
         init.MovebyPath(path);
         //init.SetSmooth();
     }
