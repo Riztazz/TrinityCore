@@ -176,7 +176,6 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
         // Check if the destination is in LOS
         if (!owner->IsWithinLOS(src, dest.GetPositionX(), dest.GetPositionY(), dest.GetPositionZ()))
         {
-            TC_LOG_DEBUG("smooth", "LOS RESET");
             // Retry later on
             _timer.Reset(200);
             ResetPaths();
@@ -196,7 +195,6 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
                     || (_pathGenerator->GetPathType() & PATHFIND_SHORTCUT)
                     /*|| (_pathGenerator->GetPathType() & PATHFIND_FARFROMPOLY)*/)
         {
-            TC_LOG_DEBUG("smooth", "No PATH RESET");
             _timer.Reset(100);
             ResetPaths();
             return;
@@ -227,21 +225,17 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
     // The first path we just need to truncate the end so we can smooth the next
     if (_paths.size() == 1)
     {
-        TC_LOG_DEBUG("smooth", "First path init paths size {}", _paths.size());
         Movement::PointsArray truncatedPath = PathGenerator::TruncateLastSegment(_paths[_pathIndex], SMOOTH_CORNER_RADIUS);
-        TC_LOG_DEBUG("smooth", "First path init truncated path size {}", truncatedPath.size());
         init.MovebyPath(truncatedPath);
     }
     // We want to smooth to the next path by splicing the end of the current path with the start of the next path and smoothing the corner
     else
     {
-        TC_LOG_DEBUG("smooth", "Smooth path init paths size {}", _paths.size());
         Movement::PointsArray prevPath;
         prevPath.push_back(PositionToVector3(owner->GetPosition()));
         prevPath.push_back(_paths[_pathIndex == 0 ? _paths.size() - 1 : _pathIndex - 1].back());
         Movement::PointsArray nextPath = PathGenerator::TruncateLastSegment(_paths[_pathIndex], SMOOTH_CORNER_RADIUS);
         Movement::PointsArray smoothPath = PathGenerator::SpliceAndSmoothPaths(prevPath, nextPath, SMOOTH_CORNER_RADIUS, SMOOTH_CORNER_NUM_POINTS);
-        TC_LOG_DEBUG("smooth", "Smooth path init smooth path size {}", smoothPath.size());
         init.MovebyPath(smoothPath);
     }
 
@@ -259,7 +253,6 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
 template<class T>
 void RandomMovementGenerator<T>::ResetPaths()
 {
-    TC_LOG_DEBUG("smooth", "ResetPaths called");
     _pathIndex = 0;
     _paths.clear();
     _pathGenerator = nullptr;
@@ -282,7 +275,6 @@ bool RandomMovementGenerator<Creature>::DoUpdate(Creature* owner, uint32 diff)
 
     if (owner->HasUnitState(UNIT_STATE_NOT_MOVE) || owner->IsMovementPreventedByCasting())
     {
-        TC_LOG_DEBUG("smooth", "HasUnitState or IsMovementPreventedByCasting RESET");
         AddFlag(MOVEMENTGENERATOR_FLAG_INTERRUPTED);
         owner->StopMoving();
         ResetPaths();
@@ -296,7 +288,6 @@ bool RandomMovementGenerator<Creature>::DoUpdate(Creature* owner, uint32 diff)
     // We have to make new splines on speed change
     if (HasFlag(MOVEMENTGENERATOR_FLAG_SPEED_UPDATE_PENDING) && !owner->movespline->Finalized())
     {
-        TC_LOG_DEBUG("smooth", "MOVEMENTGENERATOR_FLAG_SPEED_UPDATE_PENDING RESET");
         ResetPaths();
         SetRandomLocation(owner);
     }
