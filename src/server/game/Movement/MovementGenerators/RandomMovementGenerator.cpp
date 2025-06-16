@@ -171,7 +171,7 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
             float angle = _angles[_angleIndex];
             if (owner->GetSpawnId() == 80043)
             {
-                TC_LOG_DEBUG("smooth", "picking dest for angle index: {}, angle: {}, distance: {}");
+                TC_LOG_DEBUG("smooth", "picking dest for angle index: {}, angle: {}, distance: {}", _angleIndex, angle, distance);
             }
             _angleIndex = _angleIndex + _angleIterationSign * ANGLE_ITERATION_OFFSET[_angleIndex];
             _angleIndex = (_angleIndex + NUM_WANDER_POINTS) % NUM_WANDER_POINTS;
