@@ -57,7 +57,7 @@ class TC_GAME_API PathGenerator
 {
     public:
         static Movement::PointsArray TruncateLastSegment(WorldObject const* owner, const Movement::PointsArray& path, float radius);
-        static Movement::PointsArray SpliceAndSmoothPaths(WorldObject const* owner, const Movement::PointsArray& prevPath, const Movement::PointsArray& nextPath, float radius, uint32 numPoints);
+        static Movement::PointsArray SpliceAndSmoothPath(WorldObject const* owner, const Movement::PointsArray& path, float radius, uint32 numPoints);
 
         explicit PathGenerator(WorldObject const* owner);
         ~PathGenerator();

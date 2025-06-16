@@ -230,19 +230,17 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
     // The first path we just need to truncate the end so we can smooth the next
     else if (_paths.size() == 1)
     {
-        Movement::PointsArray truncatedPath = PathGenerator::TruncateLastSegment(owner, _paths[_pathIndex], SMOOTH_CORNER_RADIUS);
-        init.MovebyPath(truncatedPath);
+        Movement::PointsArray path = PathGenerator::TruncateLastSegment(owner, _paths[_pathIndex], SMOOTH_CORNER_RADIUS);
+        init.MovebyPath(path);
         //init.SetSmooth();
     }
     // We want to smooth to the next path by splicing the end of the current path with the start of the next path and smoothing the corner
     else
     {
-        Movement::PointsArray prevPath;
-        prevPath.push_back(PositionToVector3(owner->GetPosition()));
-        prevPath.push_back(_paths[_pathIndex == 0 ? _paths.size() - 1 : _pathIndex - 1].back());
-        Movement::PointsArray nextPath = PathGenerator::TruncateLastSegment(owner, _paths[_pathIndex], SMOOTH_CORNER_RADIUS);
-        Movement::PointsArray smoothPath = PathGenerator::SpliceAndSmoothPaths(owner, prevPath, nextPath, SMOOTH_CORNER_RADIUS, SMOOTH_CORNER_NUM_POINTS);
-        init.MovebyPath(smoothPath);
+        Movement::PointsArray path = PathGenerator::TruncateLastSegment(owner, _paths[_pathIndex], SMOOTH_CORNER_RADIUS);
+        //Movement::PointsArray smoothPath = PathGenerator::SpliceAndSmoothPath(owner, path, SMOOTH_CORNER_RADIUS, SMOOTH_CORNER_NUM_POINTS);
+        path.insert(path.begin(), PositionToVector3(owner->GetPosition()));
+        init.MovebyPath(path);
         //init.SetSmooth();
     }
 

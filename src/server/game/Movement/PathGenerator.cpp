@@ -52,22 +52,17 @@ Movement::PointsArray PathGenerator::TruncateLastSegment(WorldObject const* owne
     return result;
 }
 
-Movement::PointsArray PathGenerator::SpliceAndSmoothPaths(WorldObject const* owner, const Movement::PointsArray& prevPath, const Movement::PointsArray& nextPath, float radius, uint32 numPoints)
+Movement::PointsArray PathGenerator::SpliceAndSmoothPath(WorldObject const* owner, const Movement::PointsArray& path, float radius, uint32 numPoints)
 {
-    // If either path is too short, just return nextPath
-    if (prevPath.size() < 2 || nextPath.size() < 2)
-        return nextPath;
+    if (path.size() < 2)
+        return path;
 
     // Ensure the paths connect at the splice point
-    const G3D::Vector3& splicePrev = prevPath.back();
-    const G3D::Vector3& spliceNext = nextPath.front();
-    if (splicePrev.x != spliceNext.x || splicePrev.y != spliceNext.y || splicePrev.z != spliceNext.z)
-        return nextPath;
-
-    // Points for smoothing
-    const G3D::Vector3& A = prevPath[prevPath.size() - 2];
-    const G3D::Vector3& B = prevPath.back();
-    const G3D::Vector3& C = nextPath[1];
+    const G3D::Vector3& A = PositionToVector3(owner->GetPosition());
+    const G3D::Vector3& B = path.front();
+    const G3D::Vector3& C = path[1];
+    if (A.x == B.x && A.y == B.y && A.z == B.z)
+        return path;
 
     // 2D vectors
     G3D::Vector2 AB(B.x - A.x, B.y - A.y);
@@ -102,10 +97,10 @@ Movement::PointsArray PathGenerator::SpliceAndSmoothPaths(WorldObject const* own
 
     // Build the new path: all of prevPath except the last point, then the smoothed points, then all of nextPath except the first point
     Movement::PointsArray result;
-    result.reserve(prevPath.size() - 1 + bezierPoints.size() + nextPath.size() - 1);
-    result.insert(result.end(), prevPath.begin(), prevPath.end() - 1);
+    result.reserve(bezierPoints.size() + path.size());
+    result.insert(result.end(), A);
     result.insert(result.end(), bezierPoints.begin(), bezierPoints.end());
-    result.insert(result.end(), nextPath.begin() + 1, nextPath.end());
+    result.insert(result.end(), path.begin() + 1, path.end());
 
     return result;
 }
