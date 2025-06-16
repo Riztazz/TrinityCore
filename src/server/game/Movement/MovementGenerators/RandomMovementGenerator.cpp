@@ -245,7 +245,7 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
         init.MovebyPath(smoothPath);
     }
 
-    init.SetSmooth();
+    //init.SetSmooth();
     init.SetWalk(walk);
     init.Launch();
 
