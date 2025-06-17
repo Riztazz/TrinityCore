@@ -232,8 +232,8 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
         Movement::PointsArray modPath = PathGenerator::TruncatePath(owner, _paths[_pathIndex], SMOOTH_CORNER_RADIUS);
         if (owner->GetSpawnId() == 80043)
         {
-            TC_LOG_DEBUG("smooth", "creating first path: {},{},{}=>{},{},{}", _paths[_pathIndex].front().x, _paths[_pathIndex].front().y, _paths[_pathIndex].front().z, _paths[_pathIndex].back().x, _paths[_pathIndex].back().y, _paths[_pathIndex].back().z);
-            TC_LOG_DEBUG("smooth", "creating first truncated path: {},{},{}=>{},{},{}", modPath.front().x, modPath.front().y, modPath.front().z, modPath.back().x, modPath.back().y, modPath.back().z);
+            TC_LOG_DEBUG("smooth", "creating first path length: {}", PathGenerator::ComputePathLength(_paths[_pathIndex]));
+            TC_LOG_DEBUG("smooth", "creating first path truncated length: {}", PathGenerator::ComputePathLength(modPath));
         }
         init.MovebyPath(modPath);
         //init.SetSmooth();
@@ -242,12 +242,16 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
     else
     {
         //Movement::PointsArray modPath = PathGenerator::SpliceAndSmoothPath(owner, _paths[_pathIndex][0], _paths[_pathIndex][1], SMOOTH_CORNER_NUM_POINTS);
-        Movement::PointsArray modPath = _paths[_pathIndex];
+        Movement::PointsArray modPath = PathGenerator::TruncatePath(owner, _paths[_pathIndex], SMOOTH_CORNER_RADIUS);
+        if (owner->GetSpawnId() == 80043)
+        {
+            TC_LOG_DEBUG("smooth", "creating subsequent path length: {}", PathGenerator::ComputePathLength(_paths[_pathIndex]));
+            TC_LOG_DEBUG("smooth", "creating subsequent path truncated length: {}", PathGenerator::ComputePathLength(modPath));
+        }
         modPath.insert(modPath.begin(), PositionToVector3(owner->GetPosition()));
         if (owner->GetSpawnId() == 80043)
         {
-            TC_LOG_DEBUG("smooth", "creating subsequent path: {},{},{}=>{},{},{}", _paths[_pathIndex].front().x, _paths[_pathIndex].front().y, _paths[_pathIndex].front().z, _paths[_pathIndex].back().x, _paths[_pathIndex].back().y, _paths[_pathIndex].back().z);
-            TC_LOG_DEBUG("smooth", "creating subsequent truncated: {},{},{}=>{},{},{}", modPath.front().x, modPath.front().y, modPath.front().z, modPath.back().x, modPath.back().y, modPath.back().z);
+            TC_LOG_DEBUG("smooth", "creating subsequent path truncated length with owner position prepended: {}", PathGenerator::ComputePathLength(modPath));
         }
         //Movement::PointsArray nextPath = PathGenerator::TruncatePath(owner, _paths[_pathIndex], SMOOTH_CORNER_RADIUS, true);
         //modPath.insert(modPath.end(), nextPath.begin(), nextPath.end());
