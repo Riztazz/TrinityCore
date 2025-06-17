@@ -39,7 +39,7 @@ namespace
 }
 
 template<class T>
-RandomMovementGenerator<T>::RandomMovementGenerator(float distance) : _maxWanderDistance(distance), _lastWanderDistance(MIN_WANDER_DISTANCE), _wanderSteps(0), _reference(), _angleIndex(0), _pathIndex(0), _timer(0)
+RandomMovementGenerator<T>::RandomMovementGenerator(float distance) : _maxWanderDistance(distance), _lastWanderDistance(MIN_WANDER_DISTANCE), _wanderSteps(0), _reference(), _angleSign(0), _pathIndex(0), _timer(0)
 {
     this->Mode = MOTION_MODE_DEFAULT;
     this->Priority = MOTION_PRIORITY_NORMAL;
@@ -105,17 +105,12 @@ void RandomMovementGenerator<Creature>::DoInitialize(Creature* owner)
     // Should we reset timer? _timer.Reset(0);
 
     // Only set these on first initialize
-    if (_angles.empty())
+    if (_angleSign == 0)
     {
         _reference = owner->GetPosition();
-        // Precalculate a spread of angles to use for our wander points, this gives us a more even distribution of 'random' points
-        float initAngle = frand(0.f, M_PI * 2.0f);
-        for (uint8 i = 0; i < NUM_WANDER_POINTS; ++i)
-        {
-            _angles.push_back(initAngle + (M_PI * 2.0f / (float)NUM_WANDER_POINTS) * i);
-        }
-        // Pick an iteration direction for this spawn, we do not reset these 
-        _angleIterationSign = urand(0, 1) ? 1 : -1;
+        _angle = frand(0.f, M_PI * 2.0f);
+        _angleDelta = (M_PI * 2.0f) / (float)NUM_WANDER_POINTS;
+        _angleSign = urand(0, 1) ? 1 : -1;
     }
 }
 
@@ -150,12 +145,14 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
     // No cached paths so create a new one
     if (_paths.size() <= NUM_WANDER_POINTS)
     {
-        // Our paths are actually hypothetical paths and not the actual paths we will be moving on
+        // We cache the actual points paths around the circuit, our splines are constructed separately so that we
+        // can smooth the vertexes.
         Position src = _paths.empty() ? owner->GetPosition() : Vector3ToPosition(_paths.back().back());
         Position dest;
-        // Last path needs to connect to the first point of the first path
+        // Last path needs to connect to the first point of the first path of the circuit
         if (_paths.size() == NUM_WANDER_POINTS)
         {
+            // _paths[1] is the first path of the circuit (_paths[0] is where we started moving to get to the circuit)
             G3D::Vector3& v = _paths[1].front();
             dest.Relocate(v.x, v.y, v.z);
         }
@@ -164,7 +161,9 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
         {
             // Using our reference (spawn) point construct the distance and angle to a new point
             dest = _reference;
-            // Do not do two less than average wanders in a row to prevent too short of paths
+
+            // Determine distance to wander point from reference point
+            // This adds some weighting to the 'random' distance to prevent too short of paths
             float averageWanderDistance = (MIN_WANDER_DISTANCE + _maxWanderDistance) / 2.0f;
             float distance = MIN_WANDER_DISTANCE;
             if (_lastWanderDistance < averageWanderDistance)
@@ -173,12 +172,11 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
                 distance = frand(MIN_WANDER_DISTANCE, averageWanderDistance);
             _lastWanderDistance = distance;
 
-            float angle = _angles[_angleIndex];
-            _angleIndex = _angleIndex + _angleIterationSign * ANGLE_ITERATION_OFFSET[_paths.size()];
-            _angleIndex = (_angleIndex + NUM_WANDER_POINTS) % NUM_WANDER_POINTS;
+            // Determine how much to turn
+            _angle += _angleDelta * _angleSign * ANGLE_ITERATION_OFFSET[_paths.size()];
 
-            // Modify the wander point accounting for collision
-            owner->MovePositionToFirstCollision(src, dest, distance, angle);
+            // Calculate the wander point (dest) accounting for collision
+            owner->MovePositionToFirstCollision(src, dest, distance, _angle);
         }
 
         // Check if the destination is in LOS
@@ -208,7 +206,15 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
             return;
         }
 
-        _paths.push_back(_pathGenerator->GetPath());
+        Movement::PointsArray path = _pathGenerator->GetPath();
+        if (path.size() < 2)
+        {
+            _timer.Reset(100);
+            ResetPaths();
+            return;
+        }
+
+        _paths.push_back(path);
     }
 
     RemoveFlag(MOVEMENTGENERATOR_FLAG_TRANSITORY | MOVEMENTGENERATOR_FLAG_TIMED_PAUSED);
