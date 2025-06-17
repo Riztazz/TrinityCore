@@ -354,6 +354,13 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
     else if (_paths.size() == 1)
     {
         Movement::PointsArray modPath = PathGenerator::TruncatePath(owner, _paths[_pathIndex], SMOOTH_CORNER_RADIUS);
+        if (owner->GetSpawnId() == 80043)
+        {
+            TC_LOG_DEBUG("smooth", "owner vertex 0 (x={}, y={}):", owner->GetPositionX(), owner->GetPositionY());
+            TC_LOG_DEBUG("smooth", "base path vertex 1 (x={}, y={}):", _paths[_pathIndex][0].x, _paths[_pathIndex][0].y);
+            TC_LOG_DEBUG("smooth", "modPath vertex 1 (x={}, y={}):", modPath[0].x, modPath[0].y);
+            TC_LOG_DEBUG("smooth", "Calculated first truncated path {} Original Length: {}, Truncated Length: {}", _pathIndex, PathGenerator::ComputePathLength(_paths[_pathIndex]), PathGenerator::ComputePathLength(modPath));
+        }
         init.MovebyPath(modPath);
         //init.SetSmooth();
     }
@@ -362,22 +369,21 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
     {
         
         Movement::PointsArray modPath = PathGenerator::TruncatePath(owner, _paths[_pathIndex], SMOOTH_CORNER_RADIUS, true);
-        if (owner->GetPosition().GetExactDist(Vector3ToPosition(_paths[_pathIndex].front())) < SMOOTH_CORNER_RADIUS / 2.0f)
-        {
-            TC_LOG_DEBUG("smooth", "Owner not smooth distance away from  {} 0 (x={}, y={}) -> (x={}, y={}):", _pathIndex, owner->GetPositionX(), owner->GetPositionY(), _paths[_pathIndex].front().x, _paths[_pathIndex].front().y);
-        }
-        if (Vector3ToPosition(_paths[_pathIndex].front()).GetExactDist(Vector3ToPosition(modPath.front())) < SMOOTH_CORNER_RADIUS / 2.0f)
-        {
-            TC_LOG_DEBUG("smooth", "Could not fully truncate front for path {} 0 (x={}, y={}) -> (x={}, y={}):", _pathIndex, _paths[_pathIndex].front().x, _paths[_pathIndex].front().y, _paths[_pathIndex].back().x, _paths[_pathIndex].back().y);
-        }
-        Movement::PointsArray splicePath = PathGenerator::SpliceAndSmoothArc(owner, _paths[_pathIndex].front(), modPath.front(), SMOOTH_CORNER_RADIUS, SMOOTH_CORNER_NUM_POINTS);
-        
         if (owner->GetSpawnId() == 80043)
         {
             TC_LOG_DEBUG("smooth", "owner vertex 0 (x={}, y={}):", owner->GetPositionX(), owner->GetPositionY());
             TC_LOG_DEBUG("smooth", "base path vertex 1 (x={}, y={}):", _paths[_pathIndex][0].x, _paths[_pathIndex][0].y);
             TC_LOG_DEBUG("smooth", "modPath vertex 1 (x={}, y={}):", modPath[0].x, modPath[0].y);
-
+            TC_LOG_DEBUG("smooth", "Calculated subsequent truncated path {} Original Length: {}, Truncated Length: {}", _pathIndex, PathGenerator::ComputePathLength(_paths[_pathIndex]), PathGenerator::ComputePathLength(modPath));
+        }
+        Movement::PointsArray splicePath = PathGenerator::SpliceAndSmoothArc(owner, _paths[_pathIndex].front(), modPath.front(), SMOOTH_CORNER_NUM_POINTS);
+        if (owner->GetSpawnId() == 80043)
+        {
+            TC_LOG_DEBUG("smooth", "Calculated spliced path {} Vertices: {}, Length: {}", _pathIndex, splicePath.size(), PathGenerator::ComputePathLength(splicePath));
+        }
+        
+        if (owner->GetSpawnId() == 80043)
+        {
             const G3D::Vector3& prev = PositionToVector3(owner->GetPosition());
             const G3D::Vector3& curr = _paths[_pathIndex][0];
             const G3D::Vector3& next = modPath[0];

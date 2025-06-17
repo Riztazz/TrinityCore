@@ -168,7 +168,7 @@ Movement::PointsArray PathGenerator::TruncatePath(WorldObject const* owner, cons
     }
 }
 
-Movement::PointsArray PathGenerator::SpliceAndSmoothArc(WorldObject const* owner, const G3D::Vector3& midpoint, const G3D::Vector3& endpoint, float radius, uint32 numPoints)
+Movement::PointsArray PathGenerator::SpliceAndSmoothArc(WorldObject const* owner, const G3D::Vector3& midpoint, const G3D::Vector3& endpoint, uint32 numPoints)
 {
     const G3D::Vector3& A3 = PositionToVector3(owner->GetPosition());
     const G3D::Vector3& B3 = midpoint;
@@ -179,9 +179,10 @@ Movement::PointsArray PathGenerator::SpliceAndSmoothArc(WorldObject const* owner
     G3D::Vector2 C(C3.x, C3.y);
 
     // Thresholds
+    const float minDistance = 0.25f;
+    const float minAngle = 0.1f;
     const float minRadius = 0.1f;
     const float maxRadius = 1000.0f;
-    const float minAngle = 0.1f;
 
     // Compute vectors and lengths
     G3D::Vector2 AB = B - A;
@@ -189,9 +190,9 @@ Movement::PointsArray PathGenerator::SpliceAndSmoothArc(WorldObject const* owner
     float lenAB = AB.length();
     float lenBC = BC.length();
 
-    if (lenAB < minRadius || lenBC < minRadius)
+    // The points are too close to run the algorithm effectively, if we are already deep in a corner just beeline to the endpoint
+    if (lenAB < minDistance || lenBC < minDistance)
     {
-        TC_LOG_DEBUG("smooth", "Arc fallback: points too close, lenAB={}, lenBC={}", lenAB, lenBC);
         Movement::PointsArray result;
         result.push_back(A3);
         result.push_back(C3);
@@ -210,7 +211,6 @@ Movement::PointsArray PathGenerator::SpliceAndSmoothArc(WorldObject const* owner
     // We only need arcs for consequential angles (smoothing is done client side so this is just for creating reasonable points)
     if (angle < minAngle || angle > M_PI - minAngle)
     {
-        TC_LOG_DEBUG("smooth", "Arc fallback: angle too straight or sharp, angle={}", angle);
         Movement::PointsArray result;
         result.push_back(A3);
         result.push_back(C3);
@@ -224,7 +224,7 @@ Movement::PointsArray PathGenerator::SpliceAndSmoothArc(WorldObject const* owner
     // Distance from B to tangent points
     float t = smoothingRadius * std::tan(angle / 2.0f);
 
-    // Fallback if t is too large (segments too short for arc)
+    // Fallback if t is too large (segments too short for arc) This should not be called
     if (t > lenAB || t > lenBC || std::isnan(t) || std::isinf(t)) {
         TC_LOG_DEBUG("smooth", "Arc fallback: tangent distance too large or invalid, t={}, lenAB={}, lenBC={}", t, lenAB, lenBC);
         Movement::PointsArray result;
