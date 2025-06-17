@@ -32,13 +32,13 @@ namespace
     constexpr float MIN_WANDER_DISTANCE = 2.0f;
     constexpr float SMOOTH_CORNER_RADIUS = 0.5f;
     constexpr int NUM_WANDER_POINTS = 12;
-    constexpr int SMOOTH_CORNER_NUM_POINTS = 0;
+    constexpr int SMOOTH_CORNER_NUM_POINTS = 3;
     // We will iterate our angles vector by this amount to create a less sharp path e.g if we are at index 0, we will lookup offset[0] = 3, so we will iterate to next angle of [3].
     constexpr int ANGLE_ITERATION_OFFSET[] = {2, 2, 2, 2, 2, 3, -2, -2, -2, -2, -2, -3};
 }
 
 template<class T>
-RandomMovementGenerator<T>::RandomMovementGenerator(float distance) : _wanderDistance(distance), _wanderSteps(0), _reference(), _angleIndex(0), _angleIterationIndex(0), _pathIndex(0), _timer(0)
+RandomMovementGenerator<T>::RandomMovementGenerator(float distance) : _wanderDistance(distance), _wanderSteps(0), _reference(), _angleIndex(0), _pathIndex(0), _timer(0)
 {
     this->Mode = MOTION_MODE_DEFAULT;
     this->Priority = MOTION_PRIORITY_NORMAL;
@@ -171,11 +171,10 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
             float angle = _angles[_angleIndex];
             if (owner->GetSpawnId() == 80043)
             {
-                TC_LOG_DEBUG("smooth", "picking dest for total paths {}, angle index: {}, angle iteration index: {}, angle iteration sign: {}, angle: {}, distance: {}", _paths.size(), _angleIndex, _angleIterationIndex, _angleIterationSign, angle, distance);
+                TC_LOG_DEBUG("smooth", "picking dest for total paths {}, angle index: {}, angle iteration sign: {}, angle: {}, distance: {}", _paths.size(), _angleIndex, _angleIterationSign, angle, distance);
             }
-            _angleIndex = _angleIndex + _angleIterationSign * ANGLE_ITERATION_OFFSET[_angleIterationIndex];
+            _angleIndex = _angleIndex + _angleIterationSign * ANGLE_ITERATION_OFFSET[_paths.size()];
             _angleIndex = (_angleIndex + NUM_WANDER_POINTS) % NUM_WANDER_POINTS;
-            _angleIterationIndex = (_angleIterationIndex + 1) % NUM_WANDER_POINTS;
 
             // Modify the wander point accounting for collision
             owner->MovePositionToFirstCollision(src, dest, distance, angle);
