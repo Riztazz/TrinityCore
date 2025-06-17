@@ -245,9 +245,8 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
     // We want to smooth to the next path by splicing the end of the current path with the start of the next path and smoothing the corner
     else
     {
-        
         Movement::PointsArray modPath = PathGenerator::TruncatePath(owner, _paths[_pathIndex], SMOOTH_CORNER_RADIUS, true);
-        Movement::PointsArray splicePath = PathGenerator::SpliceAndSmoothPath(owner, _paths[_pathIndex].front(), modPath.front(), SMOOTH_CORNER_NUM_POINTS);
+        Movement::PointsArray splicePath = PathGenerator::SpliceAndSmoothPath(owner, _paths[_pathIndex].front(), modPath[0], modPath[1], SMOOTH_CORNER_NUM_POINTS);
         splicePath.insert(splicePath.end(), modPath.begin(), modPath.end());
         if (owner->GetSpawnId() == 80043)
         {
