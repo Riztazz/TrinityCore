@@ -29,7 +29,8 @@
 
 namespace
 {
-    constexpr float MIN_WANDER_DISTANCE = 2.0f;
+    constexpr float MIN_WANDER_DISTANCE = 1.0f;
+    constexpr float DEFAULT_WANDER_DISTANCE = 2.0f;
     constexpr float SMOOTH_CORNER_RADIUS = 0.5f;
     constexpr int NUM_WANDER_POINTS = 12;
     constexpr int SMOOTH_CORNER_NUM_POINTS = 3;
@@ -38,7 +39,7 @@ namespace
 }
 
 template<class T>
-RandomMovementGenerator<T>::RandomMovementGenerator(float distance) : _wanderDistance(distance), _wanderSteps(0), _reference(), _angleIndex(0), _pathIndex(0), _timer(0)
+RandomMovementGenerator<T>::RandomMovementGenerator(float distance) : _maxWanderDistance(distance), _lastWanderDistance(MIN_WANDER_DISTANCE), _wanderSteps(0), _reference(), _angleIndex(0), _pathIndex(0), _timer(0)
 {
     this->Mode = MOTION_MODE_DEFAULT;
     this->Priority = MOTION_PRIORITY_NORMAL;
@@ -96,11 +97,11 @@ void RandomMovementGenerator<Creature>::DoInitialize(Creature* owner)
     owner->StopMoving();
     ResetPaths();
 
-    if (_wanderDistance == 0.f)
-        _wanderDistance = owner->GetWanderDistance();
+    if (_maxWanderDistance <= DEFAULT_WANDER_DISTANCE)
+        _maxWanderDistance = std::max(DEFAULT_WANDER_DISTANCE, owner->GetWanderDistance());
 
     // Retail seems to let a creature walk 2 up to 10 splines before triggering a pause
-    _wanderSteps = urand(1, ((_wanderDistance <= MIN_WANDER_DISTANCE) ? 2 : 8));
+    _wanderSteps = urand(1, ((_maxWanderDistance <= DEFAULT_WANDER_DISTANCE) ? 2 : 8));
     // Should we reset timer? _timer.Reset(0);
 
     // Only set these on first initialize
@@ -163,7 +164,15 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
         {
             // Using our reference (spawn) point construct the distance and angle to a new point
             dest = _reference;
-            float distance = frand(MIN_WANDER_DISTANCE, std::max(MIN_WANDER_DISTANCE, _wanderDistance));
+            // Do not do two less than average wanders in a row to prevent too short of paths
+            float averageWanderDistance = MIN_WANDER_DISTANCE + _maxWanderDistance / 2.0f;
+            float distance = MIN_WANDER_DISTANCE;
+            if (_lastWanderDistance < averageWanderDistance)
+                distance = frand(averageWanderDistance, _maxWanderDistance);
+            else
+                distance = frand(MIN_WANDER_DISTANCE, averageWanderDistance);
+            _lastWanderDistance = distance;
+
             float angle = _angles[_angleIndex];
             _angleIndex = _angleIndex + _angleIterationSign * ANGLE_ITERATION_OFFSET[_paths.size()];
             _angleIndex = (_angleIndex + NUM_WANDER_POINTS) % NUM_WANDER_POINTS;
@@ -230,11 +239,6 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
     else if (_paths.size() == 1)
     {
         Movement::PointsArray modPath = PathGenerator::TruncatePath(owner, _paths[_pathIndex], SMOOTH_CORNER_RADIUS);
-        if (owner->GetSpawnId() == 80043)
-        {
-            TC_LOG_DEBUG("smooth", "creating first path length: {}", PathGenerator::ComputePathLength(_paths[_pathIndex]));
-            TC_LOG_DEBUG("smooth", "creating first path truncated length: {}", PathGenerator::ComputePathLength(modPath));
-        }
         init.MovebyPath(modPath);
         //init.SetSmooth();
     }
@@ -320,7 +324,8 @@ bool RandomMovementGenerator<Creature>::DoUpdate(Creature* owner, uint32 diff)
     {
         if (!_wanderSteps)
         {
-            _wanderSteps = urand(1, ((_wanderDistance <= 1.0f) ? 2 : 8));
+            // Retail seems to let a creature walk 2 up to 10 splines before triggering a pause
+            _wanderSteps = urand(1, ((_maxWanderDistance <= DEFAULT_WANDER_DISTANCE) ? 2 : 8));
             _timer.Reset(urand(6, 12) * IN_MILLISECONDS); // Retails seems to use rounded numbers so we do as well
         }
         if (_timer.Passed())

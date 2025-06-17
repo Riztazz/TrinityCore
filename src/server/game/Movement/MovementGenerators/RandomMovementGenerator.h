@@ -48,7 +48,8 @@ class RandomMovementGenerator : public MovementGeneratorMedium<T, RandomMovement
         void SetRandomLocation(T*);
         void ResetPaths();
 
-        float _wanderDistance;
+        float _maxWanderDistance;
+        float _lastWanderDistance;
         uint8 _wanderSteps;
         Position _reference;
         int _angleIndex;
