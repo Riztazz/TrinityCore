@@ -157,8 +157,6 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
             // Use the cached value from the previous call
             if (_cachedNextWanderPoint.IsPositionValid())
             {
-                if (owner->GetSpawnId() == 80043)
-                    TC_LOG_DEBUG("smooth", "Last point used point from cache");
                 dest = _cachedNextWanderPoint;
                 _cachedNextWanderPoint = Position();
             }
@@ -166,8 +164,6 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
             else
             {
                 float angle = frand(-0.5 * M_PI, 0.5 * M_PI);
-                if (owner->GetSpawnId() == 80043)
-                    TC_LOG_DEBUG("smooth", "Last point fallback random direction, distance: {}, angle: {}", MIN_WANDER_DISTANCE, angle * (180.0f / M_PI));
                 owner->MovePositionToFirstCollision(src, dest, MIN_WANDER_DISTANCE, angle);
             }
         }
@@ -245,8 +241,6 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
             // Now call MovePositionToFirstCollision ONCE for each, to get the actual valid positions
             if (bestScore < std::numeric_limits<float>::max())
             {
-                if (owner->GetSpawnId() == 80043)
-                    TC_LOG_DEBUG("smooth", "Second to last point calculated return, distance: {}, bestAngleA {}, bestAngleB {}", minDist, bestAngleA * (180.0f / M_PI), bestAngleB * (180.0f / M_PI));
                 owner->MovePositionToFirstCollision(src, dest, minDist, bestAngleA);
                 Position realB = dest;
                 owner->MovePositionToFirstCollision(dest, realB, minDist, bestAngleB);
@@ -256,8 +250,6 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
             else
             {
                 bestAngleA = frand(-0.5 * M_PI, 0.5 * M_PI);
-                if (owner->GetSpawnId() == 80043)
-                    TC_LOG_DEBUG("smooth", "Second to last point fallback, distance: {}, bestAngleA: {}", minDist, bestAngleA * (180.0f / M_PI));
                 owner->MovePositionToFirstCollision(src, dest, minDist, bestAngleA);
             }
         }
@@ -287,8 +279,6 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
                 if (angleDiff < -maxTurn) angleDiff = -maxTurn;
 
                 angle = angleDiff;
-                if (owner->GetSpawnId() == 80043)
-                    TC_LOG_DEBUG("smooth", "Required to turn back: orientation: {}, angleToReference: {}, angle: {}", currentOrientation, angleToReference, angle * (180.0f / M_PI));
             }
             // Else walk in any random direction without sharp turns
             else
@@ -296,16 +286,11 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
 
             // Move that direction and account for collisions
             owner->MovePositionToFirstCollision(src, dest, distance, angle);
-
-            if (owner->GetSpawnId() == 80043)
-                TC_LOG_DEBUG("smooth", "Random points final dest: {}, angle: {}", distance, angle * (180.0f / M_PI));
         }
 
         // Check if the destination is in LOS
         if (!owner->IsWithinLOS(src, dest.GetPositionX(), dest.GetPositionY(), dest.GetPositionZ()))
         {
-            if (owner->GetSpawnId() == 80043)
-                TC_LOG_DEBUG("smooth", "Dest not within los of src, resetting");
             // Retry later on
             _timer.Reset(200);
             ResetPaths();
@@ -325,8 +310,6 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
                     || (_pathGenerator->GetPathType() & PATHFIND_SHORTCUT)
                     /*|| (_pathGenerator->GetPathType() & PATHFIND_FARFROMPOLY)*/)
         {
-            if (owner->GetSpawnId() == 80043)
-                TC_LOG_DEBUG("smooth", "Path not found, resetting");
             _timer.Reset(100);
             ResetPaths();
             return;
@@ -335,8 +318,6 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
         Movement::PointsArray path = _pathGenerator->GetPath();
         if (path.size() < 2)
         {
-            if (owner->GetSpawnId() == 80043)
-                TC_LOG_DEBUG("smooth", "Path size < 2, resetting");
             _timer.Reset(100);
             ResetPaths();
             return;
