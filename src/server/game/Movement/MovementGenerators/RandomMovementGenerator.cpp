@@ -385,6 +385,7 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
         
         if (owner->GetSpawnId() == 80043)
         {
+            TC_LOG_DEBUG("smooth", "base path vertex 0 (x={}, y={}):", _paths[_pathIndex][0].x, _paths[_pathIndex][0].y);
             for (size_t i = 1; i + 1 < _paths[_pathIndex].size(); ++i)
             {
                 const G3D::Vector3& prev = _paths[_pathIndex][i - 1];
@@ -410,6 +411,7 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
                 TC_LOG_DEBUG("smooth", "base path vertex {} (x={}, y={}): angle (deg): {}", i, curr.x, curr.y, angleDeg);
             }
 
+            TC_LOG_DEBUG("smooth", "modPath vertex 0 (x={}, y={}):", modPath[0].x, modPath[0].y);
             for (size_t i = 1; i + 1 < modPath.size(); ++i)
             {
                 const G3D::Vector3& prev = modPath[i - 1];
@@ -435,6 +437,7 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
                 TC_LOG_DEBUG("smooth", "modPath vertex {} (x={}, y={}): angle (deg): {}", i, curr.x, curr.y, angleDeg);
             }
 
+            TC_LOG_DEBUG("smooth", "splicePath vertex 0 (x={}, y={}):", splicePath[0].x, splicePath[0].y);
             for (size_t i = 1; i + 1 < splicePath.size(); ++i)
             {
                 const G3D::Vector3& prev = splicePath[i - 1];
