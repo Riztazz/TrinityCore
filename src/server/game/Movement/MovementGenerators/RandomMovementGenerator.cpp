@@ -33,7 +33,7 @@ namespace
     constexpr float DEFAULT_WANDER_DISTANCE = 4.0f;
     constexpr float SMOOTH_CORNER_RADIUS = 1.5f;
     constexpr int NUM_WANDER_POINTS = 12;
-    constexpr int SMOOTH_CORNER_NUM_POINTS = 5;
+    constexpr int SMOOTH_CORNER_NUM_POINTS = 15;
     // We will iterate our angles vector by this amount to create a less sharp path e.g if we are at index 0, we will lookup offset[0] = 3, so we will iterate to next angle of [3].
     constexpr int ANGLE_ITERATION_OFFSET[] = {2, 2, 2, 2, 2, 3, -2, -2, -2, -2, -2, -3};
 }
@@ -240,7 +240,7 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
     {
         Movement::PointsArray modPath = PathGenerator::TruncatePath(owner, _paths[_pathIndex], SMOOTH_CORNER_RADIUS);
         init.MovebyPath(modPath);
-        init.SetSmooth();
+        //init.SetSmooth();
     }
     // We want to smooth to the next path by splicing the end of the current path with the start of the next path and smoothing the corner
     else
@@ -254,7 +254,7 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
             TC_LOG_DEBUG("smooth", "creating spliced path length: {}", PathGenerator::ComputePathLength(splicePath));
         }
         init.MovebyPath(splicePath);
-        init.SetSmooth();
+        //init.SetSmooth();
     }
 
     init.SetWalk(walk);
