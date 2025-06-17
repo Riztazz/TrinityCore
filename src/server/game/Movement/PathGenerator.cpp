@@ -168,64 +168,87 @@ Movement::PointsArray PathGenerator::TruncatePath(WorldObject const* owner, cons
     }
 }
 
-Movement::PointsArray PathGenerator::SpliceAndSmoothPath(WorldObject const* owner, const G3D::Vector3& midpoint, const G3D::Vector3& endpoint, uint32 numPoints)
+// Helper: Compute the center of the circle passing through three points
+G3D::Vector2 PathGenerator::ComputeCircleCenter(const G3D::Vector2& A, const G3D::Vector2& B, const G3D::Vector2& C)
 {
-    // Get positions
-    const G3D::Vector3& A = PositionToVector3(owner->GetPosition());
-    const G3D::Vector3& B = midpoint;
-    const G3D::Vector3& C = endpoint;
+    float a1 = B.x - A.x, b1 = B.y - A.y;
+    float a2 = C.x - B.x, b2 = C.y - B.y;
+    float d1 = (A.x*A.x - B.x*B.x + A.y*A.y - B.y*B.y) / 2.0f;
+    float d2 = (B.x*B.x - C.x*C.x + B.y*B.y - C.y*C.y) / 2.0f;
+    float det = a1 * b2 - a2 * b1;
+    if (std::fabs(det) < 1e-6f) // Points are colinear or too close
+        return G3D::Vector2(NAN, NAN);
+    float cx = (d1 * b2 - d2 * b1) / det;
+    float cy = (a1 * d2 - a2 * d1) / det;
+    return G3D::Vector2(cx, cy);
+}
 
-    // 2D vectors
-    G3D::Vector2 AB(B.x - A.x, B.y - A.y);
-    G3D::Vector2 BC(C.x - B.x, C.y - B.y);
+Movement::PointsArray PathGenerator::SpliceAndSmoothArc(WorldObject const* owner, const G3D::Vector3& midpoint, const G3D::Vector3& endpoint, uint32 numPoints)
+{
+    const G3D::Vector3& A3 = PositionToVector3(owner->GetPosition());
+    const G3D::Vector3& B3 = midpoint;
+    const G3D::Vector3& C3 = endpoint;
 
-    float lenAB = AB.length();
-    float lenBC = BC.length();
+    G3D::Vector2 A(A3.x, A3.y);
+    G3D::Vector2 B(B3.x, B3.y);
+    G3D::Vector2 C(C3.x, C3.y);
 
-    float radius = std::min(lenAB, lenBC);
-
-    G3D::Vector2 dirAB = lenAB > 0 ? AB.direction() : G3D::Vector2(0,0);
-    G3D::Vector2 dirBC = lenBC > 0 ? BC.direction() : G3D::Vector2(0,0);
-
-    // Start and end points of the curve
-    G3D::Vector2 P0(B.x - dirAB.x * radius, B.y - dirAB.y * radius);
-    G3D::Vector2 P2(B.x + dirBC.x * radius, B.y + dirBC.y * radius);
-
-    // Compute the "bulged" control point for near-180° smoothing
-    float dot = dirAB.x * dirBC.x + dirAB.y * dirBC.y;
-    dot = std::clamp(dot, -1.0f, 1.0f); // Safety for acos
-    float angle = std::acos(dot);
-    float bulge = std::sin(angle / 2.0f);
-
-    // Bisector direction (normalized)
-    G3D::Vector2 bisector = (dirAB + dirBC);
-    if (bisector.length() > 0)
-        bisector = bisector.direction();
-    else
-        bisector = G3D::Vector2(-dirAB.y, dirAB.x); // Perpendicular fallback
-
-    float bulgeDistance = radius * bulge; // You can tune this factor
-    G3D::Vector2 control = G3D::Vector2(B.x, B.y) + bisector * bulgeDistance;
-
-    std::vector<G3D::Vector3> bezierPoints;
-    for (uint32 i = 0; i < numPoints; ++i)
+    // Compute circle center and radius
+    G3D::Vector2 center = ComputeCircleCenter(A, B, C);
+    if (std::isnan(center.x) || std::isnan(center.y))
     {
-        float t = float(i + 1) / float(numPoints + 1);
-        float one_minus_t = 1.0f - t;
+        // Fallback to straight line if colinear
+        Movement::PointsArray result;
+        result.push_back(A3);
+        result.push_back(C3);
+        return result;
+    }
+    float radius = (A - center).length();
 
-        float x = one_minus_t * one_minus_t * P0.x + 2 * one_minus_t * t * control.x + t * t * P2.x;
-        float y = one_minus_t * one_minus_t * P0.y + 2 * one_minus_t * t * control.y + t * t * P2.y;
-        float z = B.z;
+    // Compute start, mid, and end angles
+    float angleA = std::atan2(A.y - center.y, A.x - center.x);
+    float angleB = std::atan2(B.y - center.y, B.x - center.x);
+    float angleC = std::atan2(C.y - center.y, C.x - center.x);
 
-        owner->UpdateAllowedPositionZ(x, y, z);
-        bezierPoints.emplace_back(x, y, z);
+    // Determine arc direction (CW or CCW) to ensure correct interpolation
+    float deltaAB = angleB - angleA;
+    float deltaBC = angleC - angleB;
+    // Normalize to [-pi, pi]
+    while (deltaAB < -M_PI) deltaAB += 2 * M_PI;
+    while (deltaAB > M_PI) deltaAB -= 2 * M_PI;
+    while (deltaBC < -M_PI) deltaBC += 2 * M_PI;
+    while (deltaBC > M_PI) deltaBC -= 2 * M_PI;
+
+    // Total angle to sweep from A to C via B
+    float totalAngle = angleC - angleA;
+    // Choose the direction that passes through B
+    if ((deltaAB > 0 && deltaBC > 0) || (deltaAB < 0 && deltaBC < 0))
+    {
+        // Ok, sweep from A to C
+    }
+    else
+    {
+        // Go the other way around the circle
+        if (totalAngle > 0)
+            totalAngle -= 2 * M_PI;
+        else
+            totalAngle += 2 * M_PI;
     }
 
-    // Build the new path: A, bezier points, C
+    // Build the arc
     Movement::PointsArray result;
-    result.push_back(A);
-    result.insert(result.end(), bezierPoints.begin(), bezierPoints.end());
-    result.push_back(C);
+    result.push_back(A3);
+    for (uint32 i = 1; i <= numPoints; ++i)
+    {
+        float t = float(i) / float(numPoints + 1);
+        float theta = angleA + t * totalAngle;
+        float x = center.x + radius * std::cos(theta);
+        float y = center.y + radius * std::sin(theta);
+        float z = B3.z; // Or interpolate z if you want
+        owner->UpdateAllowedPositionZ(x, y, z);
+        result.emplace_back(x, y, z);
+    }
+    result.push_back(C3);
 
     return result;
 }
