@@ -370,7 +370,8 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
                     path = Movement::PointsArray(A.begin(), A.end());
                     path.insert(path.end(), B.begin(), B.end());
                     path.insert(path.end(), C.begin(), C.end());
-                    TC_LOG_DEBUG("smooth", "Final path Points: {}, Length: {}", path.size(), PathGenerator::ComputePathLength(path));
+                    if (owner->GetSpawnId() == 80043)
+                        TC_LOG_DEBUG("smooth", "Final path Points: {}, Length: {}", path.size(), PathGenerator::ComputePathLength(path));
 
                     if (owner->GetSpawnId() == 80043)
                     {
