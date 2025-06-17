@@ -219,16 +219,11 @@ Movement::PointsArray PathGenerator::SpliceAndSmoothArc(WorldObject const* owner
 
     // Use a radius that fits the available geometry for the given angle
     float tanHalfAngle = std::tan(angle / 2.0f);
-    if (tanHalfAngle < 1e-6f) tanHalfAngle = 1e-6f; // avoid division by zero
-    float maxRadiusAB = lenAB / tanHalfAngle;
-    float maxRadiusBC = lenBC / tanHalfAngle;
-    float maxSmoothingRadius = std::min(maxRadiusAB, maxRadiusBC);
-
-    float smoothingRadius = std::min(lenAB, lenBC) * 0.5f; // your default
-    smoothingRadius = std::min(smoothingRadius, maxSmoothingRadius);
+    if (tanHalfAngle < 1e-6f) tanHalfAngle = 1e-6f;
+    float smoothingRadius = std::min(lenAB, lenBC) / tanHalfAngle;
     smoothingRadius = std::clamp(smoothingRadius, minRadius, maxRadius);
-
     float t = smoothingRadius * tanHalfAngle;
+
     if (std::isnan(t) || std::isinf(t))
     {
         TC_LOG_DEBUG("smooth", "Arc fallback: cannot compute tangent, angle= {}, t={}, lenAB={}, lenBC={}", angle * (180.0f / M_PI), t, lenAB, lenBC);
