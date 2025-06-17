@@ -265,8 +265,8 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
             if (distanceFromSpawn > 0.75f * _maxWanderDistance)
             {
                 float currentOrientation = owner->GetOrientation();
-                float dx = _reference.x - src.x;
-                float dy = _reference.y - src.y;
+                float dx = _reference.GetPositionX() - src.GetPositionX();
+                float dy = _reference.GetPositionY() - src.GetPositionY();
                 float angleToReference = std::atan2(dy, dx);
 
                 float angleDiff = angleToReference - currentOrientation;
