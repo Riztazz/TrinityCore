@@ -155,10 +155,6 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
         // Last path needs to connect to the first point of the first path
         if (_paths.size() == NUM_WANDER_POINTS)
         {
-            if (owner->GetSpawnId() == 80043)
-            {
-                TC_LOG_DEBUG("smooth", "picking final dest  for total paths {}, angle index {} from front of path[1]", _paths.size(), _angleIndex);
-            }
             G3D::Vector3& v = _paths[1].front();
             dest.Relocate(v.x, v.y, v.z);
         }
@@ -169,10 +165,6 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
             dest = _reference;
             float distance = frand(MIN_WANDER_DISTANCE, std::max(MIN_WANDER_DISTANCE, _wanderDistance));
             float angle = _angles[_angleIndex];
-            if (owner->GetSpawnId() == 80043)
-            {
-                TC_LOG_DEBUG("smooth", "picking dest for total paths {}, angle index: {}, angle iteration sign: {}, angle: {}, distance: {}", _paths.size(), _angleIndex, _angleIterationSign, angle, distance);
-            }
             _angleIndex = _angleIndex + _angleIterationSign * ANGLE_ITERATION_OFFSET[_paths.size()];
             _angleIndex = (_angleIndex + NUM_WANDER_POINTS) % NUM_WANDER_POINTS;
 
@@ -238,17 +230,29 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
     else if (_paths.size() == 1)
     {
         Movement::PointsArray modPath = PathGenerator::TruncatePath(owner, _paths[_pathIndex], SMOOTH_CORNER_RADIUS);
+        if (owner->GetSpawnId() == 80043)
+        {
+            TC_LOG_DEBUG("smooth", "creating first path: {},{},{}=>{},{},{}", _paths[_pathIndex].front().x, _paths[_pathIndex].front().y, _paths[_pathIndex].front().z, _paths[_pathIndex].back().x, _paths[_pathIndex].back().y, _paths[_pathIndex].back().z);
+            TC_LOG_DEBUG("smooth", "creating first truncated path: {},{},{}=>{},{},{}", modPath.front().x, modPath.front().y, modPath.front().z, modPath.back().x, modPath.back().y, modPath.back().z);
+        }
         init.MovebyPath(modPath);
-        init.SetSmooth();
+        //init.SetSmooth();
     }
     // We want to smooth to the next path by splicing the end of the current path with the start of the next path and smoothing the corner
     else
     {
-        Movement::PointsArray modPath = PathGenerator::SpliceAndSmoothPath(owner, _paths[_pathIndex][0], _paths[_pathIndex][1], SMOOTH_CORNER_NUM_POINTS);
-        Movement::PointsArray nextPath = PathGenerator::TruncatePath(owner, _paths[_pathIndex], SMOOTH_CORNER_RADIUS, true);
-        modPath.insert(modPath.end(), nextPath.begin(), nextPath.end());
+        //Movement::PointsArray modPath = PathGenerator::SpliceAndSmoothPath(owner, _paths[_pathIndex][0], _paths[_pathIndex][1], SMOOTH_CORNER_NUM_POINTS);
+        Movement::PointsArray modPath = _paths[_pathIndex];
+        modPath.insert(modPath.begin(), PositionToVector3(owner->GetPosition()));
+        if (owner->GetSpawnId() == 80043)
+        {
+            TC_LOG_DEBUG("smooth", "creating subsequent path: {},{},{}=>{},{},{}", _paths[_pathIndex].front().x, _paths[_pathIndex].front().y, _paths[_pathIndex].front().z, _paths[_pathIndex].back().x, _paths[_pathIndex].back().y, _paths[_pathIndex].back().z);
+            TC_LOG_DEBUG("smooth", "creating subsequent truncated: {},{},{}=>{},{},{}", modPath.front().x, modPath.front().y, modPath.front().z, modPath.back().x, modPath.back().y, modPath.back().z);
+        }
+        //Movement::PointsArray nextPath = PathGenerator::TruncatePath(owner, _paths[_pathIndex], SMOOTH_CORNER_RADIUS, true);
+        //modPath.insert(modPath.end(), nextPath.begin(), nextPath.end());
         init.MovebyPath(modPath);
-        init.SetSmooth();
+        //init.SetSmooth();
     }
 
     init.SetWalk(walk);
@@ -269,7 +273,6 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
 template<class T>
 void RandomMovementGenerator<T>::ResetPaths()
 {
-    TC_LOG_DEBUG("smooth", "Resetting paths");
     _pathIndex = 0;
     _paths.clear();
     _pathGenerator = nullptr;
