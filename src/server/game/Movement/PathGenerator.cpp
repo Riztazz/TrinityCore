@@ -168,7 +168,7 @@ Movement::PointsArray PathGenerator::TruncatePath(WorldObject const* owner, cons
     }
 }
 
-Movement::PointsArray PathGenerator::SpliceAndSmoothArc(WorldObject const* owner, const G3D::Vector3& midpoint, const G3D::Vector3& endpoint, uint32 numPoints)
+Movement::PointsArray PathGenerator::SpliceAndSmoothArc(WorldObject const* owner, const G3D::Vector3& midpoint, const G3D::Vector3& endpoint, float radius, uint32 numPoints)
 {
     const G3D::Vector3& A3 = PositionToVector3(owner->GetPosition());
     const G3D::Vector3& B3 = midpoint;
@@ -181,12 +181,22 @@ Movement::PointsArray PathGenerator::SpliceAndSmoothArc(WorldObject const* owner
     // Thresholds
     const float minRadius = 0.1f;
     const float maxRadius = 1000.0f;
+    const float minAngle = 0.1f;
 
     // Compute vectors and lengths
     G3D::Vector2 AB = B - A;
     G3D::Vector2 BC = C - B;
     float lenAB = AB.length();
     float lenBC = BC.length();
+
+    if (lenAB < minRadius || lenBC < minRadius)
+    {
+        TC_LOG_DEBUG("smooth", "Arc fallback: points too close, lenAB={}, lenBC={}", lenAB, lenBC);
+        Movement::PointsArray result;
+        result.push_back(A3);
+        result.push_back(C3);
+        return result;
+    }
 
     // Directions and normalized vectors
     G3D::Vector2 dirAB = AB.direction();
@@ -197,8 +207,9 @@ Movement::PointsArray PathGenerator::SpliceAndSmoothArc(WorldObject const* owner
     dot = std::clamp(dot, -1.0f, 1.0f);
     float angle = std::acos(dot);
 
-    // Skip smoothing for nearly straight or nearly 0° (sharp) angles
-    if (angle < 0.01f || angle > M_PI - 0.01f) {
+    // We only need arcs for consequential angles (smoothing is done client side so this is just for creating reasonable points)
+    if (angle < minAngle || angle > M_PI - minAngle)
+    {
         TC_LOG_DEBUG("smooth", "Arc fallback: angle too straight or sharp, angle={}", angle);
         Movement::PointsArray result;
         result.push_back(A3);

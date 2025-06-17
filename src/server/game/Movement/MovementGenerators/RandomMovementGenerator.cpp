@@ -381,7 +381,15 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
     {
         
         Movement::PointsArray modPath = PathGenerator::TruncatePath(owner, _paths[_pathIndex], SMOOTH_CORNER_RADIUS, true);
-        Movement::PointsArray splicePath = PathGenerator::SpliceAndSmoothArc(owner, _paths[_pathIndex].front(), modPath.front(), SMOOTH_CORNER_NUM_POINTS);
+        if (owner->GetPosition().GetExactDist(Vector3ToPosition(_paths[_pathIndex].front())) < SMOOTH_CORNER_RADIUS / 2.0f)
+        {
+            TC_LOG_DEBUG("smooth", "Owner not smooth distance away from  {} 0 (x={}, y={}) -> (x={}, y={}):", _pathIndex, owner->GetPositionX(), owner->GetPositionY(), _paths[_pathIndex].front().x, _paths[_pathIndex].front().y);
+        }
+        if (Vector3ToPosition(_paths[_pathIndex].front()).GetExactDist(Vector3ToPosition(modPath.front())) < SMOOTH_CORNER_RADIUS / 2.0f)
+        {
+            TC_LOG_DEBUG("smooth", "Could not fully truncate front for path {} 0 (x={}, y={}) -> (x={}, y={}):", _pathIndex, _paths[_pathIndex].front().x, _paths[_pathIndex].front().y, _paths[_pathIndex].back().x, _paths[_pathIndex].back().y);
+        }
+        Movement::PointsArray splicePath = PathGenerator::SpliceAndSmoothArc(owner, _paths[_pathIndex].front(), modPath.front(), SMOOTH_CORNER_RADIUS, SMOOTH_CORNER_NUM_POINTS);
         
         if (owner->GetSpawnId() == 80043)
         {
