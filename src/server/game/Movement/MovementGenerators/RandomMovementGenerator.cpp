@@ -268,7 +268,7 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
             float angleRad = std::acos(dot / (abLen * bcLen));
             float angleDeg = angleRad * (180.0f / M_PI);
 
-            TC_LOG_DEBUG("smooth", "owner->pathStart->modPathStart angle (deg): {}", angleDeg);
+            TC_LOG_DEBUG("smooth", "owner->pathStart->modPathStart mod path index: {} angle (deg): {}", _pathIndex, angleDeg);
 
             for (size_t i = 1; i + 1 < splicePath.size(); ++i)
             {
