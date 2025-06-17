@@ -157,7 +157,7 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
         {
             if (owner->GetSpawnId() == 80043)
             {
-                TC_LOG_DEBUG("smooth", "picking final dest from front of path[1]");
+                TC_LOG_DEBUG("smooth", "picking final dest  for total paths {}, angle index {} from front of path[1]");
             }
             G3D::Vector3& v = _paths[1].front();
             dest.Relocate(v.x, v.y, v.z);
@@ -171,18 +171,10 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
             float angle = _angles[_angleIndex];
             if (owner->GetSpawnId() == 80043)
             {
-                TC_LOG_DEBUG("smooth", "picking dest for angle index: {}, iter index {}, sign {}, angle: {}, distance: {}", _angleIndex, _angleIterationIndex, _angleIterationSign, angle, distance);
+                TC_LOG_DEBUG("smooth", "picking dest for total paths {}, angle index: {}, angle iteration index: {}, angle iteration sign: {}, angle: {}, distance: {}", _paths.size(), _angleIndex, _angleIterationIndex, _angleIterationSign, angle, distance);
             }
             _angleIndex = _angleIndex + _angleIterationSign * ANGLE_ITERATION_OFFSET[_angleIterationIndex];
-            if (owner->GetSpawnId() == 80043)
-            {
-                TC_LOG_DEBUG("smooth", "angle index after offset: {}, iter index {}, sign {}, angle: {}, distance: {}", _angleIndex, _angleIterationIndex, _angleIterationSign, angle, distance);
-            }
             _angleIndex = (_angleIndex + NUM_WANDER_POINTS) % NUM_WANDER_POINTS;
-            if (owner->GetSpawnId() == 80043)
-            {
-                TC_LOG_DEBUG("smooth", "angle index after mod: {}, iter index {}, sign {}, angle: {}, distance: {}", _angleIndex, _angleIterationIndex, _angleIterationSign, angle, distance);
-            }
             _angleIterationIndex = (_angleIterationIndex + 1) % NUM_WANDER_POINTS;
 
             // Modify the wander point accounting for collision
