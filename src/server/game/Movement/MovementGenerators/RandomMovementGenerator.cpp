@@ -167,7 +167,7 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
             {
                 float angle = frand(-0.5 * M_PI, 0.5 * M_PI);
                 if (owner->GetSpawnId() == 80043)
-                    TC_LOG_DEBUG("smooth", "Last point fallback random direction, distance: {}, angle: {}", MIN_WANDER_DISTANCE, angle);
+                    TC_LOG_DEBUG("smooth", "Last point fallback random direction, distance: {}, angle: {}", MIN_WANDER_DISTANCE, angle * (180.0f / M_PI));
                 owner->MovePositionToFirstCollision(src, dest, MIN_WANDER_DISTANCE, angle);
             }
         }
@@ -246,7 +246,7 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
             if (bestScore < std::numeric_limits<float>::max())
             {
                 if (owner->GetSpawnId() == 80043)
-                    TC_LOG_DEBUG("smooth", "Second to last point calculated return, distance: {}, bestAngleA {}, bestAngleB {}", minDist, bestAngleA, bestAngleB);
+                    TC_LOG_DEBUG("smooth", "Second to last point calculated return, distance: {}, bestAngleA {}, bestAngleB {}", minDist, bestAngleA * (180.0f / M_PI), bestAngleB * (180.0f / M_PI));
                 owner->MovePositionToFirstCollision(src, dest, minDist, bestAngleA);
                 Position realB = dest;
                 owner->MovePositionToFirstCollision(dest, realB, minDist, bestAngleB);
@@ -257,7 +257,7 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
             {
                 bestAngleA = frand(-0.5 * M_PI, 0.5 * M_PI);
                 if (owner->GetSpawnId() == 80043)
-                    TC_LOG_DEBUG("smooth", "Second to last point fallback, distance: {}, bestAngle:: {}", minDist, bestAngleA);
+                    TC_LOG_DEBUG("smooth", "Second to last point fallback, distance: {}, bestAngleA: {}", minDist, bestAngleA * (180.0f / M_PI));
                 owner->MovePositionToFirstCollision(src, dest, minDist, bestAngleA);
             }
         }
@@ -288,7 +288,7 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
 
                 angle = angleDiff;
                 if (owner->GetSpawnId() == 80043)
-                    TC_LOG_DEBUG("smooth", "Required to turn back: orientation: {}, angleToReference: {}, angle: {}", currentOrientation, angleToReference, angle);
+                    TC_LOG_DEBUG("smooth", "Required to turn back: orientation: {}, angleToReference: {}, angle: {}", currentOrientation, angleToReference, angle * (180.0f / M_PI));
             }
             // Else walk in any random direction without sharp turns
             else
@@ -298,7 +298,7 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
             owner->MovePositionToFirstCollision(src, dest, distance, angle);
 
             if (owner->GetSpawnId() == 80043)
-                TC_LOG_DEBUG("smooth", "Random points final dest: {}, angle: {}", distance, angle);
+                TC_LOG_DEBUG("smooth", "Random points final dest: {}, angle: {}", distance, angle * (180.0f / M_PI));
         }
 
         // Check if the destination is in LOS
@@ -374,7 +374,7 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
     {
         Movement::PointsArray modPath = PathGenerator::TruncatePath(owner, _paths[_pathIndex], SMOOTH_CORNER_RADIUS);
         init.MovebyPath(modPath);
-        init.SetSmooth();
+        //init.SetSmooth();
     }
     // We want to smooth to the next path by splicing the end of the current path with the start of the next path and smoothing the corner
     else
@@ -382,27 +382,58 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
         
         Movement::PointsArray modPath = PathGenerator::TruncatePath(owner, _paths[_pathIndex], SMOOTH_CORNER_RADIUS, true);
         Movement::PointsArray splicePath = PathGenerator::SpliceAndSmoothPath(owner, _paths[_pathIndex].front(), modPath.front(), SMOOTH_CORNER_NUM_POINTS);
-        splicePath.insert(splicePath.end(), modPath.begin(), modPath.end());
+        
         if (owner->GetSpawnId() == 80043)
         {
-            const G3D::Vector3& ownerPos = PositionToVector3(owner->GetPosition());
-            const G3D::Vector3& pathStart = _paths[_pathIndex].front();
-            const G3D::Vector3& modPathStart = modPath.front();
+            for (size_t i = 1; i + 1 < _paths[_pathIndex].size(); ++i)
+            {
+                const G3D::Vector3& prev = _paths[_pathIndex][i - 1];
+                const G3D::Vector3& curr = _paths[_pathIndex][i];
+                const G3D::Vector3& next = _paths[_pathIndex][i + 1];
 
-            // Vectors in XY
-            float abx = pathStart.x - ownerPos.x;
-            float aby = pathStart.y - ownerPos.y;
-            float bcx = modPathStart.x - pathStart.x;
-            float bcy = modPathStart.y - pathStart.y;
+                float v1x = curr.x - prev.x;
+                float v1y = curr.y - prev.y;
+                float v2x = next.x - curr.x;
+                float v2y = next.y - curr.y;
 
-            float abLen = std::sqrt(abx * abx + aby * aby);
-            float bcLen = std::sqrt(bcx * bcx + bcy * bcy);
+                float v1Len = std::sqrt(v1x * v1x + v1y * v1y);
+                float v2Len = std::sqrt(v2x * v2x + v2y * v2y);
 
-            float dot = abx * bcx + aby * bcy;
-            float angleRad = std::acos(dot / (abLen * bcLen));
-            float angleDeg = angleRad * (180.0f / M_PI);
+                // Guard against zero-length segments
+                if (v1Len == 0.f || v2Len == 0.f)
+                    continue;
 
-            TC_LOG_DEBUG("smooth", "owner->pathStart->modPathStart mod path index: {} angle (deg): {}", _pathIndex, angleDeg);
+                float dot = v1x * v2x + v1y * v2y;
+                float angleRad = std::acos(dot / (v1Len * v2Len));
+                float angleDeg = angleRad * (180.0f / M_PI);
+
+                TC_LOG_DEBUG("smooth", "base path vertex {} (x={}, y={}): angle (deg): {}", i, curr.x, curr.y, angleDeg);
+            }
+
+            for (size_t i = 1; i + 1 < modPath.size(); ++i)
+            {
+                const G3D::Vector3& prev = modPath[i - 1];
+                const G3D::Vector3& curr = modPath[i];
+                const G3D::Vector3& next = modPath[i + 1];
+
+                float v1x = curr.x - prev.x;
+                float v1y = curr.y - prev.y;
+                float v2x = next.x - curr.x;
+                float v2y = next.y - curr.y;
+
+                float v1Len = std::sqrt(v1x * v1x + v1y * v1y);
+                float v2Len = std::sqrt(v2x * v2x + v2y * v2y);
+
+                // Guard against zero-length segments
+                if (v1Len == 0.f || v2Len == 0.f)
+                    continue;
+
+                float dot = v1x * v2x + v1y * v2y;
+                float angleRad = std::acos(dot / (v1Len * v2Len));
+                float angleDeg = angleRad * (180.0f / M_PI);
+
+                TC_LOG_DEBUG("smooth", "modPath vertex {} (x={}, y={}): angle (deg): {}", i, curr.x, curr.y, angleDeg);
+            }
 
             for (size_t i = 1; i + 1 < splicePath.size(); ++i)
             {
@@ -429,8 +460,10 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
                 TC_LOG_DEBUG("smooth", "splicePath vertex {} (x={}, y={}): angle (deg): {}", i, curr.x, curr.y, angleDeg);
             }
         }
+
+        splicePath.insert(splicePath.end(), modPath.begin(), modPath.end());
         init.MovebyPath(splicePath);
-        init.SetSmooth();
+        //init.SetSmooth();
     }
 
     init.SetWalk(walk);
