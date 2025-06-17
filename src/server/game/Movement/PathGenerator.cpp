@@ -118,7 +118,6 @@ Movement::PointsArray PathGenerator::TruncatePath(WorldObject const* owner, cons
                 newFront.y = curr.y + dy * t;
                 newFront.z = curr.z + dz * t;
                 owner->UpdateAllowedPositionZ(newFront.x, newFront.y, newFront.z);
-                ++frontIdx;
                 break;
             }
             else
@@ -148,7 +147,6 @@ Movement::PointsArray PathGenerator::TruncatePath(WorldObject const* owner, cons
                 newBack.y = prev.y + dy * t;
                 newBack.z = prev.z + dz * t;
                 owner->UpdateAllowedPositionZ(newBack.x, newBack.y, newBack.z);
-                --backIdx;
                 break;
             }
             else
