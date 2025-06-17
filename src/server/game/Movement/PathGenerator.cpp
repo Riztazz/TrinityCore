@@ -174,7 +174,6 @@ Movement::PointsArray PathGenerator::SpliceAndSmoothArc(WorldObject const* owner
 
     if (std::isnan(t) || std::isinf(t))
     {
-        TC_LOG_DEBUG("smooth", "Arc fallback: cannot compute tangent, angle= {}, t={}, lenAB={}, lenBC={}", angle * (180.0f / M_PI), t, lenAB, lenBC);
         Movement::PointsArray result;
         result.push_back(A3);
         result.push_back(C3);
@@ -204,7 +203,6 @@ Movement::PointsArray PathGenerator::SpliceAndSmoothArc(WorldObject const* owner
         std::isinf(center.x) || std::isinf(center.y) ||
         std::fabs(center.x) > 1e5f || std::fabs(center.y) > 1e5f)
     {
-        TC_LOG_DEBUG("smooth", "Arc fallback: bad center coordinates, center=({}, {})", center.x, center.y);
         Movement::PointsArray result;
         result.push_back(A3);
         result.push_back(C3);
