@@ -408,6 +408,7 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
             TC_LOG_DEBUG("smooth", "base calculated angle (deg): {}", angleDeg);
 
             TC_LOG_DEBUG("smooth", "splicePath vertex 0 (x={}, y={}):", splicePath[0].x, splicePath[0].y);
+            float angleSum = 0f;
             for (size_t i = 1; i + 1 < splicePath.size(); ++i)
             {
                 const G3D::Vector3& prev = splicePath[i - 1];
@@ -429,9 +430,11 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
                 float dot = v1x * v2x + v1y * v2y;
                 float angleRad = std::acos(dot / (v1Len * v2Len));
                 float angleDeg = angleRad * (180.0f / M_PI);
+                angleSum += angleDeg;
 
                 TC_LOG_DEBUG("smooth", "splicePath vertex {} (x={}, y={}): angle (deg): {}", i, curr.x, curr.y, angleDeg);
             }
+            TC_LOG_DEBUG("smooth", "splicePath vertex n (x={}, y={}): angleSum(deg): {}", splicePath.back().x, splicePath.back().y, angleSum);
         }
 
         splicePath.insert(splicePath.end(), modPath.begin(), modPath.end());
