@@ -29,9 +29,9 @@
 
 namespace
 {
-    constexpr float MIN_WANDER_DISTANCE = 1.0f;
-    constexpr float DEFAULT_WANDER_DISTANCE = 2.0f;
-    constexpr float SMOOTH_CORNER_RADIUS = 0.5f;
+    constexpr float MIN_WANDER_DISTANCE = 2.0f;
+    constexpr float DEFAULT_WANDER_DISTANCE = 3.0f;
+    constexpr float SMOOTH_CORNER_RADIUS = 1.0f;
     constexpr int NUM_WANDER_POINTS = 12;
     constexpr int SMOOTH_CORNER_NUM_POINTS = 3;
     // We will iterate our angles vector by this amount to create a less sharp path e.g if we are at index 0, we will lookup offset[0] = 3, so we will iterate to next angle of [3].
