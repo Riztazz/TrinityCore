@@ -347,7 +347,7 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
             {
                 path = tempPath;
                 if (owner->GetSpawnId() == 80043)
-                    TC_LOG_DEBUG("smooth", "First path Points: {}, Length: {}", tempPath.size(), PathGenerator::ComputePathLength(tempPath));
+                    TC_LOG_DEBUG("smooth", "First path Points: {}, Length: {}", tempPath.size(), PathGenerator::ComputePathLength(tempPath);
             }
             else
             {
@@ -370,6 +370,7 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
                     path = Movement::PointsArray(A.begin(), A.end());
                     path.insert(path.end(), B.begin(), B.end());
                     path.insert(path.end(), C.begin(), C.end());
+                    TC_LOG_DEBUG("smooth", "Final path Points: {}, Length: {}", path.size(), PathGenerator::ComputePathLength(path));
 
                     if (owner->GetSpawnId() == 80043)
                     {
@@ -389,7 +390,7 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
                         float angleRad = std::acos(dot / (v1Len * v2Len));
                         float angleDeg = angleRad * (180.0f / M_PI);
 
-                        TC_LOG_DEBUG("smooth", "base calculated angle (deg): {}", angleDeg);
+                        TC_LOG_DEBUG("smooth", "base calculated A: {},{}, B: {},{}, C:{},{}, Angle (deg): {}", prev.x, prev.y, curr.x, curr.y, next.x, next.y, angleDeg);
 
                         TC_LOG_DEBUG("smooth", "splicePath vertex 0 (x={}, y={}):", B[0].x, B[0].y);
                         float angleSum = 0.0f;
