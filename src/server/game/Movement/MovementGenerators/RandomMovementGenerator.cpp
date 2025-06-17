@@ -418,13 +418,10 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
     init.SetWalk(walk);
     init.Launch();
 
-    if (!_paths.empty())
-    {
-        ++_pathIndex;
-        if (_pathIndex > NUM_WANDER_POINTS) // We have NUM_WANDER_POINTS + 1 paths in the cache, so NUM_WANDER_POINTS is max index
-            _pathIndex = 1; // We actually skip the first path after cache is constructed
-        --_wanderSteps;
-    }
+    ++_pathIndex;
+    if (_pathIndex >= NUM_WANDER_POINTS)
+        _pathIndex = 0;
+    --_wanderSteps;
 
     // Call for creature group update
     owner->SignalFormationMovement();
