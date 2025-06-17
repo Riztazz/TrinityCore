@@ -385,57 +385,27 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
         
         if (owner->GetSpawnId() == 80043)
         {
-            TC_LOG_DEBUG("smooth", "base path vertex 0 (x={}, y={}):", _paths[_pathIndex][0].x, _paths[_pathIndex][0].y);
-            for (size_t i = 1; i + 1 < _paths[_pathIndex].size(); ++i)
-            {
-                const G3D::Vector3& prev = _paths[_pathIndex][i - 1];
-                const G3D::Vector3& curr = _paths[_pathIndex][i];
-                const G3D::Vector3& next = _paths[_pathIndex][i + 1];
+            TC_LOG_DEBUG("smooth", "owner vertex 0 (x={}, y={}):", owner->GetPositionX(), owner->GetPositionY());
+            TC_LOG_DEBUG("smooth", "base path vertex 1 (x={}, y={}):", _paths[_pathIndex][0].x, _paths[_pathIndex][0].y);
+            TC_LOG_DEBUG("smooth", "modPath vertex 1 (x={}, y={}):", modPath[0].x, modPath[0].y);
 
-                float v1x = curr.x - prev.x;
-                float v1y = curr.y - prev.y;
-                float v2x = next.x - curr.x;
-                float v2y = next.y - curr.y;
+            const G3D::Vector3& prev = PositionToVector3(owner->GetPosition());
+            const G3D::Vector3& curr = _paths[_pathIndex][0];
+            const G3D::Vector3& next = modPath[0];
 
-                float v1Len = std::sqrt(v1x * v1x + v1y * v1y);
-                float v2Len = std::sqrt(v2x * v2x + v2y * v2y);
+            float v1x = curr.x - prev.x;
+            float v1y = curr.y - prev.y;
+            float v2x = next.x - curr.x;
+            float v2y = next.y - curr.y;
 
-                // Guard against zero-length segments
-                if (v1Len == 0.f || v2Len == 0.f)
-                    continue;
+            float v1Len = std::sqrt(v1x * v1x + v1y * v1y);
+            float v2Len = std::sqrt(v2x * v2x + v2y * v2y);
 
-                float dot = v1x * v2x + v1y * v2y;
-                float angleRad = std::acos(dot / (v1Len * v2Len));
-                float angleDeg = angleRad * (180.0f / M_PI);
+            float dot = v1x * v2x + v1y * v2y;
+            float angleRad = std::acos(dot / (v1Len * v2Len));
+            float angleDeg = angleRad * (180.0f / M_PI);
 
-                TC_LOG_DEBUG("smooth", "base path vertex {} (x={}, y={}): angle (deg): {}", i, curr.x, curr.y, angleDeg);
-            }
-
-            TC_LOG_DEBUG("smooth", "modPath vertex 0 (x={}, y={}):", modPath[0].x, modPath[0].y);
-            for (size_t i = 1; i + 1 < modPath.size(); ++i)
-            {
-                const G3D::Vector3& prev = modPath[i - 1];
-                const G3D::Vector3& curr = modPath[i];
-                const G3D::Vector3& next = modPath[i + 1];
-
-                float v1x = curr.x - prev.x;
-                float v1y = curr.y - prev.y;
-                float v2x = next.x - curr.x;
-                float v2y = next.y - curr.y;
-
-                float v1Len = std::sqrt(v1x * v1x + v1y * v1y);
-                float v2Len = std::sqrt(v2x * v2x + v2y * v2y);
-
-                // Guard against zero-length segments
-                if (v1Len == 0.f || v2Len == 0.f)
-                    continue;
-
-                float dot = v1x * v2x + v1y * v2y;
-                float angleRad = std::acos(dot / (v1Len * v2Len));
-                float angleDeg = angleRad * (180.0f / M_PI);
-
-                TC_LOG_DEBUG("smooth", "modPath vertex {} (x={}, y={}): angle (deg): {}", i, curr.x, curr.y, angleDeg);
-            }
+            TC_LOG_DEBUG("smooth", "base calculated angle (deg): {}", angleDeg);
 
             TC_LOG_DEBUG("smooth", "splicePath vertex 0 (x={}, y={}):", splicePath[0].x, splicePath[0].y);
             for (size_t i = 1; i + 1 < splicePath.size(); ++i)
