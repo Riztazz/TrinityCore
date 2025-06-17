@@ -217,16 +217,24 @@ Movement::PointsArray PathGenerator::SpliceAndSmoothArc(WorldObject const* owner
         return result;
     }
 
-    // Use a fixed, clamped radius for smoothing
-    float smoothingRadius = std::min(lenAB, lenBC) * 0.5f;
+    // Use a radius that fits the available geometry for the given angle
+    float tanHalfAngle = std::tan(angle / 2.0f);
+    if (tanHalfAngle < 1e-6f) tanHalfAngle = 1e-6f; // avoid division by zero
+    float maxRadiusAB = lenAB / tanHalfAngle;
+    float maxRadiusBC = lenBC / tanHalfAngle;
+    float maxSmoothingRadius = std::min(maxRadiusAB, maxRadiusBC);
+
+    float smoothingRadius = std::min(lenAB, lenBC) * 0.5f; // your default
+    smoothingRadius = std::min(smoothingRadius, maxSmoothingRadius);
     smoothingRadius = std::clamp(smoothingRadius, minRadius, maxRadius);
 
-    // Distance from B to tangent points
-    float t = smoothingRadius * std::tan(angle / 2.0f);
-
     // Fallback if t is too large (segments too short for arc) This should not be called
-    if (t > lenAB || t > lenBC || std::isnan(t) || std::isinf(t)) {
-        TC_LOG_DEBUG("smooth", "Arc fallback: tangent distance too large or invalid, t={}, lenAB={}, lenBC={}", t, lenAB, lenBC);
+    if (t > lenAB || t > lenBC || std::isnan(t) || std::isinf(t))
+    {
+        if (owner->GetSpawnId() == 80043)
+        {
+            TC_LOG_DEBUG("smooth", "Arc fallback: tangent distance too large or invalid, angle= {}, t={}, lenAB={}, lenBC={}", angle * (180.0f / M_PI), t, lenAB, lenBC);
+        }
         Movement::PointsArray result;
         result.push_back(A3);
         result.push_back(C3);
@@ -289,7 +297,6 @@ Movement::PointsArray PathGenerator::SpliceAndSmoothArc(WorldObject const* owner
     }
     result.push_back(C3);
 
-    TC_LOG_DEBUG("smooth", "Arc smoothing applied: angle={}, center=({},{}), radius={}, points={}", angle, center.x, center.y, smoothingRadius, result.size());
     return result;
 }
 
