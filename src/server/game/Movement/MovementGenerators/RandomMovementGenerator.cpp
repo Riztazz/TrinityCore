@@ -34,12 +34,10 @@ namespace
     constexpr float SMOOTH_CORNER_RADIUS = 1.5f;
     constexpr int NUM_WANDER_POINTS = 12;
     constexpr int SMOOTH_CORNER_NUM_POINTS = 5;
-    // We will iterate our angles vector by this amount to create a less sharp path e.g if we are at index 0, we will lookup offset[0] = 3, so we will iterate to next angle of [3].
-    constexpr int ANGLE_ITERATION_OFFSET[] = {2, 2, 2, 2, 2, 3, -2, -2, -2, -2, -2, -3};
 }
 
 template<class T>
-RandomMovementGenerator<T>::RandomMovementGenerator(float distance) : _maxWanderDistance(distance), _lastWanderDistance(MIN_WANDER_DISTANCE), _wanderSteps(0), _reference(), _angleSign(0), _pathIndex(0), _timer(0)
+RandomMovementGenerator<T>::RandomMovementGenerator(float distance) : _init(false), _maxWanderDistance(distance), _wanderSteps(0), _reference(), _pathIndex(0), _timer(0)
 {
     this->Mode = MOTION_MODE_DEFAULT;
     this->Priority = MOTION_PRIORITY_NORMAL;
@@ -105,12 +103,11 @@ void RandomMovementGenerator<Creature>::DoInitialize(Creature* owner)
     // Should we reset timer? _timer.Reset(0);
 
     // Only set these on first initialize
-    if (_angleSign == 0)
+    if (!_init)
     {
+        _init = true;
         _reference = owner->GetPosition();
         _angle = frand(0.f, M_PI * 2.0f);
-        _angleDelta = (M_PI * 2.0f) / (float)NUM_WANDER_POINTS;
-        _angleSign = urand(0, 1) ? 1 : -1;
     }
 }
 
@@ -162,18 +159,10 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
             // Using our reference (spawn) point construct the distance and angle to a new point
             dest = _reference;
 
-            // Determine distance to wander point from reference point
-            // This adds some weighting to the 'random' distance to prevent too short of paths
-            float averageWanderDistance = (MIN_WANDER_DISTANCE + _maxWanderDistance) / 2.0f;
-            float distance = MIN_WANDER_DISTANCE;
-            if (_lastWanderDistance < averageWanderDistance)
-                distance = frand(averageWanderDistance, _maxWanderDistance);
-            else
-                distance = frand(MIN_WANDER_DISTANCE, averageWanderDistance);
-            _lastWanderDistance = distance;
-
-            // Determine how much to turn
-            _angle += _angleDelta * _angleSign * ANGLE_ITERATION_OFFSET[_paths.size()];
+            float distance = frand(MIN_WANDER_DISTANCE, _maxWanderDistance);
+            _angle = std::fmod(_angle, 2.0f * M_PI);
+            if (_angle < 0)
+                _angle += 2.0f * M_PI;
 
             // Calculate the wander point (dest) accounting for collision
             owner->MovePositionToFirstCollision(src, dest, distance, _angle);

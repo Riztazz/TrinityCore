@@ -48,13 +48,11 @@ class RandomMovementGenerator : public MovementGeneratorMedium<T, RandomMovement
         void SetRandomLocation(T*);
         void ResetPaths();
 
+        bool _init;
         float _maxWanderDistance;
-        float _lastWanderDistance;
         uint8 _wanderSteps;
         Position _reference;
         float _angle;
-        float _angleDelta;
-        int _angleSign;
         uint8 _pathIndex;
         std::vector<Movement::PointsArray> _paths;
         std::unique_ptr<PathGenerator> _pathGenerator;
