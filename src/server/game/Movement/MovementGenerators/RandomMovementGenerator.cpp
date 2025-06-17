@@ -245,22 +245,22 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
     // We want to smooth to the next path by splicing the end of the current path with the start of the next path and smoothing the corner
     else
     {
-        //Movement::PointsArray modPath = PathGenerator::SpliceAndSmoothPath(owner, _paths[_pathIndex][0], _paths[_pathIndex][1], SMOOTH_CORNER_NUM_POINTS);
+        
         Movement::PointsArray modPath = PathGenerator::TruncatePath(owner, _paths[_pathIndex], SMOOTH_CORNER_RADIUS, true);
-        if (owner->GetSpawnId() == 80043)
-        {
-            TC_LOG_DEBUG("smooth", "creating subsequent path length: {}", PathGenerator::ComputePathLength(_paths[_pathIndex]));
-            TC_LOG_DEBUG("smooth", "creating subsequent path double truncated length: {}", PathGenerator::ComputePathLength(modPath));
-        }
         modPath.insert(modPath.begin(), _paths[_pathIndex].front());
         modPath.insert(modPath.begin(), PositionToVector3(owner->GetPosition()));
         if (owner->GetSpawnId() == 80043)
         {
             TC_LOG_DEBUG("smooth", "creating subsequent path truncated length with owner position and path start prepended: {}", PathGenerator::ComputePathLength(modPath));
         }
-        //Movement::PointsArray nextPath = PathGenerator::TruncatePath(owner, _paths[_pathIndex], SMOOTH_CORNER_RADIUS, true);
-        //modPath.insert(modPath.end(), nextPath.begin(), nextPath.end());
-        init.MovebyPath(modPath);
+        Movement::PointsArray modPath2 = PathGenerator::TruncatePath(owner, _paths[_pathIndex], SMOOTH_CORNER_RADIUS, true);
+        Movement::PointsArray splicePath = PathGenerator::SpliceAndSmoothPath(owner, _paths[_pathIndex].front(), modPath2.front(), SMOOTH_CORNER_NUM_POINTS);
+        splicePath.insert(splicePath.end(), modPath2.begin(), modPath2.end());
+        if (owner->GetSpawnId() == 80043)
+        {
+            TC_LOG_DEBUG("smooth", "creating spliced path length: {}", PathGenerator::ComputePathLength(splicePath));
+        }
+        init.MovebyPath(splicePath);
         //init.SetSmooth();
     }
 
