@@ -168,42 +168,64 @@ Movement::PointsArray PathGenerator::TruncatePath(WorldObject const* owner, cons
     }
 }
 
-Movement::PointsArray PathGenerator::SpliceAndSmoothPath(WorldObject const* owner, const G3D::Vector3& p1, const G3D::Vector3& p2, const G3D::Vector3& p3, uint32 numPoints)
+Movement::PointsArray PathGenerator::SpliceAndSmoothPath(WorldObject const* owner, const G3D::Vector3& midpoint, const G3D::Vector3& endpoint, uint32 numPoints)
 {
     // Get positions
-    const G3D::Vector3& p0 = PositionToVector3(owner->GetPosition());
+    const G3D::Vector3& A = PositionToVector3(owner->GetPosition());
+    const G3D::Vector3& B = midpoint;
+    const G3D::Vector3& C = endpoint;
 
-    std::vector<G3D::Vector3> splinePoints;
+    // 2D vectors
+    G3D::Vector2 AB(B.x - A.x, B.y - A.y);
+    G3D::Vector2 BC(C.x - B.x, C.y - B.y);
+
+    float lenAB = AB.length();
+    float lenBC = BC.length();
+
+    float radius = std::min(lenAB, lenBC);
+
+    G3D::Vector2 dirAB = lenAB > 0 ? AB.direction() : G3D::Vector2(0,0);
+    G3D::Vector2 dirBC = lenBC > 0 ? BC.direction() : G3D::Vector2(0,0);
+
+    // Start and end points of the curve
+    G3D::Vector2 P0(B.x - dirAB.x * radius, B.y - dirAB.y * radius);
+    G3D::Vector2 P2(B.x + dirBC.x * radius, B.y + dirBC.y * radius);
+
+    // Compute the "bulged" control point for near-180° smoothing
+    float dot = dirAB.x * dirBC.x + dirAB.y * dirBC.y;
+    dot = std::clamp(dot, -1.0f, 1.0f); // Safety for acos
+    float angle = std::acos(dot);
+    float bulge = std::sin(angle / 2.0f);
+
+    // Bisector direction (normalized)
+    G3D::Vector2 bisector = (dirAB + dirBC);
+    if (bisector.length() > 0)
+        bisector = bisector.direction();
+    else
+        bisector = G3D::Vector2(-dirAB.y, dirAB.x); // Perpendicular fallback
+
+    float bulgeDistance = radius * bulge; // You can tune this factor
+    G3D::Vector2 control = G3D::Vector2(B.x, B.y) + bisector * bulgeDistance;
+
+    std::vector<G3D::Vector3> bezierPoints;
     for (uint32 i = 0; i < numPoints; ++i)
     {
         float t = float(i + 1) / float(numPoints + 1);
+        float one_minus_t = 1.0f - t;
 
-        // Catmull-Rom spline equation
-        float t2 = t * t;
-        float t3 = t2 * t;
+        float x = one_minus_t * one_minus_t * P0.x + 2 * one_minus_t * t * control.x + t * t * P2.x;
+        float y = one_minus_t * one_minus_t * P0.y + 2 * one_minus_t * t * control.y + t * t * P2.y;
+        float z = B.z;
 
-        float x =
-            0.5f * ((2.0f * p1.x) +
-            (-p0.x + p2.x) * t +
-            (2.0f * p0.x - 5.0f * p1.x + 4.0f * p2.x - p3.x) * t2 +
-            (-p0.x + 3.0f * p1.x - 3.0f * p2.x + p3.x) * t3);
-
-        float y =
-            0.5f * ((2.0f * p1.y) +
-            (-p0.y + p2.y) * t +
-            (2.0f * p0.y - 5.0f * p1.y + 4.0f * p2.y - p3.y) * t2 +
-            (-p0.y + 3.0f * p1.y - 3.0f * p2.y + p3.y) * t3);
-
-        float z = p1.z;
         owner->UpdateAllowedPositionZ(x, y, z);
-        splinePoints.emplace_back(x, y, z);
+        bezierPoints.emplace_back(x, y, z);
     }
 
-    // Build the new path: p0, spline points, p3
+    // Build the new path: A, bezier points, C
     Movement::PointsArray result;
-    result.push_back(p0);
-    result.insert(result.end(), splinePoints.begin(), splinePoints.end());
-    result.push_back(p3);
+    result.push_back(A);
+    result.insert(result.end(), bezierPoints.begin(), bezierPoints.end());
+    result.push_back(C);
 
     return result;
 }
