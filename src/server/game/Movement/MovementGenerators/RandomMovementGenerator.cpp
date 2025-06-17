@@ -29,9 +29,9 @@
 
 namespace
 {
-    constexpr float MIN_WANDER_DISTANCE = 10.0f; // Keep this at min SMOOTH_CORNER_RADIUS * 2 + 1
-    constexpr float SMOOTH_CORNER_RADIUS = 1.0f;
-    constexpr int NUM_WANDER_POINTS = 12;
+    constexpr float MIN_WANDER_DISTANCE = 2.0f; // Keep this at min SMOOTH_CORNER_RADIUS * 2 + 1
+    constexpr float SMOOTH_CORNER_RADIUS = 0.5f;
+    constexpr int NUM_WANDER_PATHS = 12;
     constexpr int SMOOTH_CORNER_NUM_POINTS = 5;
 }
 
@@ -137,190 +137,291 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
         return;
     }
 
-    // No cached paths so create a new one
-    if (_paths.size() < NUM_WANDER_POINTS)
+    // Create path for caching
+    if (_paths.size() < NUM_WANDER_PATHS)
     {
-        // We cache the actual points paths around the circuit, our splines are constructed separately so that we
-        // can smooth the vertexes.
-        Position src = _paths.empty() ? owner->GetPosition() : Vector3ToPosition(_paths.back().back());
-        Position dest = src;
-        // The last path connects to the first path
-        if (_paths.size() == NUM_WANDER_POINTS - 1)
+        Movement::PointsArray path;
+        // A path is constructed from two segments so that we can smooth the vertexes
+        for (size_t i = 0; i < 2; ++i)
         {
-            G3D::Vector3& front = _paths[0].front();
-            dest.Relocate(front.x, front.y, front.z);
-        }
-        // We have pre-calculated this point previously, the last two points are calculated together in order
-        // to connect to the start point smoothly
-        else if (_paths.size() == NUM_WANDER_POINTS - 2)
-        {
-            // Use the cached value from the previous call
-            if (_cachedNextWanderPoint.IsPositionValid())
+            // Get the starting point for the segment
+            Position src = i > 0 ? Vector3ToPosition(path.back()) : owner->GetPosition();
+            Position dest = src;
+
+            if (_paths.size() == NUM_WANDER_PATHS - 1)
             {
-                dest = _cachedNextWanderPoint;
-                _cachedNextWanderPoint = Position();
-            }
-            // Fallback: random direction
-            else
-            {
-                float angle = frand(-0.5 * M_PI, 0.5 * M_PI);
-                owner->MovePositionToFirstCollision(src, dest, MIN_WANDER_DISTANCE, angle);
-            }
-        }
-        // We need very specific point for the second to last point, this is because we want to complete
-        // the circuit with no sharp angles, so we need to find the two next points that get us back
-        // to the start without a sharp turn
-        else if (_paths.size() == NUM_WANDER_POINTS - 3)
-        {
-            Position first = Vector3ToPosition(_paths[0].front());
-
-            float minDist = MIN_WANDER_DISTANCE;
-            float maxTurn = 0.75f * M_PI;
-            float step = M_PI / 16.0f; // 32 candidates per point
-            float bestScore = std::numeric_limits<float>::max();
-
-            Position bestA, bestB;
-            float bestAngleA = 0.f, bestAngleB = 0.f;
-
-            float currentOrientation = owner->GetOrientation();
-
-            // Try all candidate angles for A (third-to-last point)
-            for (float angleA = -maxTurn; angleA <= maxTurn; angleA += step)
-            {
-                float orientationA = currentOrientation + angleA;
-                float ax = src.GetPositionX() + minDist * std::cos(orientationA);
-                float ay = src.GetPositionY() + minDist * std::sin(orientationA);
-                float az = src.GetPositionZ();
-                Position A(ax, ay, az, 0.f);
-
-                // Try all candidate angles for B (second-to-last point)
-                for (float angleB = -maxTurn; angleB <= maxTurn; angleB += step)
+                // The last point is just the first point
+                if (i == 1)
                 {
-                    float orientationB = orientationA + angleB;
-                    float bx = ax + minDist * std::cos(orientationB);
-                    float by = ay + minDist * std::sin(orientationB);
-                    float bz = az;
-                    Position B(bx, by, bz, 0.f);
-
-                    // Check distance from B to first
-                    float distBtoFirst = B.GetExactDist(first);
-                    if (distBtoFirst < minDist)
-                        continue;
-
-                    // Compute turn at A (between src->A and A->B)
-                    float dirAtoB = std::atan2(by - ay, bx - ax);
-                    float turnAtA = dirAtoB - orientationA;
-                    while (turnAtA > M_PI) turnAtA -= 2 * M_PI;
-                    while (turnAtA < -M_PI) turnAtA += 2 * M_PI;
-
-                    if (std::fabs(turnAtA) > maxTurn)
-                        continue;
-
-                    // Compute turn at B (between A->B and B->first)
-                    float dirBtoFirst = std::atan2(first.GetPositionY() - by, first.GetPositionX() - bx);
-                    float turnAtB = dirBtoFirst - dirAtoB;
-                    while (turnAtB > M_PI) turnAtB -= 2 * M_PI;
-                    while (turnAtB < -M_PI) turnAtB += 2 * M_PI;
-
-                    if (std::fabs(turnAtB) > maxTurn)
-                        continue;
-
-                    // Score: maximum turn at A or B (can use sum if you prefer)
-                    float score = std::max(std::fabs(turnAtA), std::fabs(turnAtB));
-                    if (score < bestScore)
+                    G3D::Vector3& first = _paths.front().front();
+                    dest.Relocate(first.x, first.y, first.z);
+                }
+                else
+                {
+                    // The second to last point is pre-calculated
+                    if (_cachedNextWanderPoint.IsPositionValid())
                     {
-                        bestScore = score;
-                        bestA = A;
-                        bestB = B;
-                        bestAngleA = angleA;
-                        bestAngleB = angleB;
+                        dest = _cachedNextWanderPoint;
+                        _cachedNextWanderPoint = Position();
+                    }
+                    // Fallback: random direction
+                    else
+                    {
+                        float angle = frand(-0.5 * M_PI, 0.5 * M_PI);
+                        owner->MovePositionToFirstCollision(src, dest, MIN_WANDER_DISTANCE, angle);
                     }
                 }
             }
-
-            // Now call MovePositionToFirstCollision ONCE for each, to get the actual valid positions
-            if (bestScore < std::numeric_limits<float>::max())
+            // Second to last path
+            else if (_paths.size() == NUM_WANDER_PATHS - 2)
             {
-                owner->MovePositionToFirstCollision(src, dest, minDist, bestAngleA);
-                Position realB = dest;
-                owner->MovePositionToFirstCollision(dest, realB, minDist, bestAngleB);
-                _cachedNextWanderPoint = realB;
+                // We always just walk straight for our first segment
+                if (i == 0)
+                {
+                    float distance = frand(MIN_WANDER_DISTANCE, _maxWanderDistance);
+                    float halfDistance = distance / 2.0f;
+                    owner->MovePositionToFirstCollision(src, dest, halfDistance, 0.f);
+                }
+                // We need very specific points for the third and second to last point, this is because we want to complete
+                // the circuit with no sharp angles, so we need to find the two next points that get us back
+                // to the start without a sharp turn
+                else
+                {
+                    Position first = Vector3ToPosition(_paths.front().front());
+
+                    float minDist = MIN_WANDER_DISTANCE;
+                    float maxTurn = 0.75f * M_PI;
+                    float step = M_PI / 16.0f; // 32 candidates per point
+                    float bestScore = std::numeric_limits<float>::max();
+    
+                    Position bestA, bestB;
+                    float bestAngleA = 0.f, bestAngleB = 0.f;
+    
+                    float currentOrientation = owner->GetOrientation();
+    
+                    // Try all candidate angles for A (third-to-last point)
+                    for (float angleA = -maxTurn; angleA <= maxTurn; angleA += step)
+                    {
+                        float orientationA = currentOrientation + angleA;
+                        float ax = src.GetPositionX() + minDist * std::cos(orientationA);
+                        float ay = src.GetPositionY() + minDist * std::sin(orientationA);
+                        float az = src.GetPositionZ();
+                        Position A(ax, ay, az, 0.f);
+    
+                        // Try all candidate angles for B (second-to-last point)
+                        for (float angleB = -maxTurn; angleB <= maxTurn; angleB += step)
+                        {
+                            float orientationB = orientationA + angleB;
+                            float bx = ax + minDist * std::cos(orientationB);
+                            float by = ay + minDist * std::sin(orientationB);
+                            float bz = az;
+                            Position B(bx, by, bz, 0.f);
+    
+                            // Check distance from B to first
+                            float distBtoFirst = B.GetExactDist(first);
+                            if (distBtoFirst < minDist)
+                                continue;
+    
+                            // Compute turn at A (between src->A and A->B)
+                            float dirAtoB = std::atan2(by - ay, bx - ax);
+                            float turnAtA = dirAtoB - orientationA;
+                            while (turnAtA > M_PI) turnAtA -= 2 * M_PI;
+                            while (turnAtA < -M_PI) turnAtA += 2 * M_PI;
+    
+                            if (std::fabs(turnAtA) > maxTurn)
+                                continue;
+    
+                            // Compute turn at B (between A->B and B->first)
+                            float dirBtoFirst = std::atan2(first.GetPositionY() - by, first.GetPositionX() - bx);
+                            float turnAtB = dirBtoFirst - dirAtoB;
+                            while (turnAtB > M_PI) turnAtB -= 2 * M_PI;
+                            while (turnAtB < -M_PI) turnAtB += 2 * M_PI;
+    
+                            if (std::fabs(turnAtB) > maxTurn)
+                                continue;
+    
+                            // Score: maximum turn at A or B (can use sum if you prefer)
+                            float score = std::max(std::fabs(turnAtA), std::fabs(turnAtB));
+                            if (score < bestScore)
+                            {
+                                bestScore = score;
+                                bestA = A;
+                                bestB = B;
+                                bestAngleA = angleA;
+                                bestAngleB = angleB;
+                            }
+                        }
+                    }
+    
+                    if (bestScore < std::numeric_limits<float>::max())
+                    {
+                        owner->MovePositionToFirstCollision(src, dest, minDist, bestAngleA);
+                        Position realB = dest;
+                        owner->MovePositionToFirstCollision(dest, realB, minDist, bestAngleB);
+                        _cachedNextWanderPoint = realB;
+                    }
+                    // Fallback: random direction
+                    else
+                    {
+                        bestAngleA = frand(-0.5 * M_PI, 0.5 * M_PI);
+                        owner->MovePositionToFirstCollision(src, dest, minDist, bestAngleA);
+                    }
+                }
             }
-            // Fallback: if no candidate found, use random directions
+            // Normal Random Path
             else
             {
-                bestAngleA = frand(-0.5 * M_PI, 0.5 * M_PI);
-                owner->MovePositionToFirstCollision(src, dest, minDist, bestAngleA);
+                float distance = frand(MIN_WANDER_DISTANCE, _maxWanderDistance);
+                float halfDistance = distance / 2.0f;
+                float angle = 0.0f;
+                // The first segment of our path is always straight, so leave angle as 0.0f
+                // The second segment we need to determine where to go next
+                if (i == 1)
+                {
+                    // Determine whether we should steer back towards the spawn point
+                    float distanceFromSpawn = src.GetExactDist(_reference);
+                    // If we are close to the boundary, steer back towards the spawn point
+                    if (distanceFromSpawn > 0.75f * _maxWanderDistance)
+                    {
+                        float currentOrientation = owner->GetOrientation();
+                        float dx = _reference.GetPositionX() - src.GetPositionX();
+                        float dy = _reference.GetPositionY() - src.GetPositionY();
+                        float angleToReference = std::atan2(dy, dx);
+
+                        float angleDiff = angleToReference - currentOrientation;
+                        // Normalize angleDiff to [-M_PI, M_PI]
+                        while (angleDiff > M_PI) angleDiff -= 2 * M_PI;
+                        while (angleDiff < -M_PI) angleDiff += 2 * M_PI;
+
+                        // Clamp angleDiff to [-0.75*M_PI, 0.75*M_PI]
+                        float maxTurn = 0.75f * M_PI;
+                        if (angleDiff > maxTurn) angleDiff = maxTurn;
+                        if (angleDiff < -maxTurn) angleDiff = -maxTurn;
+
+                        angle = angleDiff;
+                    }
+                    // Else pick a random 'forwardish' direction
+                    else
+                        angle = frand(-0.5f * M_PI, 0.5f * M_PI);
+                }
+                // Move accounting for collisions
+                owner->MovePositionToFirstCollision(src, dest, halfDistance, angle);
             }
-        }
-        // Otherwise we need to construct a path to a wander point
-        else
-        {
-            float distance = frand(MIN_WANDER_DISTANCE, _maxWanderDistance);
-            // Determine whether we should steer back towards the spawn point
-            float distanceFromSpawn = src.GetExactDist(_reference);
-            float angle;
-            // If we are close to the boundary, steer back towards the spawn point
-            if (distanceFromSpawn > 0.75f * _maxWanderDistance)
+
+            // Check if the destination is in LOS
+            if (!owner->IsWithinLOS(src, dest.GetPositionX(), dest.GetPositionY(), dest.GetPositionZ()))
             {
-                float currentOrientation = owner->GetOrientation();
-                float dx = _reference.GetPositionX() - src.GetPositionX();
-                float dy = _reference.GetPositionY() - src.GetPositionY();
-                float angleToReference = std::atan2(dy, dx);
-
-                float angleDiff = angleToReference - currentOrientation;
-                // Normalize angleDiff to [-M_PI, M_PI]
-                while (angleDiff > M_PI) angleDiff -= 2 * M_PI;
-                while (angleDiff < -M_PI) angleDiff += 2 * M_PI;
-
-                // Clamp angleDiff to [-0.75*M_PI, 0.75*M_PI]
-                float maxTurn = 0.75f * M_PI;
-                if (angleDiff > maxTurn) angleDiff = maxTurn;
-                if (angleDiff < -maxTurn) angleDiff = -maxTurn;
-
-                angle = angleDiff;
+                // Retry later on
+                _timer.Reset(200);
+                ResetPaths();
+                return;
             }
-            // Else walk in any random direction without sharp turns
+
+            // Lazy load path generator
+            if (!_pathGenerator)
+            {
+                _pathGenerator = std::make_unique<PathGenerator>(owner);
+                _pathGenerator->SetPathLengthLimit(50.0f);
+            }
+
+            bool result = _pathGenerator->CalculatePath(PositionToVector3(src), PositionToVector3(dest));
+            // PATHFIND_FARFROMPOLY shouldn't be checked as creatures in water are most likely far from poly
+            if (!result || (_pathGenerator->GetPathType() & PATHFIND_NOPATH)
+                        || (_pathGenerator->GetPathType() & PATHFIND_SHORTCUT)
+                        /*|| (_pathGenerator->GetPathType() & PATHFIND_FARFROMPOLY)*/)
+            {
+                _timer.Reset(100);
+                ResetPaths();
+                return;
+            }
+
+            Movement::PointsArray tempPath = _pathGenerator->GetPath();
+            if (tempPath.size() < 2)
+            {
+                _timer.Reset(100);
+                ResetPaths();
+                return;
+            }
+
+            if (i == 0)
+            {
+                path = tempPath;
+                if (owner->GetSpawnId() == 80043)
+                    TC_LOG_DEBUG("smooth", "First path Points: {}, Length: {}", tempPath.size(), PathGenerator::ComputePathLength(tempPath));
+            }
             else
-                angle = frand(-0.5 * M_PI, 0.5 * M_PI);
+            {
+                //path.insert(path.end(), tempPath.begin(), tempPath.end());
+                if (owner->GetSpawnId() == 80043)
+                    TC_LOG_DEBUG("smooth", "Second path Points: {}, Length: {}", tempPath.size(), PathGenerator::ComputePathLength(tempPath));
 
-            // Move that direction and account for collisions
-            owner->MovePositionToFirstCollision(src, dest, distance, angle);
-        }
+                // For debugging purposes move with no smoothing
+                if (SMOOTH_CORNER_NUM_POINTS <= 1)
+                    path.insert(path.end(), tempPath.begin(), tempPath.end());
+                else
+                {
+                    // Truncate the back of the first path
+                    Movement::PointsArray A = PathGenerator::TruncatePath(owner, path, SMOOTH_CORNER_RADIUS);
+                    // Truncate the front of the second path
+                    Movement::PointsArray C = PathGenerator::TruncatePath(owner, tempPath, SMOOTH_CORNER_RADIUS, true);
+                    // Calculate an arc between the last point of A and the first point of C
+                    Movement::PointsArray B = PathGenerator::SpliceAndSmoothArc(owner, A.back(), tempPath.front(), C.front(), SMOOTH_CORNER_NUM_POINTS);
+                    // Splice the three paths together
+                    path = Movement::PointsArray(A.begin(), A.end());
+                    path.insert(path.end(), B.begin(), B.end());
+                    path.insert(path.end(), C.begin(), C.end());
 
-        // Check if the destination is in LOS
-        if (!owner->IsWithinLOS(src, dest.GetPositionX(), dest.GetPositionY(), dest.GetPositionZ()))
-        {
-            // Retry later on
-            _timer.Reset(200);
-            ResetPaths();
-            return;
-        }
+                    if (owner->GetSpawnId() == 80043)
+                    {
+                        const G3D::Vector3& prev = A.back();
+                        const G3D::Vector3& curr = tempPath.front();
+                        const G3D::Vector3& next = C.front();
 
-        // Lazy load path generator
-        if (!_pathGenerator)
-        {
-            _pathGenerator = std::make_unique<PathGenerator>(owner);
-            _pathGenerator->SetPathLengthLimit(50.0f);
-        }
+                        float v1x = curr.x - prev.x;
+                        float v1y = curr.y - prev.y;
+                        float v2x = next.x - curr.x;
+                        float v2y = next.y - curr.y;
 
-        bool result = _pathGenerator->CalculatePath(PositionToVector3(src), PositionToVector3(dest));
-        // PATHFIND_FARFROMPOLY shouldn't be checked as creatures in water are most likely far from poly
-        if (!result || (_pathGenerator->GetPathType() & PATHFIND_NOPATH)
-                    || (_pathGenerator->GetPathType() & PATHFIND_SHORTCUT)
-                    /*|| (_pathGenerator->GetPathType() & PATHFIND_FARFROMPOLY)*/)
-        {
-            _timer.Reset(100);
-            ResetPaths();
-            return;
-        }
+                        float v1Len = std::sqrt(v1x * v1x + v1y * v1y);
+                        float v2Len = std::sqrt(v2x * v2x + v2y * v2y);
 
-        Movement::PointsArray path = _pathGenerator->GetPath();
-        if (path.size() < 2)
-        {
-            _timer.Reset(100);
-            ResetPaths();
-            return;
+                        float dot = v1x * v2x + v1y * v2y;
+                        float angleRad = std::acos(dot / (v1Len * v2Len));
+                        float angleDeg = angleRad * (180.0f / M_PI);
+
+                        TC_LOG_DEBUG("smooth", "base calculated angle (deg): {}", angleDeg);
+
+                        TC_LOG_DEBUG("smooth", "splicePath vertex 0 (x={}, y={}):", B[0].x, B[0].y);
+                        float angleSum = 0.0f;
+                        for (size_t i = 1; i + 1 < B.size(); ++i)
+                        {
+                            const G3D::Vector3& prev = B[i - 1];
+                            const G3D::Vector3& curr = B[i];
+                            const G3D::Vector3& next = B[i + 1];
+
+                            float v1x = curr.x - prev.x;
+                            float v1y = curr.y - prev.y;
+                            float v2x = next.x - curr.x;
+                            float v2y = next.y - curr.y;
+
+                            float v1Len = std::sqrt(v1x * v1x + v1y * v1y);
+                            float v2Len = std::sqrt(v2x * v2x + v2y * v2y);
+
+                            // Guard against zero-length segments
+                            if (v1Len == 0.f || v2Len == 0.f)
+                                continue;
+
+                            float dot = v1x * v2x + v1y * v2y;
+                            float angleRad = std::acos(dot / (v1Len * v2Len));
+                            float angleDeg = angleRad * (180.0f / M_PI);
+                            angleSum += angleDeg;
+
+                            TC_LOG_DEBUG("smooth", "splicePath vertex {} (x={}, y={}): angle (deg): {}", i, curr.x, curr.y, angleDeg);
+                        }
+                        TC_LOG_DEBUG("smooth", "splicePath vertex n (x={}, y={}): angleSum(deg): {}", B.back().x, B.back().y, angleSum);
+                    }
+                }
+            }
         }
 
         _paths.push_back(path);
@@ -344,104 +445,13 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
     }
 
     Movement::MoveSplineInit init(owner);
-
-    // For debugging purposes move with no smoothing
-    if (SMOOTH_CORNER_NUM_POINTS <= 1)
-    {
-        init.MovebyPath(_paths[_pathIndex]);
-    }
-    // The first path we just need to truncate the end so we can smooth the next
-    else if (_paths.size() == 1)
-    {
-        Movement::PointsArray modPath = PathGenerator::TruncatePath(owner, _paths[_pathIndex], SMOOTH_CORNER_RADIUS);
-        if (owner->GetSpawnId() == 80043)
-        {
-            TC_LOG_DEBUG("smooth", "owner vertex 0 (x={}, y={}):", owner->GetPositionX(), owner->GetPositionY());
-            TC_LOG_DEBUG("smooth", "base path vertex 1 (x={}, y={}):", _paths[_pathIndex][0].x, _paths[_pathIndex][0].y);
-            TC_LOG_DEBUG("smooth", "modPath vertex 1 (x={}, y={}):", modPath[0].x, modPath[0].y);
-            TC_LOG_DEBUG("smooth", "Calculated first truncated path {} Original Length: {}, Truncated Length: {}", _pathIndex, PathGenerator::ComputePathLength(_paths[_pathIndex]), PathGenerator::ComputePathLength(modPath));
-        }
-        init.MovebyPath(modPath);
-        //init.SetSmooth();
-    }
-    // We want to smooth to the next path by splicing the end of the current path with the start of the next path and smoothing the corner
-    else
-    {
-        
-        Movement::PointsArray modPath = PathGenerator::TruncatePath(owner, _paths[_pathIndex], SMOOTH_CORNER_RADIUS, true);
-        if (owner->GetSpawnId() == 80043)
-        {
-            TC_LOG_DEBUG("smooth", "owner vertex 0 (x={}, y={}):", owner->GetPositionX(), owner->GetPositionY());
-            TC_LOG_DEBUG("smooth", "base path vertex 1 (x={}, y={}):", _paths[_pathIndex][0].x, _paths[_pathIndex][0].y);
-            TC_LOG_DEBUG("smooth", "modPath vertex 1 (x={}, y={}):", modPath[0].x, modPath[0].y);
-            TC_LOG_DEBUG("smooth", "Calculated subsequent truncated path {} Original Length: {}, Truncated Length: {}", _pathIndex, PathGenerator::ComputePathLength(_paths[_pathIndex]), PathGenerator::ComputePathLength(modPath));
-        }
-        Movement::PointsArray splicePath = PathGenerator::SpliceAndSmoothArc(owner, _paths[_pathIndex].front(), modPath.front(), SMOOTH_CORNER_NUM_POINTS);
-        if (owner->GetSpawnId() == 80043)
-        {
-            TC_LOG_DEBUG("smooth", "Calculated spliced path {} Vertices: {}, Length: {}", _pathIndex, splicePath.size(), PathGenerator::ComputePathLength(splicePath));
-        }
-        
-        if (owner->GetSpawnId() == 80043)
-        {
-            const G3D::Vector3& prev = PositionToVector3(owner->GetPosition());
-            const G3D::Vector3& curr = _paths[_pathIndex][0];
-            const G3D::Vector3& next = modPath[0];
-
-            float v1x = curr.x - prev.x;
-            float v1y = curr.y - prev.y;
-            float v2x = next.x - curr.x;
-            float v2y = next.y - curr.y;
-
-            float v1Len = std::sqrt(v1x * v1x + v1y * v1y);
-            float v2Len = std::sqrt(v2x * v2x + v2y * v2y);
-
-            float dot = v1x * v2x + v1y * v2y;
-            float angleRad = std::acos(dot / (v1Len * v2Len));
-            float angleDeg = angleRad * (180.0f / M_PI);
-
-            TC_LOG_DEBUG("smooth", "base calculated angle (deg): {}", angleDeg);
-
-            TC_LOG_DEBUG("smooth", "splicePath vertex 0 (x={}, y={}):", splicePath[0].x, splicePath[0].y);
-            float angleSum = 0.0f;
-            for (size_t i = 1; i + 1 < splicePath.size(); ++i)
-            {
-                const G3D::Vector3& prev = splicePath[i - 1];
-                const G3D::Vector3& curr = splicePath[i];
-                const G3D::Vector3& next = splicePath[i + 1];
-
-                float v1x = curr.x - prev.x;
-                float v1y = curr.y - prev.y;
-                float v2x = next.x - curr.x;
-                float v2y = next.y - curr.y;
-
-                float v1Len = std::sqrt(v1x * v1x + v1y * v1y);
-                float v2Len = std::sqrt(v2x * v2x + v2y * v2y);
-
-                // Guard against zero-length segments
-                if (v1Len == 0.f || v2Len == 0.f)
-                    continue;
-
-                float dot = v1x * v2x + v1y * v2y;
-                float angleRad = std::acos(dot / (v1Len * v2Len));
-                float angleDeg = angleRad * (180.0f / M_PI);
-                angleSum += angleDeg;
-
-                TC_LOG_DEBUG("smooth", "splicePath vertex {} (x={}, y={}): angle (deg): {}", i, curr.x, curr.y, angleDeg);
-            }
-            TC_LOG_DEBUG("smooth", "splicePath vertex n (x={}, y={}): angleSum(deg): {}", splicePath.back().x, splicePath.back().y, angleSum);
-        }
-
-        splicePath.insert(splicePath.end(), modPath.begin(), modPath.end());
-        init.MovebyPath(splicePath);
-        //init.SetSmooth();
-    }
-
+    init.MovebyPath(_paths[_pathIndex]);
+    //init.SetSmooth();
     init.SetWalk(walk);
     init.Launch();
 
     ++_pathIndex;
-    if (_pathIndex >= NUM_WANDER_POINTS)
+    if (_pathIndex >= NUM_WANDER_PATHS)
         _pathIndex = 0;
     --_wanderSteps;
 

@@ -46,134 +46,82 @@ Movement::PointsArray PathGenerator::TruncatePath(WorldObject const* owner, cons
         return path;
 
     float totalLength = ComputePathLength(path);
+    float maxTrunc = std::max(0.0f, totalLength - 1.0f);
+    if (radius > maxTrunc)
+        radius = maxTrunc;
 
-    if (!truncateFront)
+    if (radius <= 0.0f)
+        return path;
+
+    float remaining = radius;
+    if (truncateFront)
     {
-        // Truncate from back only
-        float maxTrunc = std::max(0.0f, totalLength - 1.0f);
-        if (radius > maxTrunc)
-            radius = maxTrunc;
-
-        if (radius <= 0.0f)
-            return path;
-
-        float remaining = radius;
-        size_t i = path.size() - 1;
-        while (i > 0)
+        
+        size_t i = 0;
+        while (i + 1 < path.size())
         {
             const G3D::Vector3& curr = path[i];
-            const G3D::Vector3& prev = path[i - 1];
-            float dx = curr.x - prev.x;
-            float dy = curr.y - prev.y;
-            float dz = curr.z - prev.z;
-            float segmentLength = std::sqrt(dx * dx + dy * dy + dz * dz);
-
-            if (segmentLength >= remaining)
-            {
-                float t = (segmentLength - remaining) / segmentLength;
-                float newX = prev.x + dx * t;
-                float newY = prev.y + dy * t;
-                float newZ = prev.z + dz * t;
-                owner->UpdateAllowedPositionZ(newX, newY, newZ);
-
-                Movement::PointsArray result(path.begin(), path.begin() + i);
-                result.push_back(G3D::Vector3(newX, newY, newZ));
-                return result;
-            }
-            else
-            {
-                remaining -= segmentLength;
-                --i;
-            }
-        }
-        return path;
-    }
-    else
-    {
-        // Truncate from both front and back
-        float maxTrunc = std::max(0.0f, (totalLength - 1.0f) / 2.0f);
-        if (radius > maxTrunc)
-            radius = maxTrunc;
-
-        if (radius <= 0.0f)
-            return path;
-
-        // Truncate front
-        float remainingFront = radius;
-        size_t frontIdx = 0;
-        G3D::Vector3 newFront = path.front();
-        while (frontIdx < path.size() - 1)
-        {
-            const G3D::Vector3& curr = path[frontIdx];
-            const G3D::Vector3& next = path[frontIdx + 1];
+            const G3D::Vector3& next = path[i + 1];
             float dx = next.x - curr.x;
             float dy = next.y - curr.y;
             float dz = next.z - curr.z;
             float segmentLength = std::sqrt(dx * dx + dy * dy + dz * dz);
 
-            if (segmentLength >= remainingFront)
+            if (segmentLength >= remaining)
             {
-                float t = remainingFront / segmentLength;
-                newFront.x = curr.x + dx * t;
-                newFront.y = curr.y + dy * t;
-                newFront.z = curr.z + dz * t;
-                owner->UpdateAllowedPositionZ(newFront.x, newFront.y, newFront.z);
-                break;
+                float t = remaining / segmentLength;
+                float newX = curr.x + dx * t;
+                float newY = curr.y + dy * t;
+                float newZ = curr.z + dz * t;
+                owner->UpdateAllowedPositionZ(newX, newY, newZ);
+
+                Movement::PointsArray result;
+                result.push_back(G3D::Vector3(newX, newY, newZ));
+                result.insert(result.end(), path.begin() + i + 1, path.end());
+                return result;
             }
             else
             {
-                remainingFront -= segmentLength;
-                ++frontIdx;
+                remaining -= segmentLength;
+                ++i;
             }
         }
-
-        // Truncate back
-        float remainingBack = radius;
-        size_t backIdx = path.size() - 1;
-        G3D::Vector3 newBack = path.back();
-        while (backIdx > frontIdx)
-        {
-            const G3D::Vector3& curr = path[backIdx];
-            const G3D::Vector3& prev = path[backIdx - 1];
-            float dx = curr.x - prev.x;
-            float dy = curr.y - prev.y;
-            float dz = curr.z - prev.z;
-            float segmentLength = std::sqrt(dx * dx + dy * dy + dz * dz);
-
-            if (segmentLength >= remainingBack)
-            {
-                float t = (segmentLength - remainingBack) / segmentLength;
-                newBack.x = prev.x + dx * t;
-                newBack.y = prev.y + dy * t;
-                newBack.z = prev.z + dz * t;
-                owner->UpdateAllowedPositionZ(newBack.x, newBack.y, newBack.z);
-                break;
-            }
-            else
-            {
-                remainingBack -= segmentLength;
-                --backIdx;
-            }
-        }
-
-        // If after truncating, we have less than 2 points, return original path
-        if (backIdx < frontIdx)
-            return path;
-
-        Movement::PointsArray result;
-        result.push_back(newFront);
-        result.insert(result.end(), path.begin() + frontIdx + 1, path.begin() + backIdx);
-        result.push_back(newBack);
-        return result;
+        return path;
     }
+
+    size_t i = path.size() - 1;
+    while (i > 0)
+    {
+        const G3D::Vector3& curr = path[i];
+        const G3D::Vector3& prev = path[i - 1];
+        float dx = curr.x - prev.x;
+        float dy = curr.y - prev.y;
+        float dz = curr.z - prev.z;
+        float segmentLength = std::sqrt(dx * dx + dy * dy + dz * dz);
+
+        if (segmentLength >= remaining)
+        {
+            float t = (segmentLength - remaining) / segmentLength;
+            float newX = prev.x + dx * t;
+            float newY = prev.y + dy * t;
+            float newZ = prev.z + dz * t;
+            owner->UpdateAllowedPositionZ(newX, newY, newZ);
+
+            Movement::PointsArray result(path.begin(), path.begin() + i);
+            result.push_back(G3D::Vector3(newX, newY, newZ));
+            return result;
+        }
+        else
+        {
+            remaining -= segmentLength;
+            --i;
+        }
+    }
+    return path;
 }
 
-Movement::PointsArray PathGenerator::SpliceAndSmoothArc(WorldObject const* owner, const G3D::Vector3& midpoint, const G3D::Vector3& endpoint, uint32 numPoints)
+Movement::PointsArray PathGenerator::SpliceAndSmoothArc(WorldObject const* owner, const G3D::Vector3& A3, const G3D::Vector3& B3, const G3D::Vector3& C3, uint32 numPoints)
 {
-    const G3D::Vector3& A3 = PositionToVector3(owner->GetPosition());
-    const G3D::Vector3& B3 = midpoint;
-    const G3D::Vector3& C3 = endpoint;
-
     G3D::Vector2 A(A3.x, A3.y);
     G3D::Vector2 B(B3.x, B3.y);
     G3D::Vector2 C(C3.x, C3.y);
