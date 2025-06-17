@@ -29,9 +29,9 @@
 
 namespace
 {
-    constexpr float MIN_WANDER_DISTANCE = 3.0f;
-    constexpr float DEFAULT_WANDER_DISTANCE = 4.0f;
-    constexpr float SMOOTH_CORNER_RADIUS = 1.5f;
+    constexpr float MIN_WANDER_DISTANCE = 1.0f;
+    constexpr float DEFAULT_WANDER_DISTANCE = 2.0f;
+    constexpr float SMOOTH_CORNER_RADIUS = 1.0f;
     constexpr int NUM_WANDER_POINTS = 12;
     constexpr int SMOOTH_CORNER_NUM_POINTS = 5;
 }
@@ -156,16 +156,32 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
         // Otherwise we need to construct a path to a wander point
         else
         {
-            // Using our reference (spawn) point construct the distance and angle to a new point
-            dest = _reference;
+            uint attempts = 3;
+            do
+            {
+                if (!attempts)
+                {
+                    _timer.Reset(200);
+                    ResetPaths();
+                    return;
+                }
+                --attempts;
 
-            float distance = frand(MIN_WANDER_DISTANCE, _maxWanderDistance);
-            _angle = std::fmod(_angle, 2.0f * M_PI);
-            if (_angle < 0)
-                _angle += 2.0f * M_PI;
+                // Using our reference (spawn) point construct the distance and angle to a new point
+                dest = _reference;
 
-            // Calculate the wander point (dest) accounting for collision
-            owner->MovePositionToFirstCollision(src, dest, distance, _angle);
+                float distance = frand(MIN_WANDER_DISTANCE, _maxWanderDistance);
+                float angle = std::fmod(_angle, 2.0f * M_PI);
+                if (angle < 0)
+                    angle += 2.0f * M_PI;
+    
+                // Calculate the wander point (dest) accounting for collision
+                owner->MovePositionToFirstCollision(src, dest, distance, angle);
+
+                if (owner->GetSpawnId() == 80043)
+                    TC_LOG_DEBUG("movement", "Create Path Index: {} Calc Path Distance from Src: {}", _pathIndex, src.GetExactDist(dest));
+            }
+            while (src.GetExactDist(dest) < SMOOTH_CORNER_RADIUS * 2.0f + 1.0f);
         }
 
         // Check if the destination is in LOS
