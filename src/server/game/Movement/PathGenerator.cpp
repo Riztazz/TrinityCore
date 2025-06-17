@@ -162,7 +162,7 @@ Movement::PointsArray PathGenerator::TruncatePath(WorldObject const* owner, cons
 
         Movement::PointsArray result;
         result.push_back(newFront);
-        result.insert(result.end(), path.begin() + frontIdx, path.begin() + backIdx + 1);
+        result.insert(result.end(), path.begin() + frontIdx + 1, path.begin() + backIdx);
         result.push_back(newBack);
         return result;
     }
