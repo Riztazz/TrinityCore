@@ -228,12 +228,12 @@ Movement::PointsArray PathGenerator::SpliceAndSmoothArc(WorldObject const* owner
     smoothingRadius = std::min(smoothingRadius, maxSmoothingRadius);
     smoothingRadius = std::clamp(smoothingRadius, minRadius, maxRadius);
 
-    // Fallback if t is too large (segments too short for arc) This should not be called
-    if (t > lenAB || t > lenBC || std::isnan(t) || std::isinf(t))
+    float t = smoothingRadius * tanHalfAngle;
+    if (std::isnan(t) || std::isinf(t))
     {
         if (owner->GetSpawnId() == 80043)
         {
-            TC_LOG_DEBUG("smooth", "Arc fallback: tangent distance too large or invalid, angle= {}, t={}, lenAB={}, lenBC={}", angle * (180.0f / M_PI), t, lenAB, lenBC);
+            TC_LOG_DEBUG("smooth", "Arc fallback: cannot compute tangent, angle= {}, t={}, lenAB={}, lenBC={}", angle * (180.0f / M_PI), t, lenAB, lenBC);
         }
         Movement::PointsArray result;
         result.push_back(A3);
