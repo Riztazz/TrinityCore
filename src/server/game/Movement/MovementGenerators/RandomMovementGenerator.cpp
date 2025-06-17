@@ -248,8 +248,8 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
             TC_LOG_DEBUG("smooth", "creating subsequent path length: {}", PathGenerator::ComputePathLength(_paths[_pathIndex]));
             TC_LOG_DEBUG("smooth", "creating subsequent path double truncated length: {}", PathGenerator::ComputePathLength(modPath));
         }
-        modPath.insert(modPath.begin(), PositionToVector3(owner->GetPosition()));
         modPath.insert(modPath.begin(), PositionToVector3(_paths[_pathIndex].front()));
+        modPath.insert(modPath.begin(), PositionToVector3(owner->GetPosition()));
         if (owner->GetSpawnId() == 80043)
         {
             TC_LOG_DEBUG("smooth", "creating subsequent path truncated length with owner position and path start prepended: {}", PathGenerator::ComputePathLength(modPath));
