@@ -107,7 +107,6 @@ void RandomMovementGenerator<Creature>::DoInitialize(Creature* owner)
     {
         _init = true;
         _reference = owner->GetPosition();
-        _angle = frand(0.f, M_PI * 2.0f);
     }
 }
 
@@ -171,15 +170,13 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
                 dest = _reference;
 
                 float distance = frand(MIN_WANDER_DISTANCE, _maxWanderDistance);
-                float angle = std::fmod(_angle, 2.0f * M_PI);
-                if (angle < 0)
-                    angle += 2.0f * M_PI;
-    
+                float angle = frand(-0.75 * M_PI, 0.75 * M_PI);
+
                 // Calculate the wander point (dest) accounting for collision
                 owner->MovePositionToFirstCollision(src, dest, distance, angle);
 
                 if (owner->GetSpawnId() == 80043)
-                    TC_LOG_DEBUG("movement", "Create Path Index: {} Calc Path Distance from Src: {}", _pathIndex, src.GetExactDist(dest));
+                    TC_LOG_DEBUG("smooth", "Create Path Index: {} Calc Path Distance from Src: {}", _pathIndex, src.GetExactDist(dest));
             }
             while (src.GetExactDist(dest) < SMOOTH_CORNER_RADIUS * 2.0f + 1.0f);
         }

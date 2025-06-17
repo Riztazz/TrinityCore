@@ -52,7 +52,6 @@ class RandomMovementGenerator : public MovementGeneratorMedium<T, RandomMovement
         float _maxWanderDistance;
         uint8 _wanderSteps;
         Position _reference;
-        float _angle;
         uint8 _pathIndex;
         std::vector<Movement::PointsArray> _paths;
         std::unique_ptr<PathGenerator> _pathGenerator;
