@@ -58,7 +58,6 @@ class TC_GAME_API PathGenerator
     public:
         static float ComputePathLength(const Movement::PointsArray& path);
         static Movement::PointsArray TruncatePath(WorldObject const* owner, const Movement::PointsArray& path, float radius, bool truncateFront = false);
-        static G3D::Vector2 ComputeCircleCenter(const G3D::Vector2& A, const G3D::Vector2& B, const G3D::Vector2& C);
         static Movement::PointsArray SpliceAndSmoothArc(WorldObject const* owner, const G3D::Vector3& midpoint, const G3D::Vector3& endpoint, uint32 numPoints);
 
         explicit PathGenerator(WorldObject const* owner);
