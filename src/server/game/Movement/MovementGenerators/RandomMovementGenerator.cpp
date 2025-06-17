@@ -165,7 +165,7 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
             // Using our reference (spawn) point construct the distance and angle to a new point
             dest = _reference;
             // Do not do two less than average wanders in a row to prevent too short of paths
-            float averageWanderDistance = MIN_WANDER_DISTANCE + _maxWanderDistance / 2.0f;
+            float averageWanderDistance = (MIN_WANDER_DISTANCE + _maxWanderDistance) / 2.0f;
             float distance = MIN_WANDER_DISTANCE;
             if (_lastWanderDistance < averageWanderDistance)
                 distance = frand(averageWanderDistance, _maxWanderDistance);
