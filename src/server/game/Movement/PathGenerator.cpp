@@ -195,15 +195,19 @@ Movement::PointsArray PathGenerator::SpliceAndSmoothArc(WorldObject const* owner
 
     // Compute circle center and radius
     G3D::Vector2 center = ComputeCircleCenter(A, B, C);
-    if (std::isnan(center.x) || std::isnan(center.y))
+    float radius = (A - center).length();
+    if (std::isnan(center.x) || std::isnan(center.y) ||
+        std::isinf(center.x) || std::isinf(center.y) ||
+        std::fabs(center.x) > 1e5f || std::fabs(center.y) > 1e5f ||
+        radius < 1e-3f || radius > 1e5f ||
+        (A - B).length() < 1e-3f || (B - C).length() < 1e-3f)
     {
-        // Fallback to straight line if colinear
+        TC_LOG_DEBUG("smooth", "Arc fallback: A=({},{}), B=({},{}), C=({},{}), center=({},{}), radius={}", A.x, A.y, B.x, B.y, C.x, C.y, center.x, center.y, radius);
         Movement::PointsArray result;
         result.push_back(A3);
         result.push_back(C3);
         return result;
     }
-    float radius = (A - center).length();
 
     // Compute start, mid, and end angles
     float angleA = std::atan2(A.y - center.y, A.x - center.x);
