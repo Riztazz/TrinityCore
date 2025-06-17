@@ -180,8 +180,8 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
                 if (src.GetExactDist(dest) < SMOOTH_CORNER_RADIUS * 2.0f + 1.0f)
                     continue;
 
-                float srcX = src->GetPositionX();
-                float srcY = src->GetPositionY();
+                float srcX = src.GetPositionX();
+                float srcY = src.GetPositionY();
                 float destX = dest.GetPositionX();
                 float destY = dest.GetPositionY();
 
