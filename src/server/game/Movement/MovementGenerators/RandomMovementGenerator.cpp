@@ -347,7 +347,7 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
             {
                 path = tempPath;
                 if (owner->GetSpawnId() == 80043)
-                    TC_LOG_DEBUG("smooth", "First path Points: {}, Length: {}", tempPath.size(), PathGenerator::ComputePathLength(tempPath);
+                    TC_LOG_DEBUG("smooth", "First path Points: {}, Length: {}", tempPath.size(), PathGenerator::ComputePathLength(tempPath));
             }
             else
             {
