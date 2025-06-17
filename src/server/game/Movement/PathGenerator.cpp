@@ -193,24 +193,59 @@ Movement::PointsArray PathGenerator::SpliceAndSmoothArc(WorldObject const* owner
     G3D::Vector2 B(B3.x, B3.y);
     G3D::Vector2 C(C3.x, C3.y);
 
-    // Compute circle center and radius
-    G3D::Vector2 center = ComputeCircleCenter(A, B, C);
-    float radius = (A - center).length();
+    // Thresholds
+    const float minRadius = 0.1f;
+    const float maxRadius = 1000.0f;
+    const float minDistance = 0.1f;
 
-    // Define reasonable thresholds (adjust based on your game world scale)
-    const float minRadius = 0.1f;    // Minimum radius to avoid numerical issues
-    const float maxRadius = 1000.0f; // Maximum radius, e.g., game world is ~1000 units
-    const float minDistance = 0.1f;  // Minimum distance between points
+    // Compute vectors and lengths
+    G3D::Vector2 AB = B - A;
+    G3D::Vector2 BC = C - B;
+    float lenAB = AB.length();
+    float lenBC = BC.length();
 
-    // Enhanced fallback conditions
+    // Fallback if points are too close
+    if (lenAB < minDistance || lenBC < minDistance) {
+        TC_LOG_DEBUG("smooth", "Arc fallback: points too close, A=({},{}), B=({},{}), C=({},{}), lenAB={}, lenBC={}", A.x, A.y, B.x, B.y, C.x, C.y, lenAB, lenBC);
+        Movement::PointsArray result;
+        result.push_back(A3);
+        result.push_back(C3);
+        return result;
+    }
+
+    // Fallback if angle is nearly straight (dot ≈ -1)
+    float dot = (AB.x * BC.x + AB.y * BC.y) / (lenAB * lenBC);
+    if (dot < -0.999f) {
+        TC_LOG_DEBUG("smooth", "Arc fallback: nearly straight angle, dot={}, A=({},{}), B=({},{}), C=({},{}), lenAB={}, lenBC={}", dot, A.x, A.y, B.x, B.y, C.x, C.y, lenAB, lenBC);
+        Movement::PointsArray result;
+        result.push_back(A3);
+        result.push_back(C3);
+        return result;
+    }
+
+    // Use a fixed, clamped radius for smoothing
+    float smoothingRadius = std::min(lenAB, lenBC) * 0.5f;
+    smoothingRadius = std::clamp(smoothingRadius, minRadius, maxRadius);
+
+    // Directions
+    G3D::Vector2 dirAB = AB.direction();
+    G3D::Vector2 dirBC = BC.direction();
+
+    // Arc start/end points (tangent to AB and BC at B)
+    G3D::Vector2 P0 = B - dirAB * smoothingRadius;
+    G3D::Vector2 P2 = B + dirBC * smoothingRadius;
+
+    // Compute center of arc through P0, B, P2
+    G3D::Vector2 center = ComputeCircleCenter(P0, B, P2);
+    float radius = (P0 - center).length();
+
+    // Fallback if center/radius are bad
     if (std::isnan(center.x) || std::isnan(center.y) ||
         std::isinf(center.x) || std::isinf(center.y) ||
         std::fabs(center.x) > 1e5f || std::fabs(center.y) > 1e5f ||
-        radius < minRadius || radius > maxRadius ||
-        (A - B).length() < minDistance || (B - C).length() < minDistance)
+        radius < minRadius || radius > maxRadius)
     {
-        TC_LOG_DEBUG("smooth", "Arc fallback: A=({},{}), B=({},{}), C=({},{}), center=({},{}), radius={}",
-                     A.x, A.y, B.x, B.y, C.x, C.y, center.x, center.y, radius);
+        TC_LOG_DEBUG("smooth", "Arc fallback: bad center/radius, P0=({},{}), B=({},{}), P2=({},{}), center=({},{}), radius={}", P0.x, P0.y, B.x, B.y, P2.x, P2.y, center.x, center.y, radius);
         Movement::PointsArray result;
         result.push_back(A3);
         result.push_back(C3);
@@ -218,39 +253,37 @@ Movement::PointsArray PathGenerator::SpliceAndSmoothArc(WorldObject const* owner
     }
 
     // Compute angles from center to points
-    float angleA = std::atan2(A.y - center.y, A.x - center.x);
+    float angle0 = std::atan2(P0.y - center.y, P0.x - center.x);
     float angleB = std::atan2(B.y - center.y, B.x - center.x);
-    float angleC = std::atan2(C.y - center.y, C.x - center.x);
+    float angle2 = std::atan2(P2.y - center.y, P2.x - center.x);
 
-    // Determine arc direction
-    float deltaAB = angleB - angleA;
-    float deltaBC = angleC - angleB;
-    // Normalize to [-pi, pi]
-    while (deltaAB < -M_PI) deltaAB += 2 * M_PI;
-    while (deltaAB > M_PI) deltaAB -= 2 * M_PI;
-    while (deltaBC < -M_PI) deltaBC += 2 * M_PI;
-    while (deltaBC > M_PI) deltaBC -= 2 * M_PI;
+    // Determine sweep direction to pass through B
+    float delta0B = angleB - angle0;
+    float deltaB2 = angle2 - angleB;
+    while (delta0B < -M_PI) delta0B += 2 * M_PI;
+    while (delta0B > M_PI) delta0B -= 2 * M_PI;
+    while (deltaB2 < -M_PI) deltaB2 += 2 * M_PI;
+    while (deltaB2 > M_PI) deltaB2 -= 2 * M_PI;
 
-    float totalAngle = angleC - angleA;
-    // Adjust direction to pass through B
-    if (!((deltaAB > 0 && deltaBC > 0) || (deltaAB < 0 && deltaBC < 0)))
-    {
+    float totalAngle = angle2 - angle0;
+    if (!((delta0B > 0 && deltaB2 > 0) || (delta0B < 0 && deltaB2 < 0))) {
         if (totalAngle > 0)
             totalAngle -= 2 * M_PI;
         else
             totalAngle += 2 * M_PI;
     }
 
-    // Build the arc path
+    // Build the arc path (from A3, through arc, to C3)
     Movement::PointsArray result;
-    result.push_back(A3); // Start at owner
+    result.push_back(A3); // Start at owner/original point
+
     for (uint32 i = 1; i <= numPoints; ++i)
     {
         float t = float(i) / float(numPoints + 1);
-        float theta = angleA + t * totalAngle;
+        float theta = angle0 + t * totalAngle;
         float x = center.x + radius * std::cos(theta);
         float y = center.y + radius * std::sin(theta);
-        float z = A3.z; // Start with owner’s z, adjust as needed
+        float z = A3.z; // Or interpolate z if needed
         TC_LOG_DEBUG("smooth", "i: {} updating allowed z x,y,z: {},{},{}", i, x, y, z);
         owner->UpdateAllowedPositionZ(x, y, z);
         TC_LOG_DEBUG("smooth", "i: {} finished updating allowed z x,y,z: {},{},{}", i, x, y, z);
