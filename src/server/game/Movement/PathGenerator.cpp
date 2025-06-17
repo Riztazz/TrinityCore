@@ -170,7 +170,7 @@ Movement::PointsArray PathGenerator::TruncatePath(WorldObject const* owner, cons
 
 Movement::PointsArray PathGenerator::SpliceAndSmoothPath(WorldObject const* owner, const G3D::Vector3& midpoint, const G3D::Vector3& endpoint, uint32 numPoints)
 {
-    // Ensure the paths connect at the splice point
+    // Get positions
     const G3D::Vector3& A = PositionToVector3(owner->GetPosition());
     const G3D::Vector3& B = midpoint;
     const G3D::Vector3& C = endpoint;
@@ -191,14 +191,30 @@ Movement::PointsArray PathGenerator::SpliceAndSmoothPath(WorldObject const* owne
     G3D::Vector2 P0(B.x - dirAB.x * radius, B.y - dirAB.y * radius);
     G3D::Vector2 P2(B.x + dirBC.x * radius, B.y + dirBC.y * radius);
 
+    // Compute the "bulged" control point for near-180° smoothing
+    float dot = dirAB.x * dirBC.x + dirAB.y * dirBC.y;
+    dot = std::clamp(dot, -1.0f, 1.0f); // Safety for acos
+    float angle = std::acos(dot);
+    float bulge = std::sin(angle / 2.0f);
+
+    // Bisector direction (normalized)
+    G3D::Vector2 bisector = (dirAB + dirBC);
+    if (bisector.length() > 0)
+        bisector = bisector.direction();
+    else
+        bisector = G3D::Vector2(-dirAB.y, dirAB.x); // Perpendicular fallback
+
+    float bulgeDistance = radius * bulge; // You can tune this factor
+    G3D::Vector2 control = G3D::Vector2(B.x, B.y) + bisector * bulgeDistance;
+
     std::vector<G3D::Vector3> bezierPoints;
     for (uint32 i = 0; i < numPoints; ++i)
     {
         float t = float(i + 1) / float(numPoints + 1);
         float one_minus_t = 1.0f - t;
 
-        float x = one_minus_t * one_minus_t * P0.x + 2 * one_minus_t * t * B.x + t * t * P2.x;
-        float y = one_minus_t * one_minus_t * P0.y + 2 * one_minus_t * t * B.y + t * t * P2.y;
+        float x = one_minus_t * one_minus_t * P0.x + 2 * one_minus_t * t * control.x + t * t * P2.x;
+        float y = one_minus_t * one_minus_t * P0.y + 2 * one_minus_t * t * control.y + t * t * P2.y;
         float z = B.z;
 
         owner->UpdateAllowedPositionZ(x, y, z);
