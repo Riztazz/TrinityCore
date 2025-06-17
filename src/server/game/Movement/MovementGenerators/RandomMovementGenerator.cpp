@@ -141,6 +141,7 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
     if (_paths.size() < NUM_WANDER_PATHS)
     {
         Movement::PointsArray path;
+        bool smooth = true;
         // A path is constructed from two segments so that we can smooth the vertexes
         for (size_t i = 0; i < 2; ++i)
         {
@@ -346,17 +347,11 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
             if (i == 0)
             {
                 path = tempPath;
-                if (owner->GetSpawnId() == 80043)
-                    TC_LOG_DEBUG("smooth", "First path Points: {}, Length: {}", tempPath.size(), PathGenerator::ComputePathLength(tempPath));
             }
             else
             {
-                //path.insert(path.end(), tempPath.begin(), tempPath.end());
-                if (owner->GetSpawnId() == 80043)
-                    TC_LOG_DEBUG("smooth", "Second path Points: {}, Length: {}", tempPath.size(), PathGenerator::ComputePathLength(tempPath));
-
-                // For debugging purposes move with no smoothing
-                if (SMOOTH_CORNER_NUM_POINTS <= 1)
+                smooth = false; // for testing
+                if (SMOOTH_CORNER_NUM_POINTS <= 1 || !smooth)
                     path.insert(path.end(), tempPath.begin(), tempPath.end());
                 else
                 {
@@ -370,63 +365,12 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
                     path = Movement::PointsArray(A.begin(), A.end());
                     path.insert(path.end(), B.begin(), B.end());
                     path.insert(path.end(), C.begin(), C.end());
-                    if (owner->GetSpawnId() == 80043)
-                        TC_LOG_DEBUG("smooth", "Final path Points: {}, Length: {}", path.size(), PathGenerator::ComputePathLength(path));
-
-                    if (owner->GetSpawnId() == 80043)
-                    {
-                        const G3D::Vector3& prev = A.back();
-                        const G3D::Vector3& curr = tempPath.front();
-                        const G3D::Vector3& next = C.front();
-
-                        float v1x = curr.x - prev.x;
-                        float v1y = curr.y - prev.y;
-                        float v2x = next.x - curr.x;
-                        float v2y = next.y - curr.y;
-
-                        float v1Len = std::sqrt(v1x * v1x + v1y * v1y);
-                        float v2Len = std::sqrt(v2x * v2x + v2y * v2y);
-
-                        float dot = v1x * v2x + v1y * v2y;
-                        float angleRad = std::acos(dot / (v1Len * v2Len));
-                        float angleDeg = angleRad * (180.0f / M_PI);
-
-                        TC_LOG_DEBUG("smooth", "base calculated A: {},{}, B: {},{}, C:{},{}, Angle (deg): {}", prev.x, prev.y, curr.x, curr.y, next.x, next.y, angleDeg);
-
-                        TC_LOG_DEBUG("smooth", "splicePath vertex 0 (x={}, y={}):", B[0].x, B[0].y);
-                        float angleSum = 0.0f;
-                        for (size_t i = 1; i + 1 < B.size(); ++i)
-                        {
-                            const G3D::Vector3& prev = B[i - 1];
-                            const G3D::Vector3& curr = B[i];
-                            const G3D::Vector3& next = B[i + 1];
-
-                            float v1x = curr.x - prev.x;
-                            float v1y = curr.y - prev.y;
-                            float v2x = next.x - curr.x;
-                            float v2y = next.y - curr.y;
-
-                            float v1Len = std::sqrt(v1x * v1x + v1y * v1y);
-                            float v2Len = std::sqrt(v2x * v2x + v2y * v2y);
-
-                            // Guard against zero-length segments
-                            if (v1Len == 0.f || v2Len == 0.f)
-                                continue;
-
-                            float dot = v1x * v2x + v1y * v2y;
-                            float angleRad = std::acos(dot / (v1Len * v2Len));
-                            float angleDeg = angleRad * (180.0f / M_PI);
-                            angleSum += angleDeg;
-
-                            TC_LOG_DEBUG("smooth", "splicePath vertex {} (x={}, y={}): angle (deg): {}", i, curr.x, curr.y, angleDeg);
-                        }
-                        TC_LOG_DEBUG("smooth", "splicePath vertex n (x={}, y={}): angleSum(deg): {}", B.back().x, B.back().y, angleSum);
-                    }
                 }
             }
         }
 
         _paths.push_back(path);
+        _smoothPaths.push_back(smooth);
     }
 
     RemoveFlag(MOVEMENTGENERATOR_FLAG_TRANSITORY | MOVEMENTGENERATOR_FLAG_TIMED_PAUSED);
@@ -448,7 +392,8 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
 
     Movement::MoveSplineInit init(owner);
     init.MovebyPath(_paths[_pathIndex]);
-    init.SetSmooth();
+    if (_smoothPaths[_pathIndex])
+        init.SetSmooth();
     init.SetWalk(walk);
     init.Launch();
 
