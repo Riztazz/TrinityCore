@@ -300,11 +300,16 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
                 TC_LOG_DEBUG("smooth", "Moving Position to first collision, distance: {}, angle: {}", distance, angle);
             // Move that direction and account for collisions
             owner->MovePositionToFirstCollision(src, dest, distance, angle);
+
+            if (owner->GetSpawnId() == 80043)
+                TC_LOG_DEBUG("smooth", "Dest after move: {}, {}, {} src: {}, {}, {}", dest.GetPositionX(), dest.GetPositionY(), dest.GetPositionZ(), src.GetPositionX(), src.GetPositionY(), src.GetPositionZ());
         }
 
         // Check if the destination is in LOS
         if (!owner->IsWithinLOS(src, dest.GetPositionX(), dest.GetPositionY(), dest.GetPositionZ()))
         {
+            if (owner->GetSpawnId() == 80043)
+                TC_LOG_DEBUG("smooth", "Dest not within los of src, resetting");
             // Retry later on
             _timer.Reset(200);
             ResetPaths();
@@ -324,6 +329,8 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
                     || (_pathGenerator->GetPathType() & PATHFIND_SHORTCUT)
                     /*|| (_pathGenerator->GetPathType() & PATHFIND_FARFROMPOLY)*/)
         {
+            if (owner->GetSpawnId() == 80043)
+                TC_LOG_DEBUG("smooth", "Path not found, resetting");
             _timer.Reset(100);
             ResetPaths();
             return;
@@ -332,6 +339,8 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
         Movement::PointsArray path = _pathGenerator->GetPath();
         if (path.size() < 2)
         {
+            if (owner->GetSpawnId() == 80043)
+                TC_LOG_DEBUG("smooth", "Path size < 2, resetting");
             _timer.Reset(100);
             ResetPaths();
             return;
