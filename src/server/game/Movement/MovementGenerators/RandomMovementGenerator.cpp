@@ -351,9 +351,8 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
             else
             {
                 // We cannot set smoothing if any part of the path is in water
-                TC_LOG_DEBUG("smooth", "Point A Underwater: {}", owner->GetMap()->IsUnderWater(owner->GetPhaseMask(), path.back().x, path.back().y, path.back().z));
-                TC_LOG_DEBUG("smooth", "Point B Underwater: {}", owner->GetMap()->IsUnderWater(owner->GetPhaseMask(), tempPath.back().x, tempPath.back().y, tempPath.back().z));
-                if (owner->GetMap()->IsUnderWater(owner->GetPhaseMask(), path.back().x, path.back().y, path.back().z) ||
+                if (owner->GetMap()->IsUnderWater(owner->GetPhaseMask(), path.front().x, path.front().y, path.front().z) ||
+                    owner->GetMap()->IsUnderWater(owner->GetPhaseMask(), path.back().x, path.back().y, path.back().z) ||
                     owner->GetMap()->IsUnderWater(owner->GetPhaseMask(), tempPath.back().x, tempPath.back().y, tempPath.back().z))
                     smooth = false;
                 // Do not smooth the corner if we are not smoothing, it creates erratic movement
@@ -399,10 +398,7 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
     Movement::MoveSplineInit init(owner);
     init.MovebyPath(_paths[_pathIndex]);
     if (_smoothPaths[_pathIndex])
-    {
-        TC_LOG_DEBUG("smooth", "Setting smooth on spline");
         init.SetSmooth();
-    }
     init.SetWalk(walk);
     init.Launch();
 
