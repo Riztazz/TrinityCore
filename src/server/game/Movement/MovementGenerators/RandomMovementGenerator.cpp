@@ -32,7 +32,7 @@ namespace
     constexpr float MIN_WANDER_DISTANCE = 3.0f; // Keep this at min SMOOTH_CORNER_RADIUS * 2 + 1
     constexpr float SMOOTH_CORNER_RADIUS = 1.0f;
     constexpr int NUM_WANDER_PATHS = 12;
-    constexpr int SMOOTH_CORNER_NUM_POINTS = 0;
+    constexpr int SMOOTH_CORNER_NUM_POINTS = 3;
 }
 
 template<class T>
