@@ -173,8 +173,8 @@ G3D::Vector2 PathGenerator::ComputeCircleCenter(const G3D::Vector2& A, const G3D
 {
     float a1 = B.x - A.x, b1 = B.y - A.y;
     float a2 = C.x - B.x, b2 = C.y - B.y;
-    float d1 = (A.x*A.x - B.x*B.x + A.y*A.y - B.y*B.y) / 2.0f;
-    float d2 = (B.x*B.x - C.x*C.x + B.y*B.y - C.y*C.y) / 2.0f;
+    float d1 = (A.x * A.x - B.x * B.x + A.y * A.y - B.y * B.y) / 2.0f;
+    float d2 = (B.x * B.x - C.x * C.x + B.y * B.y - C.y * C.y) / 2.0f;
     float det = a1 * b2 - a2 * b1;
     if (std::fabs(det) < 1e-6f) // Points are colinear or too close
         return G3D::Vector2(NAN, NAN);
@@ -196,25 +196,33 @@ Movement::PointsArray PathGenerator::SpliceAndSmoothArc(WorldObject const* owner
     // Compute circle center and radius
     G3D::Vector2 center = ComputeCircleCenter(A, B, C);
     float radius = (A - center).length();
+
+    // Define reasonable thresholds (adjust based on your game world scale)
+    const float minRadius = 0.1f;    // Minimum radius to avoid numerical issues
+    const float maxRadius = 1000.0f; // Maximum radius, e.g., game world is ~1000 units
+    const float minDistance = 0.1f;  // Minimum distance between points
+
+    // Enhanced fallback conditions
     if (std::isnan(center.x) || std::isnan(center.y) ||
         std::isinf(center.x) || std::isinf(center.y) ||
         std::fabs(center.x) > 1e5f || std::fabs(center.y) > 1e5f ||
-        radius < 1e-3f || radius > 1e5f ||
-        (A - B).length() < 1e-3f || (B - C).length() < 1e-3f)
+        radius < minRadius || radius > maxRadius ||
+        (A - B).length() < minDistance || (B - C).length() < minDistance)
     {
-        TC_LOG_DEBUG("smooth", "Arc fallback: A=({},{}), B=({},{}), C=({},{}), center=({},{}), radius={}", A.x, A.y, B.x, B.y, C.x, C.y, center.x, center.y, radius);
+        TC_LOG_DEBUG("smooth", "Arc fallback: A=({},{}), B=({},{}), C=({},{}), center=({},{}), radius={}",
+                     A.x, A.y, B.x, B.y, C.x, C.y, center.x, center.y, radius);
         Movement::PointsArray result;
         result.push_back(A3);
         result.push_back(C3);
         return result;
     }
 
-    // Compute start, mid, and end angles
+    // Compute angles from center to points
     float angleA = std::atan2(A.y - center.y, A.x - center.x);
     float angleB = std::atan2(B.y - center.y, B.x - center.x);
     float angleC = std::atan2(C.y - center.y, C.x - center.x);
 
-    // Determine arc direction (CW or CCW) to ensure correct interpolation
+    // Determine arc direction
     float deltaAB = angleB - angleA;
     float deltaBC = angleC - angleB;
     // Normalize to [-pi, pi]
@@ -223,38 +231,32 @@ Movement::PointsArray PathGenerator::SpliceAndSmoothArc(WorldObject const* owner
     while (deltaBC < -M_PI) deltaBC += 2 * M_PI;
     while (deltaBC > M_PI) deltaBC -= 2 * M_PI;
 
-    // Total angle to sweep from A to C via B
     float totalAngle = angleC - angleA;
-    // Choose the direction that passes through B
-    if ((deltaAB > 0 && deltaBC > 0) || (deltaAB < 0 && deltaBC < 0))
+    // Adjust direction to pass through B
+    if (!((deltaAB > 0 && deltaBC > 0) || (deltaAB < 0 && deltaBC < 0)))
     {
-        // Ok, sweep from A to C
-    }
-    else
-    {
-        // Go the other way around the circle
         if (totalAngle > 0)
             totalAngle -= 2 * M_PI;
         else
             totalAngle += 2 * M_PI;
     }
 
-    // Build the arc
+    // Build the arc path
     Movement::PointsArray result;
-    result.push_back(A3);
+    result.push_back(A3); // Start at owner
     for (uint32 i = 1; i <= numPoints; ++i)
     {
         float t = float(i) / float(numPoints + 1);
         float theta = angleA + t * totalAngle;
         float x = center.x + radius * std::cos(theta);
         float y = center.y + radius * std::sin(theta);
-        float z = B3.z; // Or interpolate z if you want
+        float z = A3.z; // Start with owner’s z, adjust as needed
         TC_LOG_DEBUG("smooth", "i: {} updating allowed z x,y,z: {},{},{}", i, x, y, z);
         owner->UpdateAllowedPositionZ(x, y, z);
-        TC_LOG_DEBUG("smooth", "i: {} finished updateing allowed z x,y,z: {},{},{}", i, x, y, z);
+        TC_LOG_DEBUG("smooth", "i: {} finished updating allowed z x,y,z: {},{},{}", i, x, y, z);
         result.emplace_back(x, y, z);
     }
-    result.push_back(C3);
+    result.push_back(C3); // End at endpoint
 
     return result;
 }
