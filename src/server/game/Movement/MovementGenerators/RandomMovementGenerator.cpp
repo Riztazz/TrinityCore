@@ -32,7 +32,7 @@ namespace
     constexpr float MIN_WANDER_DISTANCE = 3.0f; // Keep this at min SMOOTH_CORNER_RADIUS * 2 + 1
     constexpr float SMOOTH_CORNER_RADIUS = 1.0f;
     constexpr int NUM_WANDER_POINTS = 12;
-    constexpr int SMOOTH_CORNER_NUM_POINTS = 0;
+    constexpr int SMOOTH_CORNER_NUM_POINTS = 3;
 }
 
 template<class T>
@@ -246,7 +246,7 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
             if (bestScore < std::numeric_limits<float>::max())
             {
                 if (owner->GetSpawnId() == 80043)
-                    TC_LOG_DEBUG("smooth", "Second to last point calculated return, distance: {}, bestAngleA {}, bestAngleB", minDist, bestAngleA, bestAngleB);
+                    TC_LOG_DEBUG("smooth", "Second to last point calculated return, distance: {}, bestAngleA {}, bestAngleB {}", minDist, bestAngleA, bestAngleB);
                 owner->MovePositionToFirstCollision(src, dest, minDist, bestAngleA);
                 Position realB = dest;
                 owner->MovePositionToFirstCollision(dest, realB, minDist, bestAngleB);
@@ -268,8 +268,6 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
             // Determine whether we should steer back towards the spawn point
             float distanceFromSpawn = src.GetExactDist(_reference);
             float angle;
-            if (owner->GetSpawnId() == 80043)
-                TC_LOG_DEBUG("smooth", "Calculating Path: distance: {}, distanceFromSpawn: {}", distance, distanceFromSpawn);
             // If we are close to the boundary, steer back towards the spawn point
             if (distanceFromSpawn > 0.75f * _maxWanderDistance)
             {
@@ -290,19 +288,17 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
 
                 angle = angleDiff;
                 if (owner->GetSpawnId() == 80043)
-                    TC_LOG_DEBUG("smooth", "Required to turn back: orientation: {}, angleToReference: {}, angleDiff: {}, angle: {}", currentOrientation, angleToReference, angleDiff, angle);
+                    TC_LOG_DEBUG("smooth", "Required to turn back: orientation: {}, angleToReference: {}, angle: {}", currentOrientation, angleToReference, angle);
             }
             // Else walk in any random direction without sharp turns
             else
                 angle = frand(-0.5 * M_PI, 0.5 * M_PI);
 
-            if (owner->GetSpawnId() == 80043)
-                TC_LOG_DEBUG("smooth", "Moving Position to first collision, distance: {}, angle: {}", distance, angle);
             // Move that direction and account for collisions
             owner->MovePositionToFirstCollision(src, dest, distance, angle);
 
             if (owner->GetSpawnId() == 80043)
-                TC_LOG_DEBUG("smooth", "Dest after move: {}, {}, {} src: {}, {}, {}", dest.GetPositionX(), dest.GetPositionY(), dest.GetPositionZ(), src.GetPositionX(), src.GetPositionY(), src.GetPositionZ());
+                TC_LOG_DEBUG("smooth", "Random points final dest: {}, angle: {}", distance, angle);
         }
 
         // Check if the destination is in LOS
