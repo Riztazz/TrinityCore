@@ -245,7 +245,9 @@ Movement::PointsArray PathGenerator::SpliceAndSmoothArc(WorldObject const* owner
         float x = center.x + radius * std::cos(theta);
         float y = center.y + radius * std::sin(theta);
         float z = B3.z; // Or interpolate z if you want
+        TC_LOG_DEBUG("smooth", "i: {} updating allowed z x,y,z: {},{},{}", x, y, z);
         owner->UpdateAllowedPositionZ(x, y, z);
+        TC_LOG_DEBUG("smooth", "i: {} finished updateing allowed z x,y,z: {},{},{}", x, y, z);
         result.emplace_back(x, y, z);
     }
     result.push_back(C3);
