@@ -143,7 +143,7 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
         // We cache the actual points paths around the circuit, our splines are constructed separately so that we
         // can smooth the vertexes.
         Position src = _paths.empty() ? owner->GetPosition() : Vector3ToPosition(_paths.back().back());
-        Position dest;
+        Position dest = src;
         // The last path connects to the first path
         if (_paths.size() == NUM_WANDER_POINTS - 1)
         {
@@ -248,7 +248,7 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
                 if (owner->GetSpawnId() == 80043)
                     TC_LOG_DEBUG("smooth", "Second to last point calculated return, distance: {}, bestAngleA {}, bestAngleB", minDist, bestAngleA, bestAngleB);
                 owner->MovePositionToFirstCollision(src, dest, minDist, bestAngleA);
-                Position realB;
+                Position realB = dest;
                 owner->MovePositionToFirstCollision(dest, realB, minDist, bestAngleB);
                 _cachedNextWanderPoint = realB;
             }
