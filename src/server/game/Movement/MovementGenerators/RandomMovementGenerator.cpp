@@ -448,7 +448,7 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
 
     Movement::MoveSplineInit init(owner);
     init.MovebyPath(_paths[_pathIndex]);
-    //init.SetSmooth();
+    init.SetSmooth();
     init.SetWalk(walk);
     init.Launch();
 
