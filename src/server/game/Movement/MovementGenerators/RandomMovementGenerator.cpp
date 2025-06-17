@@ -155,8 +155,8 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
         // Otherwise we need to construct a path to a wander point
         else
         {
-            int attempts = 3;
-            do
+            int attempts = 5;
+            while (true)
             {
                 if (!attempts)
                 {
@@ -166,19 +166,43 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
                 }
                 --attempts;
 
-                // Using our reference (spawn) point construct the distance and angle to a new point
-                dest = _reference;
-
+                // Using our reference (spawn) point and get a random point in a circle around it
                 float distance = frand(MIN_WANDER_DISTANCE, _maxWanderDistance);
-                float angle = frand(-0.75 * M_PI, 0.75 * M_PI);
-
-                // Calculate the wander point (dest) accounting for collision
-                owner->MovePositionToFirstCollision(src, dest, distance, angle);
+                float angle = frand(0.f, M_PI * 2.0f);
+                float x = _reference.GetPositionX() + distance * std::cos(angle);
+                float y = _reference.GetPositionY() + distance * std::sin(angle);
+                dest.Relocate(x, y, _reference.GetPositionZ());
+                // Account for collision
+                owner->MovePositionToFirstCollision(src, dest, 0.0f, 0.0f);
 
                 if (owner->GetSpawnId() == 80043)
                     TC_LOG_DEBUG("smooth", "Create Path Index: {} Calc Path Distance from Src: {}", _pathIndex, src.GetExactDist(dest));
+                if (src.GetExactDist(dest) < SMOOTH_CORNER_RADIUS * 2.0f + 1.0f)
+                    continue;
+
+                float srcX = src->GetPositionX();
+                float srcY = src->GetPositionY();
+                float destX = dest.GetPositionX();
+                float destY = dest.GetPositionY();
+
+                float dx = destX - srcX;
+                float dy = destY - srcY;
+
+                // Angle from src to dest in world coordinates
+                float angleToDest = std::atan2(dy, dx);
+
+                // Owner's current orientation
+                float orientation = owner->GetOrientation();
+
+                // Angle difference (dest direction relative to facing)
+                float angleDiff = angleToDest - orientation;
+                while (angleDiff > M_PI) angleDiff -= 2.0f * M_PI;
+                while (angleDiff < -M_PI) angleDiff += 2.0f * M_PI;
+                if (std::abs(angleDiff) > 0.75 * M_PI)
+                    continue;
+
+                break;
             }
-            while (src.GetExactDist(dest) < SMOOTH_CORNER_RADIUS * 2.0f + 1.0f);
         }
 
         // Check if the destination is in LOS
