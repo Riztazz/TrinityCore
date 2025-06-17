@@ -350,7 +350,11 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
             }
             else
             {
-                smooth = false; // for testing
+                // We cannot set smoothing if any part of the path is in water
+                if (owner->GetMap()->IsUnderWater(owner->GetPhaseMask(), path.back().x, path.back().y, path.back().z) ||
+                    owner->GetMap()->IsUnderWater(owner->GetPhaseMask(), tempPath.back().x, tempPath.back().y, tempPath.back().z))
+                    smooth = false;
+                // Do not smooth the corner if we are not smoothing, it creates erratic movement
                 if (SMOOTH_CORNER_NUM_POINTS <= 1 || !smooth)
                     path.insert(path.end(), tempPath.begin(), tempPath.end());
                 else
