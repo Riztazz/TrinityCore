@@ -381,7 +381,7 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
     {
         
         Movement::PointsArray modPath = PathGenerator::TruncatePath(owner, _paths[_pathIndex], SMOOTH_CORNER_RADIUS, true);
-        Movement::PointsArray splicePath = PathGenerator::SpliceAndSmoothPath(owner, _paths[_pathIndex].front(), modPath.front(), SMOOTH_CORNER_NUM_POINTS);
+        Movement::PointsArray splicePath = PathGenerator::SpliceAndSmoothArc(owner, _paths[_pathIndex].front(), modPath.front(), SMOOTH_CORNER_NUM_POINTS);
         
         if (owner->GetSpawnId() == 80043)
         {
