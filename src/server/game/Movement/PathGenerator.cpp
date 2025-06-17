@@ -231,10 +231,7 @@ Movement::PointsArray PathGenerator::SpliceAndSmoothArc(WorldObject const* owner
     float t = smoothingRadius * tanHalfAngle;
     if (std::isnan(t) || std::isinf(t))
     {
-        if (owner->GetSpawnId() == 80043)
-        {
-            TC_LOG_DEBUG("smooth", "Arc fallback: cannot compute tangent, angle= {}, t={}, lenAB={}, lenBC={}", angle * (180.0f / M_PI), t, lenAB, lenBC);
-        }
+        TC_LOG_DEBUG("smooth", "Arc fallback: cannot compute tangent, angle= {}, t={}, lenAB={}, lenBC={}", angle * (180.0f / M_PI), t, lenAB, lenBC);
         Movement::PointsArray result;
         result.push_back(A3);
         result.push_back(C3);
