@@ -29,11 +29,11 @@
 
 namespace
 {
-    constexpr float MIN_WANDER_DISTANCE = 2.0f;
-    constexpr float DEFAULT_WANDER_DISTANCE = 3.0f;
-    constexpr float SMOOTH_CORNER_RADIUS = 1.0f;
+    constexpr float MIN_WANDER_DISTANCE = 3.0f;
+    constexpr float DEFAULT_WANDER_DISTANCE = 4.0f;
+    constexpr float SMOOTH_CORNER_RADIUS = 1.5f;
     constexpr int NUM_WANDER_POINTS = 12;
-    constexpr int SMOOTH_CORNER_NUM_POINTS = 3;
+    constexpr int SMOOTH_CORNER_NUM_POINTS = 5;
     // We will iterate our angles vector by this amount to create a less sharp path e.g if we are at index 0, we will lookup offset[0] = 3, so we will iterate to next angle of [3].
     constexpr int ANGLE_ITERATION_OFFSET[] = {2, 2, 2, 2, 2, 3, -2, -2, -2, -2, -2, -3};
 }
@@ -240,28 +240,21 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
     {
         Movement::PointsArray modPath = PathGenerator::TruncatePath(owner, _paths[_pathIndex], SMOOTH_CORNER_RADIUS);
         init.MovebyPath(modPath);
-        //init.SetSmooth();
+        init.SetSmooth();
     }
     // We want to smooth to the next path by splicing the end of the current path with the start of the next path and smoothing the corner
     else
     {
         
         Movement::PointsArray modPath = PathGenerator::TruncatePath(owner, _paths[_pathIndex], SMOOTH_CORNER_RADIUS, true);
-        modPath.insert(modPath.begin(), _paths[_pathIndex].front());
-        modPath.insert(modPath.begin(), PositionToVector3(owner->GetPosition()));
-        if (owner->GetSpawnId() == 80043)
-        {
-            TC_LOG_DEBUG("smooth", "creating subsequent path truncated length with owner position and path start prepended: {}", PathGenerator::ComputePathLength(modPath));
-        }
-        Movement::PointsArray modPath2 = PathGenerator::TruncatePath(owner, _paths[_pathIndex], SMOOTH_CORNER_RADIUS, true);
-        Movement::PointsArray splicePath = PathGenerator::SpliceAndSmoothPath(owner, _paths[_pathIndex].front(), modPath2.front(), SMOOTH_CORNER_NUM_POINTS);
-        splicePath.insert(splicePath.end(), modPath2.begin(), modPath2.end());
+        Movement::PointsArray splicePath = PathGenerator::SpliceAndSmoothPath(owner, _paths[_pathIndex].front(), modPath.front(), SMOOTH_CORNER_NUM_POINTS);
+        splicePath.insert(splicePath.end(), modPath.begin(), modPath.end());
         if (owner->GetSpawnId() == 80043)
         {
             TC_LOG_DEBUG("smooth", "creating spliced path length: {}", PathGenerator::ComputePathLength(splicePath));
         }
         init.MovebyPath(splicePath);
-        //init.SetSmooth();
+        init.SetSmooth();
     }
 
     init.SetWalk(walk);
