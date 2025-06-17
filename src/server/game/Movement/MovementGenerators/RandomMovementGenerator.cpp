@@ -165,9 +165,9 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
             // Fallback: random direction
             else
             {
+                float angle = frand(-0.5 * M_PI, 0.5 * M_PI);
                 if (owner->GetSpawnId() == 80043)
                     TC_LOG_DEBUG("smooth", "Last point fallback random direction, distance: {}, angle: {}", MIN_WANDER_DISTANCE, angle);
-                float angle = frand(-0.5 * M_PI, 0.5 * M_PI);
                 owner->MovePositionToFirstCollision(src, dest, MIN_WANDER_DISTANCE, angle);
             }
         }
