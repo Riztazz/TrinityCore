@@ -156,7 +156,7 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
         // Otherwise we need to construct a path to a wander point
         else
         {
-            uint attempts = 3;
+            int attempts = 3;
             do
             {
                 if (!attempts)
