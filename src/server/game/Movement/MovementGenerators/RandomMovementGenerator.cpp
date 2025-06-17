@@ -33,7 +33,7 @@ namespace
     constexpr float DEFAULT_WANDER_DISTANCE = 4.0f;
     constexpr float SMOOTH_CORNER_RADIUS = 1.5f;
     constexpr int NUM_WANDER_POINTS = 12;
-    constexpr int SMOOTH_CORNER_NUM_POINTS = 15;
+    constexpr int SMOOTH_CORNER_NUM_POINTS = 5;
     // We will iterate our angles vector by this amount to create a less sharp path e.g if we are at index 0, we will lookup offset[0] = 3, so we will iterate to next angle of [3].
     constexpr int ANGLE_ITERATION_OFFSET[] = {2, 2, 2, 2, 2, 3, -2, -2, -2, -2, -2, -3};
 }
@@ -240,7 +240,7 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
     {
         Movement::PointsArray modPath = PathGenerator::TruncatePath(owner, _paths[_pathIndex], SMOOTH_CORNER_RADIUS);
         init.MovebyPath(modPath);
-        //init.SetSmooth();
+        init.SetSmooth();
     }
     // We want to smooth to the next path by splicing the end of the current path with the start of the next path and smoothing the corner
     else
@@ -251,10 +251,52 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
         splicePath.insert(splicePath.end(), modPath.begin(), modPath.end());
         if (owner->GetSpawnId() == 80043)
         {
-            TC_LOG_DEBUG("smooth", "creating spliced path length: {}", PathGenerator::ComputePathLength(splicePath));
+            const G3D::Vector3& ownerPos = PositionToVector3(owner->GetPosition());
+            const G3D::Vector3& pathStart = _paths[_pathIndex].front();
+            const G3D::Vector3& modPathStart = modPath.front();
+
+            // Vectors in XY
+            float abx = pathStart.x - ownerPos.x;
+            float aby = pathStart.y - ownerPos.y;
+            float bcx = modPathStart.x - pathStart.x;
+            float bcy = modPathStart.y - pathStart.y;
+
+            float abLen = std::sqrt(abx * abx + aby * aby);
+            float bcLen = std::sqrt(bcx * bcx + bcy * bcy);
+
+            float dot = abx * bcx + aby * bcy;
+            float angleRad = std::acos(dot / (abLen * bcLen));
+            float angleDeg = angleRad * (180.0f / M_PI);
+
+            TC_LOG_DEBUG("smooth", "owner->pathStart->modPathStart angle (deg): {}", angleDeg);
+
+            for (size_t i = 1; i + 1 < splicePath.size(); ++i)
+            {
+                const G3D::Vector3& prev = splicePath[i - 1];
+                const G3D::Vector3& curr = splicePath[i];
+                const G3D::Vector3& next = splicePath[i + 1];
+
+                float v1x = curr.x - prev.x;
+                float v1y = curr.y - prev.y;
+                float v2x = next.x - curr.x;
+                float v2y = next.y - curr.y;
+
+                float v1Len = std::sqrt(v1x * v1x + v1y * v1y);
+                float v2Len = std::sqrt(v2x * v2x + v2y * v2y);
+
+                // Guard against zero-length segments
+                if (v1Len == 0.f || v2Len == 0.f)
+                    continue;
+
+                float dot = v1x * v2x + v1y * v2y;
+                float angleRad = std::acos(dot / (v1Len * v2Len));
+                float angleDeg = angleRad * (180.0f / M_PI);
+
+                TC_LOG_DEBUG("smooth", "splicePath vertex {} (x={}, y={}): angle (deg): {}", i, curr.x, curr.y, angleDeg);
+            }
         }
         init.MovebyPath(splicePath);
-        //init.SetSmooth();
+        init.SetSmooth();
     }
 
     init.SetWalk(walk);
