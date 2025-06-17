@@ -210,29 +210,36 @@ Movement::PointsArray PathGenerator::SpliceAndSmoothArc(WorldObject const* owner
     float smoothingRadius = std::min(lenAB, lenBC) * 0.5f;
     smoothingRadius = std::clamp(smoothingRadius, minRadius, maxRadius);
 
-    // Compute the angle bisector
-    G3D::Vector2 bisector = (dirAB + dirBC);
-    if (bisector.length() < 1e-6f) {
-        // AB and BC are directly opposite; fallback
-        TC_LOG_DEBUG("smooth", "Arc fallback: angle bisector degenerate (opposite vectors)");
-        Movement::PointsArray result;
-        result.push_back(A3);
-        result.push_back(C3);
-        return result;
-    }
-    bisector = bisector.direction();
+    // Distance from B to tangent points
+    float t = smoothingRadius * std::tan(angle / 2.0f);
 
-    // Compute the center: offset from B along the bisector, distance = smoothingRadius / sin(angle/2)
-    float sinHalfAngle = std::sin(angle / 2.0f);
-    if (std::fabs(sinHalfAngle) < 1e-6f) {
-        TC_LOG_DEBUG("smooth", "Arc fallback: sin(angle/2) too small, angle={}", angle);
+    // Fallback if t is too large (segments too short for arc)
+    if (t > lenAB || t > lenBC || std::isnan(t) || std::isinf(t)) {
+        TC_LOG_DEBUG("smooth", "Arc fallback: tangent distance too large or invalid, t={}, lenAB={}, lenBC={}", t, lenAB, lenBC);
         Movement::PointsArray result;
         result.push_back(A3);
         result.push_back(C3);
         return result;
     }
-    float offsetLength = smoothingRadius / sinHalfAngle;
-    G3D::Vector2 center = B + bisector * offsetLength;
+
+    // Compute tangent points
+    G3D::Vector2 T1 = B - dirAB * t;
+    G3D::Vector2 T2 = B + dirBC * t;
+
+    // Determine turn direction (left/right)
+    float cross = dirAB.x * dirBC.y - dirAB.y * dirBC.x;
+    int turnSign = (cross > 0) ? 1 : -1;
+
+    // Perpendiculars to AB and BC
+    G3D::Vector2 normalAB(turnSign * -dirAB.y, turnSign * dirAB.x);
+    G3D::Vector2 normalBC(turnSign * -dirBC.y, turnSign * dirBC.x);
+
+    // Centers from each tangent
+    G3D::Vector2 center1 = T1 + normalAB * smoothingRadius;
+    G3D::Vector2 center2 = T2 + normalBC * smoothingRadius;
+
+    // Average the two centers (should be the same, but average for robustness)
+    G3D::Vector2 center = (center1 + center2) * 0.5f;
 
     if (std::isnan(center.x) || std::isnan(center.y) ||
         std::isinf(center.x) || std::isinf(center.y) ||
@@ -245,35 +252,27 @@ Movement::PointsArray PathGenerator::SpliceAndSmoothArc(WorldObject const* owner
         return result;
     }
 
-    // Compute arc endpoints (P0, P2)
-    G3D::Vector2 P0 = B - dirAB * smoothingRadius;
-    G3D::Vector2 P2 = B + dirBC * smoothingRadius;
+    // Angles from center to tangent points
+    float angle1 = std::atan2(T1.y - center.y, T1.x - center.x);
+    float angle2 = std::atan2(T2.y - center.y, T2.x - center.x);
 
-    // Angles from center to arc endpoints
-    float angle0 = std::atan2(P0.y - center.y, P0.x - center.x);
-    float angle2 = std::atan2(P2.y - center.y, P2.x - center.x);
-
-    // Determine sweep direction using cross product (sign)
-    float cross = dirAB.x * dirBC.y - dirAB.y * dirBC.x;
-    float totalAngle = angle2 - angle0;
-    if ((cross < 0 && totalAngle > 0) || (cross > 0 && totalAngle < 0)) {
-        // Ensure the sweep follows the turn direction
-        if (totalAngle > 0)
-            totalAngle -= 2 * M_PI;
-        else
-            totalAngle += 2 * M_PI;
-    }
+    // Ensure correct sweep direction
+    float totalAngle = angle2 - angle1;
+    if (turnSign == 1 && totalAngle < 0)
+        totalAngle += 2 * M_PI;
+    else if (turnSign == -1 && totalAngle > 0)
+        totalAngle -= 2 * M_PI;
 
     // Build the arc path with Z interpolation
     Movement::PointsArray result;
     result.push_back(A3);
     for (uint32 i = 1; i <= numPoints; ++i)
     {
-        float t = float(i) / float(numPoints + 1);
-        float theta = angle0 + t * totalAngle;
+        float tInterp = float(i) / float(numPoints + 1);
+        float theta = angle1 + tInterp * totalAngle;
         float x = center.x + smoothingRadius * std::cos(theta);
         float y = center.y + smoothingRadius * std::sin(theta);
-        float z = A3.z + t * (C3.z - A3.z); // Linear Z interpolation
+        float z = A3.z + tInterp * (C3.z - A3.z); // Linear Z interpolation
         owner->UpdateAllowedPositionZ(x, y, z);
         result.emplace_back(x, y, z);
     }
