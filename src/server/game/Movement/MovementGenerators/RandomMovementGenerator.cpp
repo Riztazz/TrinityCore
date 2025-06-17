@@ -29,15 +29,14 @@
 
 namespace
 {
-    constexpr float MIN_WANDER_DISTANCE = 1.0f;
-    constexpr float DEFAULT_WANDER_DISTANCE = 2.0f;
+    constexpr float MIN_WANDER_DISTANCE = 3.0f; // Keep this at min SMOOTH_CORNER_RADIUS * 2 + 1
     constexpr float SMOOTH_CORNER_RADIUS = 1.0f;
     constexpr int NUM_WANDER_POINTS = 12;
-    constexpr int SMOOTH_CORNER_NUM_POINTS = 5;
+    constexpr int SMOOTH_CORNER_NUM_POINTS = 0;
 }
 
 template<class T>
-RandomMovementGenerator<T>::RandomMovementGenerator(float distance) : _init(false), _maxWanderDistance(distance), _wanderSteps(0), _reference(), _pathIndex(0), _timer(0)
+RandomMovementGenerator<T>::RandomMovementGenerator(float distance) : _init(false), _maxWanderDistance(distance), _wanderSteps(0), _reference(), _pathIndex(0), _cachedNextWanderPoint(), _timer(0)
 {
     this->Mode = MOTION_MODE_DEFAULT;
     this->Priority = MOTION_PRIORITY_NORMAL;
@@ -95,11 +94,11 @@ void RandomMovementGenerator<Creature>::DoInitialize(Creature* owner)
     owner->StopMoving();
     ResetPaths();
 
-    if (_maxWanderDistance <= DEFAULT_WANDER_DISTANCE)
-        _maxWanderDistance = std::max(DEFAULT_WANDER_DISTANCE, owner->GetWanderDistance());
+    if (_maxWanderDistance <= MIN_WANDER_DISTANCE)
+        _maxWanderDistance = std::max(MIN_WANDER_DISTANCE, owner->GetWanderDistance());
 
     // Retail seems to let a creature walk 2 up to 10 splines before triggering a pause
-    _wanderSteps = urand(1, ((_maxWanderDistance <= DEFAULT_WANDER_DISTANCE) ? 2 : 8));
+    _wanderSteps = urand(1, ((_maxWanderDistance <= MIN_WANDER_DISTANCE) ? 2 : 8));
     // Should we reset timer? _timer.Reset(0);
 
     // Only set these on first initialize
@@ -139,70 +138,155 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
     }
 
     // No cached paths so create a new one
-    if (_paths.size() <= NUM_WANDER_POINTS)
+    if (_paths.size() < NUM_WANDER_POINTS)
     {
         // We cache the actual points paths around the circuit, our splines are constructed separately so that we
         // can smooth the vertexes.
         Position src = _paths.empty() ? owner->GetPosition() : Vector3ToPosition(_paths.back().back());
         Position dest;
-        // Last path needs to connect to the first point of the first path of the circuit
-        if (_paths.size() == NUM_WANDER_POINTS)
+        // The last path connects to the first path
+        if (_paths.size() == NUM_WANDER_POINTS - 1)
         {
-            // _paths[1] is the first path of the circuit (_paths[0] is where we started moving to get to the circuit)
-            G3D::Vector3& v = _paths[1].front();
-            dest.Relocate(v.x, v.y, v.z);
+            G3D::Vector3& front = _paths[0].front();
+            dest.Relocate(front.x, front.y, front.z);
+        }
+        // We have pre-calculated this point previously, the last two points are calculated together in order
+        // to connect to the start point smoothly
+        else if (_paths.size() == NUM_WANDER_POINTS - 2)
+        {
+            // Use the cached value from the previous call
+            if (_cachedNextWanderPoint.IsPositionValid())
+            {
+                dest = _cachedNextWanderPoint;
+                _cachedNextWanderPoint = Position();
+            }
+            else
+            {
+                // Fallback: random direction
+                float angle = frand(-0.5 * M_PI, 0.5 * M_PI);
+                owner->MovePositionToFirstCollision(src, dest, MIN_WANDER_DISTANCE, angle);
+            }
+        }
+        // We need very specific point for the second to last point, this is because we want to complete
+        // the circuit with no sharp angles, so we need to find the two next points that get us back
+        // to the start without a sharp turn
+        else if (_paths.size() == NUM_WANDER_POINTS - 3)
+        {
+            Position first = Vector3ToPosition(_paths[0].front());
+
+            float minDist = MIN_WANDER_DISTANCE;
+            float maxTurn = 0.75f * M_PI;
+            float step = M_PI / 16.0f; // 32 candidates per point
+            float bestScore = std::numeric_limits<float>::max();
+
+            Position bestA, bestB;
+            float bestAngleA = 0.f, bestAngleB = 0.f;
+
+            float currentOrientation = owner->GetOrientation();
+
+            // Try all candidate angles for A (third-to-last point)
+            for (float angleA = -maxTurn; angleA <= maxTurn; angleA += step)
+            {
+                float orientationA = currentOrientation + angleA;
+                float ax = src.GetPositionX() + minDist * std::cos(orientationA);
+                float ay = src.GetPositionY() + minDist * std::sin(orientationA);
+                float az = src.GetPositionZ();
+                Position A(ax, ay, az, 0.f);
+
+                // Try all candidate angles for B (second-to-last point)
+                for (float angleB = -maxTurn; angleB <= maxTurn; angleB += step)
+                {
+                    float orientationB = orientationA + angleB;
+                    float bx = ax + minDist * std::cos(orientationB);
+                    float by = ay + minDist * std::sin(orientationB);
+                    float bz = az;
+                    Position B(bx, by, bz, 0.f);
+
+                    // Check distance from B to first
+                    float distBtoFirst = B.GetExactDist(first);
+                    if (distBtoFirst < minDist)
+                        continue;
+
+                    // Compute turn at A (between src->A and A->B)
+                    float dirAtoB = std::atan2(by - ay, bx - ax);
+                    float turnAtA = dirAtoB - orientationA;
+                    while (turnAtA > M_PI) turnAtA -= 2 * M_PI;
+                    while (turnAtA < -M_PI) turnAtA += 2 * M_PI;
+
+                    if (std::fabs(turnAtA) > maxTurn)
+                        continue;
+
+                    // Compute turn at B (between A->B and B->first)
+                    float dirBtoFirst = std::atan2(first.GetPositionY() - by, first.GetPositionX() - bx);
+                    float turnAtB = dirBtoFirst - dirAtoB;
+                    while (turnAtB > M_PI) turnAtB -= 2 * M_PI;
+                    while (turnAtB < -M_PI) turnAtB += 2 * M_PI;
+
+                    if (std::fabs(turnAtB) > maxTurn)
+                        continue;
+
+                    // Score: maximum turn at A or B (can use sum if you prefer)
+                    float score = std::max(std::fabs(turnAtA), std::fabs(turnAtB));
+                    if (score < bestScore)
+                    {
+                        bestScore = score;
+                        bestA = A;
+                        bestB = B;
+                        bestAngleA = angleA;
+                        bestAngleB = angleB;
+                    }
+                }
+            }
+
+            // Fallback: if no candidate found, use random directions
+            if (bestScore == std::numeric_limits<float>::max())
+            {
+                bestAngleA = frand(-0.5 * M_PI, 0.5 * M_PI);
+                owner->MovePositionToFirstCollision(src, dest, minDist, bestAngleA);
+                // You will need to repeat similar logic for the next point in the next call
+            }
+            else
+            {
+                // Now call MovePositionToFirstCollision ONCE for each, to get the actual valid positions
+                owner->MovePositionToFirstCollision(src, dest, minDist, bestAngleA);
+                Position realB;
+                owner->MovePositionToFirstCollision(dest, realB, minDist, bestAngleB);
+                _cachedNextWanderPoint = realB;
+            }
         }
         // Otherwise we need to construct a path to a wander point
         else
         {
-            int attempts = 5;
-            while (true)
+            float distance = frand(MIN_WANDER_DISTANCE, _maxWanderDistance);
+            // Determine whether we should steer back towards the spawn point
+            float distanceFromSpawn = src.GetExactDist(_reference);
+            float angle;
+            // If we are close to the boundary, steer back towards the spawn point
+            if (distanceFromSpawn > 0.75f * _maxWanderDistance)
             {
-                if (!attempts)
-                {
-                    _timer.Reset(200);
-                    ResetPaths();
-                    return;
-                }
-                --attempts;
+                float currentOrientation = owner->GetOrientation();
+                float dx = _reference.x - src.x;
+                float dy = _reference.y - src.y;
+                float angleToReference = std::atan2(dy, dx);
 
-                // Using our reference (spawn) point and get a random point in a circle around it
-                float distance = frand(MIN_WANDER_DISTANCE, _maxWanderDistance);
-                float angle = frand(0.f, M_PI * 2.0f);
-                float x = _reference.GetPositionX() + distance * std::cos(angle);
-                float y = _reference.GetPositionY() + distance * std::sin(angle);
-                dest.Relocate(x, y, _reference.GetPositionZ());
-                // Account for collision
-                owner->MovePositionToFirstCollision(src, dest, 0.0f, 0.0f);
+                float angleDiff = angleToReference - currentOrientation;
+                // Normalize angleDiff to [-M_PI, M_PI]
+                while (angleDiff > M_PI) angleDiff -= 2 * M_PI;
+                while (angleDiff < -M_PI) angleDiff += 2 * M_PI;
 
-                if (owner->GetSpawnId() == 80043)
-                    TC_LOG_DEBUG("smooth", "Create Path Index: {} Calc Path Distance from Src: {}", _pathIndex, src.GetExactDist(dest));
-                if (src.GetExactDist(dest) < SMOOTH_CORNER_RADIUS * 2.0f + 1.0f)
-                    continue;
+                // Clamp angleDiff to [-0.75*M_PI, 0.75*M_PI]
+                float maxTurn = 0.75f * M_PI;
+                if (angleDiff > maxTurn) angleDiff = maxTurn;
+                if (angleDiff < -maxTurn) angleDiff = -maxTurn;
 
-                float srcX = src.GetPositionX();
-                float srcY = src.GetPositionY();
-                float destX = dest.GetPositionX();
-                float destY = dest.GetPositionY();
-
-                float dx = destX - srcX;
-                float dy = destY - srcY;
-
-                // Angle from src to dest in world coordinates
-                float angleToDest = std::atan2(dy, dx);
-
-                // Owner's current orientation
-                float orientation = owner->GetOrientation();
-
-                // Angle difference (dest direction relative to facing)
-                float angleDiff = angleToDest - orientation;
-                while (angleDiff > M_PI) angleDiff -= 2.0f * M_PI;
-                while (angleDiff < -M_PI) angleDiff += 2.0f * M_PI;
-                if (std::abs(angleDiff) > 0.75 * M_PI)
-                    continue;
-
-                break;
+                angle = angleDiff;
             }
+            // Else walk in any random direction without sharp turns
+            else
+                angle = frand(-0.5 * M_PI, 0.5 * M_PI);
+
+            // Move that direction and account for collisions
+            owner->MovePositionToFirstCollision(src, dest, distance, angle);
         }
 
         // Check if the destination is in LOS
@@ -263,7 +347,7 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
     Movement::MoveSplineInit init(owner);
 
     // For debugging purposes move with no smoothing
-    if (SMOOTH_CORNER_NUM_POINTS <= 1 || _paths[_pathIndex].size() < 2)
+    if (SMOOTH_CORNER_NUM_POINTS <= 1)
     {
         init.MovebyPath(_paths[_pathIndex]);
     }
@@ -392,7 +476,7 @@ bool RandomMovementGenerator<Creature>::DoUpdate(Creature* owner, uint32 diff)
         if (!_wanderSteps)
         {
             // Retail seems to let a creature walk 2 up to 10 splines before triggering a pause
-            _wanderSteps = urand(1, ((_maxWanderDistance <= DEFAULT_WANDER_DISTANCE) ? 2 : 8));
+            _wanderSteps = urand(1, ((_maxWanderDistance <= MIN_WANDER_DISTANCE) ? 2 : 8));
             _timer.Reset(urand(6, 12) * IN_MILLISECONDS); // Retails seems to use rounded numbers so we do as well
         }
         if (_timer.Passed())
