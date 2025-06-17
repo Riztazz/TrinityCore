@@ -157,12 +157,16 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
             // Use the cached value from the previous call
             if (_cachedNextWanderPoint.IsPositionValid())
             {
+                if (owner->GetSpawnId() == 80043)
+                    TC_LOG_DEBUG("smooth", "Last point used point from cache");
                 dest = _cachedNextWanderPoint;
                 _cachedNextWanderPoint = Position();
             }
+            // Fallback: random direction
             else
             {
-                // Fallback: random direction
+                if (owner->GetSpawnId() == 80043)
+                    TC_LOG_DEBUG("smooth", "Last point fallback random direction, distance: {}, angle: {}", MIN_WANDER_DISTANCE, angle);
                 float angle = frand(-0.5 * M_PI, 0.5 * M_PI);
                 owner->MovePositionToFirstCollision(src, dest, MIN_WANDER_DISTANCE, angle);
             }
@@ -238,20 +242,23 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
                 }
             }
 
-            // Fallback: if no candidate found, use random directions
-            if (bestScore == std::numeric_limits<float>::max())
+            // Now call MovePositionToFirstCollision ONCE for each, to get the actual valid positions
+            if (bestScore < std::numeric_limits<float>::max())
             {
-                bestAngleA = frand(-0.5 * M_PI, 0.5 * M_PI);
-                owner->MovePositionToFirstCollision(src, dest, minDist, bestAngleA);
-                // You will need to repeat similar logic for the next point in the next call
-            }
-            else
-            {
-                // Now call MovePositionToFirstCollision ONCE for each, to get the actual valid positions
+                if (owner->GetSpawnId() == 80043)
+                    TC_LOG_DEBUG("smooth", "Second to last point calculated return, distance: {}, bestAngleA {}, bestAngleB", minDist, bestAngleA, bestAngleB);
                 owner->MovePositionToFirstCollision(src, dest, minDist, bestAngleA);
                 Position realB;
                 owner->MovePositionToFirstCollision(dest, realB, minDist, bestAngleB);
                 _cachedNextWanderPoint = realB;
+            }
+            // Fallback: if no candidate found, use random directions
+            else
+            {
+                bestAngleA = frand(-0.5 * M_PI, 0.5 * M_PI);
+                if (owner->GetSpawnId() == 80043)
+                    TC_LOG_DEBUG("smooth", "Second to last point fallback, distance: {}, bestAngle:: {}", minDist, bestAngleA);
+                owner->MovePositionToFirstCollision(src, dest, minDist, bestAngleA);
             }
         }
         // Otherwise we need to construct a path to a wander point
@@ -261,6 +268,8 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
             // Determine whether we should steer back towards the spawn point
             float distanceFromSpawn = src.GetExactDist(_reference);
             float angle;
+            if (owner->GetSpawnId() == 80043)
+                TC_LOG_DEBUG("smooth", "Calculating Path: distance: {}, distanceFromSpawn: {}", distance, distanceFromSpawn);
             // If we are close to the boundary, steer back towards the spawn point
             if (distanceFromSpawn > 0.75f * _maxWanderDistance)
             {
@@ -280,11 +289,15 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
                 if (angleDiff < -maxTurn) angleDiff = -maxTurn;
 
                 angle = angleDiff;
+                if (owner->GetSpawnId() == 80043)
+                    TC_LOG_DEBUG("smooth", "Required to turn back: orientation: {}, angleToReference: {}, angleDiff: {}, angle: {}", currentOrientation, angleToReference, angleDiff, angle);
             }
             // Else walk in any random direction without sharp turns
             else
                 angle = frand(-0.5 * M_PI, 0.5 * M_PI);
 
+            if (owner->GetSpawnId() == 80043)
+                TC_LOG_DEBUG("smooth", "Moving Position to first collision, distance: {}, angle: {}", distance, angle);
             // Move that direction and account for collisions
             owner->MovePositionToFirstCollision(src, dest, distance, angle);
         }
