@@ -17,6 +17,7 @@
 
 #include "RandomMovementGenerator.h"
 #include "Creature.h"
+#include "G3DPosition.hpp"
 #include "Map.h"
 #include "MovementDefines.h"
 #include "MoveSpline.h"
@@ -152,7 +153,8 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
             float distanceFromSpawn = owner->GetPosition().GetExactDist(_reference);
             float angle = 0.0f;
 
-            // If we are close to the boundary, steer back towards the spawn point with a reasonably sharp angle
+            // If we are close to the boundary, steer back towards the spawn point
+            // If the turn angle is too sharp, clamp it to 0.75f * M_PI
             if (distanceFromSpawn > 0.75f * _maxWanderDistance)
             {
                 float currentOrientation = owner->GetOrientation();
