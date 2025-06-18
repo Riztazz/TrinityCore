@@ -361,8 +361,8 @@ void WaypointMovementGenerator<Creature>::StartMove(Creature* owner)
         _pathGenerator = std::make_unique<PathGenerator>(owner);
 
     _pathGenerator->CalculatePath(PositionToVector3(owner->GetPosition()), PositionToVector3({ x, y, z }));
-    _path = _pathGenerator->GetPath();
-    init.MoveByPath(_path);
+    _lastPath = _pathGenerator->GetPath();
+    init.MoveByPath(_lastPath);
 
     if (waypoint.orientation.has_value() && waypoint.delay > 0)
         init.SetFacing(*waypoint.orientation);

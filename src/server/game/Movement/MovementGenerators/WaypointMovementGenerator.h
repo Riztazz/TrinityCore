@@ -20,6 +20,7 @@
 
 #include "MovementGenerator.h"
 #include "PathMovementBase.h"
+#include "Position.h"
 #include "Timer.h"
 
 class Creature;
