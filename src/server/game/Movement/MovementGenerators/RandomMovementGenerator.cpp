@@ -17,8 +17,6 @@
 
 #include "RandomMovementGenerator.h"
 #include "Creature.h"
-#include "G3DPosition.hpp"
-#include "Log.h"
 #include "Map.h"
 #include "MovementDefines.h"
 #include "MoveSpline.h"
@@ -180,7 +178,7 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
         }
 
         // Check if the destination is in LOS
-        if (!owner->IsWithinLOS(src, dest.GetPositionX(), dest.GetPositionY(), dest.GetPositionZ()))
+        if (!owner->IsWithinLOS(dest.GetPositionX(), dest.GetPositionY(), dest.GetPositionZ()))
         {
             _timer.Reset(200);
             ResetPaths();
