@@ -18,6 +18,7 @@
 #include "RandomMovementGenerator.h"
 #include "Creature.h"
 #include "G3DPosition.hpp"
+#include "Log.h"
 #include "Map.h"
 #include "MovementDefines.h"
 #include "MoveSpline.h"
@@ -145,6 +146,7 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
         // takes away from our performance optimizations.
         if (_paths.size() == NUM_WANDER_PATHS - 1)
         {
+            TC_LOG_DEBUG("smooth", "Cache Complete");
             G3D::Vector3& first = _paths.front().front();
             dest.Relocate(first.x, first.y, first.z);
         }
@@ -263,6 +265,7 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
 template<class T>
 void RandomMovementGenerator<T>::ResetPaths()
 {
+    TC_LOG_DEBUG("smooth", "Reset Paths");
     _pathIndex = 0;
     _paths.clear();
     _pathGenerator = nullptr;
