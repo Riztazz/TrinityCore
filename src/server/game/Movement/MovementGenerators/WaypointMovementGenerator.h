@@ -21,6 +21,7 @@
 #include "MovementGenerator.h"
 #include "PathMovementBase.h"
 #include "Timer.h"
+#include <memory>
 
 class Creature;
 class Unit;
@@ -53,27 +54,20 @@ class WaypointMovementGenerator<Creature> : public MovementGeneratorMedium<Creat
         std::string GetDebugInfo() const override;
 
     private:
-        void MovementInform(Creature*);
         void OnArrived(Creature*);
-        void StartMove(Creature*, bool relaunch = false);
+        void StartMove(Creature*);
         bool HasNextNode();
         bool ComputeNextNode();
-        bool UpdateTimer(uint32 diff)
-        {
-            _nextMoveTime.Update(diff);
-            if (_nextMoveTime.Passed())
-            {
-                _nextMoveTime.Reset(0);
-                return true;
-            }
-            return false;
-        }
 
-        TimeTracker _nextMoveTime;
         uint32 _pathId;
         bool _repeating;
         bool _loadedFromDB;
-        uint32 _smoothSplineId;
+        std::unique_ptr<PathGenerator> _pathGenerator;
+        Movement::PointsArray _lastPath;
+        TimeTracker _pauseTimer;
+        TimeTracker _waypointTimer;
+        bool _interruptedBeforeArrive;
+
 };
 
 #endif

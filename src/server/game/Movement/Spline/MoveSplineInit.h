@@ -95,7 +95,6 @@ namespace Movement
          * If generatePath == true, it takes global coordinates.
          * Else, it takes transport offsets.
          */
-        void MoveTo(Vector3 const& start, Vector3 const& destination, bool generatePath = true, bool forceDestination = false);
         void MoveTo(Vector3 const& destination, bool generatePath = true, bool forceDestination = false);
         void MoveTo(float x, float y, float z, bool generatePath = true, bool forceDestination = false);
 
