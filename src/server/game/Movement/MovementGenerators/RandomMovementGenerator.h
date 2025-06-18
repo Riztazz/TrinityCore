@@ -56,6 +56,7 @@ class RandomMovementGenerator : public MovementGeneratorMedium<T, RandomMovement
         std::vector<Movement::PointsArray> _paths;
         std::unique_ptr<PathGenerator> _pathGenerator;
         TimeTracker _timer;
+        uint8 _failedAttempts;
 };
 
 #endif

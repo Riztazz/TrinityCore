@@ -33,7 +33,7 @@ namespace
 }
 
 template<class T>
-RandomMovementGenerator<T>::RandomMovementGenerator(float distance) : _init(false), _maxWanderDistance(distance), _wanderSteps(0), _reference(), _pathIndex(0), _timer(0)
+RandomMovementGenerator<T>::RandomMovementGenerator(float distance) : _init(false), _maxWanderDistance(distance), _wanderSteps(0), _reference(), _pathIndex(0), _timer(0), _failedAttempts(0)
 {
     this->Mode = MOTION_MODE_DEFAULT;
     this->Priority = MOTION_PRIORITY_NORMAL;
@@ -152,10 +152,21 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
         {
             float distanceFromSpawn = owner->GetPosition().GetExactDist(_reference);
             float angle = 0.0f;
-
-            // If we are close to the boundary, steer back towards the spawn point
+            
+            // The first path always needs to be random incase we need to recover from a failed path
+            // (the angle constraints might get us stuck in a corner that we need to actually reverse to get out of)
+            if (_paths.empty())
+            {
+                angle = frand(0, 2 * M_PI);
+            }
+            // If we are not near the wander boundary then pick a random 'forwardish' direction
+            else if (distanceFromSpawn < 0.75f * _maxWanderDistance)
+            {
+                angle = frand(-0.5f * M_PI, 0.5f * M_PI);
+            }
+            // Else steer back towards the spawn point
             // If the turn angle is too sharp, clamp it to 0.75f * M_PI
-            if (distanceFromSpawn > 0.75f * _maxWanderDistance)
+            else
             {
                 float currentOrientation = owner->GetOrientation();
                 float dx = _reference.GetPositionX() - owner->GetPositionX();
@@ -169,9 +180,6 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
                 if (angleDiff < -maxTurn) angleDiff = -maxTurn;
                 angle = angleDiff;
             }
-            // Else pick a random 'forwardish' direction
-            else
-                angle = frand(-0.5f * M_PI, 0.5f * M_PI);
 
             // Pick a wander distance
             float distance = frand(MIN_WANDER_DISTANCE, _maxWanderDistance);
@@ -182,8 +190,14 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
         // Check if the destination is in LOS
         if (!owner->IsWithinLOS(dest.GetPositionX(), dest.GetPositionY(), dest.GetPositionZ()))
         {
+            // We cannot path to the location, but rather than clearing the reseting the cache immediately try a few more times
+            // just in case we pick a better random angle or the los changes
+            _failedAttempts++;
+            // We have gotten ourselves into a bad spot with the current cached path
+            if (_failedAttempts >= 5)
+                ResetPaths();
+
             _timer.Reset(200);
-            ResetPaths();
             return;
         }
 
@@ -200,11 +214,18 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
                     || (_pathGenerator->GetPathType() & PATHFIND_SHORTCUT)
                     /*|| (_pathGenerator->GetPathType() & PATHFIND_FARFROMPOLY)*/)
         {
+            // We cannot path to the location, but rather than clearing the reseting the cache immediately try a few more times
+            // just in case we pick a better random angle or the los changes
+            _failedAttempts++;
+            // We have gotten ourselves into a bad spot with the current cached path
+            if (_failedAttempts >= 5)
+                ResetPaths();
+
             _timer.Reset(100);
-            ResetPaths();
             return;
         }
 
+        _failedAttempts = 0;
         _paths.push_back(_pathGenerator->GetPath());
     }
 
@@ -245,6 +266,7 @@ void RandomMovementGenerator<T>::ResetPaths()
     _pathIndex = 0;
     _paths.clear();
     _pathGenerator = nullptr;
+    _failedAttempts = 0;
 }
 
 template<class T>
