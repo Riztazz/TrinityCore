@@ -362,6 +362,8 @@ void WaypointMovementGenerator<Creature>::StartMove(Creature* owner)
 
     _pathGenerator->CalculatePath(PositionToVector3(owner->GetPosition()), PositionToVector3({ x, y, z }));
     _lastPath = _pathGenerator->GetPath();
+
+    Movement::MoveSplineInit init(owner);
     init.MoveByPath(_lastPath);
 
     if (waypoint.orientation.has_value() && waypoint.delay > 0)
