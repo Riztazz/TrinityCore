@@ -33,11 +33,6 @@
 #include "TSCreature.h"
 // @tswow-end
 
-namespace
-{
-    constexpr float ARRIVAL_DISTANCE_THRESHOLD = 5.0f;
-}
-
 WaypointMovementGenerator<Creature>::WaypointMovementGenerator(uint32 pathId, bool repeating) : _pathId(pathId), _repeating(repeating), _loadedFromDB(true), _pauseTimer(0), _waypointTimer(0)
 {
     Mode = MOTION_MODE_DEFAULT;
@@ -306,7 +301,7 @@ void WaypointMovementGenerator<Creature>::OnArrived(Creature* owner)
 void WaypointMovementGenerator<Creature>::StartMove(Creature* owner)
 {
     // sanity checks
-    if (!owner || !owner->IsAlive() || HasFlag(MOVEMENTGENERATOR_FLAG_FINALIZED) || !_path || _path->nodes.empty())
+    if (!owner || !owner->IsAlive() || HasFlag(MOVEMENTGENERATOR_FLAG_FINALIZED))
         return;
 
     if (owner->HasUnitState(UNIT_STATE_NOT_MOVE) || owner->IsMovementPreventedByCasting() || (owner->IsFormationLeader() && !owner->IsFormationLeaderMoveAllowed())) // if cannot move OR cannot move because of formation

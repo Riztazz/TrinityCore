@@ -21,7 +21,6 @@
 #include "MovementGenerator.h"
 #include "PathMovementBase.h"
 #include "Timer.h"
-#include <memory>
 
 class Creature;
 class Unit;
