@@ -311,8 +311,8 @@ void WaypointMovementGenerator<Creature>::StartMove(Creature* owner)
         return;
     }
 
-    // Initial spline
-    if (_path.empty())
+    // Initial path
+    if (_lastPath.empty())
     {
         // @tswow-begin
         FIRE_ID(owner->GetCreatureTemplate()->events.id,Creature,OnWaypointStarted,TSCreature(owner),_path->nodes[_currentNode].id, _path->id);
