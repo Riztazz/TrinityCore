@@ -29,14 +29,12 @@
 
 namespace
 {
-    constexpr float MIN_WANDER_DISTANCE = 3.0f; // Keep this at min SMOOTH_CORNER_RADIUS * 2 + 1
-    constexpr float SMOOTH_CORNER_RADIUS = 1.0f;
+    constexpr float MIN_WANDER_DISTANCE = 1.0f;
     constexpr int NUM_WANDER_PATHS = 12;
-    constexpr int SMOOTH_CORNER_NUM_POINTS = 3;
 }
 
 template<class T>
-RandomMovementGenerator<T>::RandomMovementGenerator(float distance) : _init(false), _maxWanderDistance(distance), _wanderSteps(0), _reference(), _pathIndex(0), _cachedNextWanderPoint(), _timer(0)
+RandomMovementGenerator<T>::RandomMovementGenerator(float distance) : _init(false), _maxWanderDistance(distance), _wanderSteps(0), _reference(), _pathIndex(0), _timer(0)
 {
     this->Mode = MOTION_MODE_DEFAULT;
     this->Priority = MOTION_PRIORITY_NORMAL;
@@ -101,7 +99,7 @@ void RandomMovementGenerator<Creature>::DoInitialize(Creature* owner)
     _wanderSteps = urand(1, ((_maxWanderDistance <= MIN_WANDER_DISTANCE) ? 2 : 8));
     // Should we reset timer? _timer.Reset(0);
 
-    // Only set these on first initialize
+    // Only set this on first initialize
     if (!_init)
     {
         _init = true;
@@ -137,245 +135,77 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
         return;
     }
 
-    // Create path for caching
+    // Create a path for caching
     if (_paths.size() < NUM_WANDER_PATHS)
     {
         Movement::PointsArray path;
-        bool smooth = true;
-        // A path is constructed from two segments so that we can smooth the vertexes
-        for (size_t i = 0; i < 2; ++i)
+        Position dest = owner->GetPosition();
+
+        // The last path connects to the front of the first path
+        // This is the only potential sharp angle, but the math required to make this not sharp
+        // takes away from our performance optimizations.
+        if (_paths.size() == NUM_WANDER_PATHS - 1)
         {
-            // Get the starting point for the segment
-            Position src = i > 0 ? Vector3ToPosition(path.back()) : owner->GetPosition();
-            Position dest = src;
+            G3D::Vector3& first = _paths.front().front();
+            dest.Relocate(first.x, first.y, first.z);
+        }
+        else
+        {
+            float distanceFromSpawn = owner->GetPosition().GetExactDist(_reference);
+            float angle = 0.0f;
 
-            if (_paths.size() == NUM_WANDER_PATHS - 1)
+            // If we are close to the boundary, steer back towards the spawn point with a reasonably sharp angle
+            if (distanceFromSpawn > 0.75f * _maxWanderDistance)
             {
-                // The last point is just the first point
-                if (i == 1)
-                {
-                    G3D::Vector3& first = _paths.front().front();
-                    dest.Relocate(first.x, first.y, first.z);
-                }
-                else
-                {
-                    // The second to last point is pre-calculated
-                    if (_cachedNextWanderPoint.IsPositionValid())
-                    {
-                        dest = _cachedNextWanderPoint;
-                        _cachedNextWanderPoint = Position();
-                    }
-                    // Fallback: random direction
-                    else
-                    {
-                        float angle = frand(-0.5 * M_PI, 0.5 * M_PI);
-                        owner->MovePositionToFirstCollision(src, dest, MIN_WANDER_DISTANCE, angle);
-                    }
-                }
+                float currentOrientation = owner->GetOrientation();
+                float dx = _reference.GetPositionX() - owner->GetPositionX();
+                float dy = _reference.GetPositionY() - owner->GetPositionY();
+                float angleToReference = std::atan2(dy, dx);
+                float angleDiff = angleToReference - currentOrientation;
+                while (angleDiff > M_PI) angleDiff -= 2 * M_PI;
+                while (angleDiff < -M_PI) angleDiff += 2 * M_PI;
+                float maxTurn = 0.75f * M_PI;
+                if (angleDiff > maxTurn) angleDiff = maxTurn;
+                if (angleDiff < -maxTurn) angleDiff = -maxTurn;
+                angle = angleDiff;
             }
-            // Second to last path
-            else if (_paths.size() == NUM_WANDER_PATHS - 2)
-            {
-                // We always just walk straight for our first segment
-                if (i == 0)
-                {
-                    float distance = frand(MIN_WANDER_DISTANCE, _maxWanderDistance);
-                    float halfDistance = distance / 2.0f;
-                    owner->MovePositionToFirstCollision(src, dest, halfDistance, 0.f);
-                }
-                // We need very specific points for the third and second to last point, this is because we want to complete
-                // the circuit with no sharp angles, so we need to find the two next points that get us back
-                // to the start without a sharp turn
-                else
-                {
-                    Position first = Vector3ToPosition(_paths.front().front());
-
-                    float minDist = MIN_WANDER_DISTANCE;
-                    float maxTurn = 0.75f * M_PI;
-                    float step = M_PI / 16.0f; // 32 candidates per point
-                    float bestScore = std::numeric_limits<float>::max();
-    
-                    Position bestA, bestB;
-                    float bestAngleA = 0.f, bestAngleB = 0.f;
-    
-                    float currentOrientation = owner->GetOrientation();
-    
-                    // Try all candidate angles for A (third-to-last point)
-                    for (float angleA = -maxTurn; angleA <= maxTurn; angleA += step)
-                    {
-                        float orientationA = currentOrientation + angleA;
-                        float ax = src.GetPositionX() + minDist * std::cos(orientationA);
-                        float ay = src.GetPositionY() + minDist * std::sin(orientationA);
-                        float az = src.GetPositionZ();
-                        Position A(ax, ay, az, 0.f);
-    
-                        // Try all candidate angles for B (second-to-last point)
-                        for (float angleB = -maxTurn; angleB <= maxTurn; angleB += step)
-                        {
-                            float orientationB = orientationA + angleB;
-                            float bx = ax + minDist * std::cos(orientationB);
-                            float by = ay + minDist * std::sin(orientationB);
-                            float bz = az;
-                            Position B(bx, by, bz, 0.f);
-    
-                            // Check distance from B to first
-                            float distBtoFirst = B.GetExactDist(first);
-                            if (distBtoFirst < minDist)
-                                continue;
-    
-                            // Compute turn at A (between src->A and A->B)
-                            float dirAtoB = std::atan2(by - ay, bx - ax);
-                            float turnAtA = dirAtoB - orientationA;
-                            while (turnAtA > M_PI) turnAtA -= 2 * M_PI;
-                            while (turnAtA < -M_PI) turnAtA += 2 * M_PI;
-    
-                            if (std::fabs(turnAtA) > maxTurn)
-                                continue;
-    
-                            // Compute turn at B (between A->B and B->first)
-                            float dirBtoFirst = std::atan2(first.GetPositionY() - by, first.GetPositionX() - bx);
-                            float turnAtB = dirBtoFirst - dirAtoB;
-                            while (turnAtB > M_PI) turnAtB -= 2 * M_PI;
-                            while (turnAtB < -M_PI) turnAtB += 2 * M_PI;
-    
-                            if (std::fabs(turnAtB) > maxTurn)
-                                continue;
-    
-                            // Score: maximum turn at A or B (can use sum if you prefer)
-                            float score = std::max(std::fabs(turnAtA), std::fabs(turnAtB));
-                            if (score < bestScore)
-                            {
-                                bestScore = score;
-                                bestA = A;
-                                bestB = B;
-                                bestAngleA = angleA;
-                                bestAngleB = angleB;
-                            }
-                        }
-                    }
-    
-                    if (bestScore < std::numeric_limits<float>::max())
-                    {
-                        owner->MovePositionToFirstCollision(src, dest, minDist, bestAngleA);
-                        Position realB = dest;
-                        owner->MovePositionToFirstCollision(dest, realB, minDist, bestAngleB);
-                        _cachedNextWanderPoint = realB;
-                    }
-                    // Fallback: random direction
-                    else
-                    {
-                        bestAngleA = frand(-0.5 * M_PI, 0.5 * M_PI);
-                        owner->MovePositionToFirstCollision(src, dest, minDist, bestAngleA);
-                    }
-                }
-            }
-            // Normal Random Path
+            // Else pick a random 'forwardish' direction
             else
-            {
-                float distance = frand(MIN_WANDER_DISTANCE, _maxWanderDistance);
-                float halfDistance = distance / 2.0f;
-                float angle = 0.0f;
-                // The first segment of our path is always straight, so leave angle as 0.0f
-                // The second segment we need to determine where to go next
-                if (i == 1)
-                {
-                    // Determine whether we should steer back towards the spawn point
-                    float distanceFromSpawn = src.GetExactDist(_reference);
-                    // If we are close to the boundary, steer back towards the spawn point
-                    if (distanceFromSpawn > 0.75f * _maxWanderDistance)
-                    {
-                        float currentOrientation = owner->GetOrientation();
-                        float dx = _reference.GetPositionX() - src.GetPositionX();
-                        float dy = _reference.GetPositionY() - src.GetPositionY();
-                        float angleToReference = std::atan2(dy, dx);
+                angle = frand(-0.5f * M_PI, 0.5f * M_PI);
 
-                        float angleDiff = angleToReference - currentOrientation;
-                        // Normalize angleDiff to [-M_PI, M_PI]
-                        while (angleDiff > M_PI) angleDiff -= 2 * M_PI;
-                        while (angleDiff < -M_PI) angleDiff += 2 * M_PI;
-
-                        // Clamp angleDiff to [-0.75*M_PI, 0.75*M_PI]
-                        float maxTurn = 0.75f * M_PI;
-                        if (angleDiff > maxTurn) angleDiff = maxTurn;
-                        if (angleDiff < -maxTurn) angleDiff = -maxTurn;
-
-                        angle = angleDiff;
-                    }
-                    // Else pick a random 'forwardish' direction
-                    else
-                        angle = frand(-0.5f * M_PI, 0.5f * M_PI);
-                }
-                // Move accounting for collisions
-                owner->MovePositionToFirstCollision(src, dest, halfDistance, angle);
-            }
-
-            // Check if the destination is in LOS
-            if (!owner->IsWithinLOS(src, dest.GetPositionX(), dest.GetPositionY(), dest.GetPositionZ()))
-            {
-                // Retry later on
-                _timer.Reset(200);
-                ResetPaths();
-                return;
-            }
-
-            // Lazy load path generator
-            if (!_pathGenerator)
-            {
-                _pathGenerator = std::make_unique<PathGenerator>(owner);
-                _pathGenerator->SetPathLengthLimit(50.0f);
-            }
-
-            bool result = _pathGenerator->CalculatePath(PositionToVector3(src), PositionToVector3(dest));
-            // PATHFIND_FARFROMPOLY shouldn't be checked as creatures in water are most likely far from poly
-            if (!result || (_pathGenerator->GetPathType() & PATHFIND_NOPATH)
-                        || (_pathGenerator->GetPathType() & PATHFIND_SHORTCUT)
-                        /*|| (_pathGenerator->GetPathType() & PATHFIND_FARFROMPOLY)*/)
-            {
-                _timer.Reset(100);
-                ResetPaths();
-                return;
-            }
-
-            Movement::PointsArray tempPath = _pathGenerator->GetPath();
-            if (tempPath.size() < 2)
-            {
-                _timer.Reset(100);
-                ResetPaths();
-                return;
-            }
-
-            if (i == 0)
-            {
-                path = tempPath;
-            }
-            else
-            {
-                // We cannot set smoothing if any part of the path is in water
-                if (owner->GetMap()->IsInWater(owner->GetPhaseMask(), path.front().x, path.front().y, path.front().z) ||
-                    owner->GetMap()->IsInWater(owner->GetPhaseMask(), path.back().x, path.back().y, path.back().z) ||
-                    owner->GetMap()->IsInWater(owner->GetPhaseMask(), tempPath.back().x, tempPath.back().y, tempPath.back().z))
-                    smooth = false;
-                // Do not smooth the corner if we are not smoothing, it creates erratic movement
-                if (SMOOTH_CORNER_NUM_POINTS <= 1 || !smooth)
-                    path.insert(path.end(), tempPath.begin(), tempPath.end());
-                else
-                {
-                    // Truncate the back of the first path
-                    Movement::PointsArray A = PathGenerator::TruncatePath(owner, path, SMOOTH_CORNER_RADIUS);
-                    // Truncate the front of the second path
-                    Movement::PointsArray C = PathGenerator::TruncatePath(owner, tempPath, SMOOTH_CORNER_RADIUS, true);
-                    // Calculate an arc between the last point of A and the first point of C
-                    Movement::PointsArray B = PathGenerator::SpliceAndSmoothArc(owner, A.back(), tempPath.front(), C.front(), SMOOTH_CORNER_NUM_POINTS);
-                    // Splice the three paths together
-                    path = Movement::PointsArray(A.begin(), A.end());
-                    path.insert(path.end(), B.begin(), B.end());
-                    path.insert(path.end(), C.begin(), C.end());
-                }
-            }
+            // Pick a wander distance
+            float distance = frand(MIN_WANDER_DISTANCE, _maxWanderDistance);
+            //Move dest accounting for collisions
+            owner->MovePositionToFirstCollision(dest, distance, angle);
         }
 
-        _paths.push_back(path);
-        _smoothPaths.push_back(smooth);
+        // Check if the destination is in LOS
+        if (!owner->IsWithinLOS(src, dest.GetPositionX(), dest.GetPositionY(), dest.GetPositionZ()))
+        {
+            _timer.Reset(200);
+            ResetPaths();
+            return;
+        }
+
+        // Lazy load path generator
+        if (!_pathGenerator)
+        {
+            _pathGenerator = std::make_unique<PathGenerator>(owner);
+            _pathGenerator->SetPathLengthLimit(50.0f); // Bumped this up since epoch uses some long wander settings
+        }
+
+        bool result = _pathGenerator->CalculatePath(PositionToVector3(owner->GetPosition()), PositionToVector3(dest));
+        // PATHFIND_FARFROMPOLY shouldn't be checked as creatures in water are most likely far from poly
+        if (!result || (_pathGenerator->GetPathType() & PATHFIND_NOPATH)
+                    || (_pathGenerator->GetPathType() & PATHFIND_SHORTCUT)
+                    /*|| (_pathGenerator->GetPathType() & PATHFIND_FARFROMPOLY)*/)
+        {
+            _timer.Reset(100);
+            ResetPaths();
+            return;
+        }
+
+        _paths.push_back(_pathGenerator->GetPath());
     }
 
     RemoveFlag(MOVEMENTGENERATOR_FLAG_TRANSITORY | MOVEMENTGENERATOR_FLAG_TIMED_PAUSED);
@@ -397,8 +227,6 @@ void RandomMovementGenerator<Creature>::SetRandomLocation(Creature* owner)
 
     Movement::MoveSplineInit init(owner);
     init.MovebyPath(_paths[_pathIndex]);
-    if (_smoothPaths[_pathIndex])
-        init.SetSmooth();
     init.SetWalk(walk);
     init.Launch();
 
@@ -416,7 +244,6 @@ void RandomMovementGenerator<T>::ResetPaths()
 {
     _pathIndex = 0;
     _paths.clear();
-    _smoothPaths.clear();
     _pathGenerator = nullptr;
 }
 

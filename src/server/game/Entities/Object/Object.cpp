@@ -1248,24 +1248,14 @@ bool WorldObject::IsWithinDistInMap(WorldObject const* obj, float dist2compare, 
 
 Position WorldObject::GetHitSpherePointFor(Position const& dest) const
 {
-    return GetHitSpherePointFor(GetPosition(), dest);
-}
-
-Position WorldObject::GetHitSpherePointFor(Position const& src, Position const& dest) const
-{
-    G3D::Vector3 vThis(src.GetPositionX(), src.GetPositionY(), src.GetPositionZ() + GetCollisionHeight());
+    G3D::Vector3 vThis(GetPositionX(), GetPositionY(), GetPositionZ() + GetCollisionHeight());
     G3D::Vector3 vObj(dest.GetPositionX(), dest.GetPositionY(), dest.GetPositionZ());
-    G3D::Vector3 contactPoint = vThis + (vObj - vThis).directionOrZero() * std::min(dest.GetExactDist(src), GetCombatReach());
+    G3D::Vector3 contactPoint = vThis + (vObj - vThis).directionOrZero() * std::min(dest.GetExactDist(GetPosition()), GetCombatReach());
 
     return Position(contactPoint.x, contactPoint.y, contactPoint.z, GetAbsoluteAngle(contactPoint.x, contactPoint.y));
 }
 
 bool WorldObject::IsWithinLOS(float ox, float oy, float oz, LineOfSightChecks checks, VMAP::ModelIgnoreFlags ignoreFlags) const
-{
-    return IsWithinLOS(GetPosition(), ox, oy, oz, checks, ignoreFlags);
-}
-
-bool WorldObject::IsWithinLOS(Position const& src, float ox, float oy, float oz, LineOfSightChecks checks, VMAP::ModelIgnoreFlags ignoreFlags) const
 {
     if (IsInWorld())
     {
@@ -1273,11 +1263,11 @@ bool WorldObject::IsWithinLOS(Position const& src, float ox, float oy, float oz,
         float x, y, z;
         if (GetTypeId() == TYPEID_PLAYER)
         {
-            src.GetPosition(x, y, z);
+            GetPosition(x, y, z);
             z += GetCollisionHeight();
         }
         else
-            GetHitSpherePointFor(src, { ox, oy, oz }, x, y, z);
+            GetHitSpherePointFor({ ox, oy, oz }, x, y, z);
 
         return GetMap()->isInLineOfSight(x, y, z, ox, oy, oz, GetPhaseMask(), checks, ignoreFlags);
     }
@@ -1313,15 +1303,7 @@ bool WorldObject::IsWithinLOSInMap(WorldObject const* obj, LineOfSightChecks che
 
 void WorldObject::GetHitSpherePointFor(Position const& dest, float& x, float& y, float& z) const
 {
-    Position pos = GetHitSpherePointFor(GetPosition(), dest);
-    x = pos.GetPositionX();
-    y = pos.GetPositionY();
-    z = pos.GetPositionZ();
-}
-
-void WorldObject::GetHitSpherePointFor(Position const& src, Position const& dest, float& x, float& y, float& z) const
-{
-    Position pos = GetHitSpherePointFor(src, dest);
+    Position pos = GetHitSpherePointFor(dest);
     x = pos.GetPositionX();
     y = pos.GetPositionY();
     z = pos.GetPositionZ();
@@ -3459,11 +3441,6 @@ void WorldObject::MovePosition(Position &pos, float dist, float angle)
 
 void WorldObject::MovePositionToFirstCollision(Position &pos, float dist, float angle)
 {
-    MovePositionToFirstCollision(GetPosition(), pos, dist, angle);
-}
-
-void WorldObject::MovePositionToFirstCollision(Position const& src, Position &pos, float dist, float angle)
-{
     angle += GetOrientation();
     float destx, desty, destz;
     destx = pos.m_positionX + dist * std::cos(angle);
@@ -3483,7 +3460,7 @@ void WorldObject::MovePositionToFirstCollision(Position const& src, Position &po
     PathGenerator path(this);
     path.SetUseRaycast(true);
     // CalculatePath transforms src and dest into transport offsets within.
-    path.CalculatePath(PositionToVector3(src), G3D::Vector3(destx, desty, destz), false);
+    path.CalculatePath(destx, desty, destz, false);
 
     // Check for valid path types before we proceed
     if (!(path.GetPathType() & PATHFIND_NOT_USING_PATH))
