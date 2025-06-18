@@ -125,7 +125,6 @@ void WaypointMovementGenerator<Creature>::DoInitialize(Creature* owner)
     _nextMoveTime.Reset(1000);
 
     uint32 waypointId = owner->GetCurrentWaypointInfo().first;
-
     // TODO determine if waypointIds are just indexes
     if (waypointId > 0)
     {
@@ -134,6 +133,7 @@ void WaypointMovementGenerator<Creature>::DoInitialize(Creature* owner)
             if (_path->nodes[i].id == waypointId)
             {
                 _currentNode = i;
+                ComputeNextNode(); // Always set _currentNode to reached node + 1
                 return;
             }
         }
