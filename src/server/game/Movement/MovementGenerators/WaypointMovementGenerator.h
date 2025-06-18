@@ -66,6 +66,7 @@ class WaypointMovementGenerator<Creature> : public MovementGeneratorMedium<Creat
         bool _loadedFromDB;
         std::unique_ptr<PathGenerator> _pathGenerator;
         Movement::PointsArray _lastPath;
+        Position _lastDestination;
         TimeTracker _pauseTimer;
         TimeTracker _waypointTimer;
         bool _interruptedBeforeArrive;

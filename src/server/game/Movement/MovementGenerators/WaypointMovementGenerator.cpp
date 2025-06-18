@@ -149,21 +149,38 @@ void WaypointMovementGenerator<Creature>::DoReset(Creature* owner)
     _waypointTimer.Reset(0);
 }
 
+void WaypointMovementGenerator<Creature>::DoDeactivate(Creature* owner)
+{
+    AddFlag(MOVEMENTGENERATOR_FLAG_DEACTIVATED);
+    owner->ClearUnitState(UNIT_STATE_ROAMING_MOVE);
+}
+
+void WaypointMovementGenerator<Creature>::DoFinalize(Creature* owner, bool active, bool/* movementInform*/)
+{
+    AddFlag(MOVEMENTGENERATOR_FLAG_FINALIZED);
+    if (active)
+    {
+        owner->ClearUnitState(UNIT_STATE_ROAMING_MOVE);
+
+        // TODO: Research if this modification is needed, which most likely isnt
+        owner->SetWalk(false);
+    }
+}
+
 bool WaypointMovementGenerator<Creature>::DoUpdate(Creature* owner, uint32 diff)
 {
-    if (!owner || !owner->IsAlive())
-        return true;
-
-    if (HasFlag(MOVEMENTGENERATOR_FLAG_FINALIZED | MOVEMENTGENERATOR_FLAG_PAUSED) || !_path || _path->nodes.empty())
+    if (!owner || !owner->IsAlive() || !_path || _path->nodes.empty() || HasFlag(MOVEMENTGENERATOR_FLAG_FINALIZED | MOVEMENTGENERATOR_FLAG_PAUSED))
         return true;
 
     if (owner->HasUnitState(UNIT_STATE_NOT_MOVE | UNIT_STATE_LOST_CONTROL) || owner->IsMovementPreventedByCasting())
     {
         if (!owner->movespline->Finalized())
+        {
             _interruptedBeforeArrive = true;
+            AddFlag(MOVEMENTGENERATOR_FLAG_INTERRUPTED);
+            owner->StopMoving();
+        }
 
-        AddFlag(MOVEMENTGENERATOR_FLAG_INTERRUPTED);
-        owner->StopMoving();
         return true;
     }
     else
@@ -201,24 +218,6 @@ bool WaypointMovementGenerator<Creature>::DoUpdate(Creature* owner, uint32 diff)
     OnArrived(owner); // hooks and wait timer reset (if necessary)
 
     return true;
-}
-
-void WaypointMovementGenerator<Creature>::DoDeactivate(Creature* owner)
-{
-    AddFlag(MOVEMENTGENERATOR_FLAG_DEACTIVATED);
-    owner->ClearUnitState(UNIT_STATE_ROAMING_MOVE);
-}
-
-void WaypointMovementGenerator<Creature>::DoFinalize(Creature* owner, bool active, bool/* movementInform*/)
-{
-    AddFlag(MOVEMENTGENERATOR_FLAG_FINALIZED);
-    if (active)
-    {
-        owner->ClearUnitState(UNIT_STATE_ROAMING_MOVE);
-
-        // TODO: Research if this modification is needed, which most likely isnt
-        owner->SetWalk(false);
-    }
 }
 
 void WaypointMovementGenerator<Creature>::OnArrived(Creature* owner)
@@ -265,7 +264,6 @@ void WaypointMovementGenerator<Creature>::OnArrived(Creature* owner)
     {
         bool const transportPath = owner->HasUnitMovementFlag(MOVEMENTFLAG_ONTRANSPORT) && !owner->GetTransGUID().IsEmpty();
 
-        WaypointNode const &waypoint = _path->nodes[_currentNode];
         float x = waypoint.x;
         float y = waypoint.y;
         float z = waypoint.z;
@@ -300,10 +298,6 @@ void WaypointMovementGenerator<Creature>::OnArrived(Creature* owner)
 
 void WaypointMovementGenerator<Creature>::StartMove(Creature* owner)
 {
-    // sanity checks
-    if (!owner || !owner->IsAlive() || HasFlag(MOVEMENTGENERATOR_FLAG_FINALIZED))
-        return;
-
     if (owner->HasUnitState(UNIT_STATE_NOT_MOVE) || owner->IsMovementPreventedByCasting() || (owner->IsFormationLeader() && !owner->IsFormationLeaderMoveAllowed())) // if cannot move OR cannot move because of formation
     {
         _interruptedBeforeArrive = true;
@@ -342,6 +336,12 @@ void WaypointMovementGenerator<Creature>::StartMove(Creature* owner)
 
     owner->AddUnitState(UNIT_STATE_ROAMING_MOVE);
 
+    // Determine the start and destination for our next path
+    // If we are already close enough to the last destination just start from the owner
+    // otherwise we want to smooth around the waypoint so calculate a path from the last destination and prepend the owner's position
+    bool startFromOwner = owner->GetPosition().GetExactDist(_lastDestination) < 1.0f;
+    Position start = startFromOwner ? owner->GetPosition() : _lastDestination;
+
     ASSERT(_currentNode < _path->nodes.size(), "WaypointMovementGenerator::StartMove: tried to reference a node id (%u) which is not included in path (%u)", _currentNode, _path->id);
     WaypointNode const &waypoint = _path->nodes[_currentNode];
     float x = waypoint.x;
@@ -352,19 +352,36 @@ void WaypointMovementGenerator<Creature>::StartMove(Creature* owner)
     // We now pass global coordinates to MoveTo / pathfinder calculate()
     if (GenericTransport* trans = owner->GetTransport())
         trans->CalculatePassengerPosition(x, y, z, &o);
-
     //! Do not use formationDest here, MoveTo requires transport offsets due to DisableTransportPathTransformations() call
     //! but formationDest contains global coordinates
+    Position dest = Position(x, y, z);
 
     // Lazy load path generator
     if (!_pathGenerator)
         _pathGenerator = std::make_unique<PathGenerator>(owner);
 
-    _pathGenerator->CalculatePath(PositionToVector3(owner->GetPosition()), PositionToVector3({ x, y, z }));
-    _lastPath = _pathGenerator->GetPath();
+    // Calculate path from start to destination
+    bool success = _pathGenerator->CalculatePath(PositionToVector3(start), PositionToVector3(dest));
+    // We really should not fail here for waypoint paths, but we need to do something
+    if (!success)
+    {
+        _interruptedBeforeArrive = true;
+        _waypointTimer.Reset(1000); // delay 1s
+        return;
+    }
 
+    // We do not want to shorten the path if there is a delay, since we want to wait at the waypoint
+    if (!waypoint.delay)
+        _pathGenerator->ShortenPathUntilDist(PositionToVector3(owner->GetPosition()), maxTarget);
+
+    // Get the path and insert the owner's position at the start if we are not starting from the owner
+    Movement::PointsArray path = _pathGenerator->GetPath();
+    if (!startFromOwner)
+        path.insert(path.begin(), PositionToVector3(owner->GetPosition()));
+
+    // Path is ready do do spline stuff
     Movement::MoveSplineInit init(owner);
-    init.MovebyPath(_lastPath);
+    init.MovebyPath(path);
 
     if (waypoint.orientation.has_value() && waypoint.delay > 0)
         init.SetFacing(*waypoint.orientation);
@@ -387,10 +404,25 @@ void WaypointMovementGenerator<Creature>::StartMove(Creature* owner)
             break;
     }
 
+    if (owner->CanFly())
+    {
+        init.SetFly();
+        init.SetSmooth();
+        init.SetUncompressed();
+    }
+
+    // add support for velocity?
+    //if (waypoint.Velocity > 0.f)
+    //    init.SetVelocity(waypoint.Velocity);
+
     init.Launch();
 
     // inform formation
     owner->SignalFormationMovement();
+
+    // Store last path and destination for later use
+    _lastPath = path;
+    _lastDestination = dest;
 }
 
 bool WaypointMovementGenerator<Creature>::HasNextNode()
