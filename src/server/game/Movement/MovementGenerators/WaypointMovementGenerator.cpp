@@ -364,7 +364,7 @@ void WaypointMovementGenerator<Creature>::StartMove(Creature* owner)
     _lastPath = _pathGenerator->GetPath();
 
     Movement::MoveSplineInit init(owner);
-    init.MoveByPath(_lastPath);
+    init.MovebyPath(_lastPath);
 
     if (waypoint.orientation.has_value() && waypoint.delay > 0)
         init.SetFacing(*waypoint.orientation);
