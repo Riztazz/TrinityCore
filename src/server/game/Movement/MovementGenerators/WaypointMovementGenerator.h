@@ -24,6 +24,7 @@
 
 class Creature;
 class Unit;
+class PathGenerator;
 struct WaypointPath;
 
 template<class T>
