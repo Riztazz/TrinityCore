@@ -148,24 +148,6 @@ void WaypointMovementGenerator<Creature>::DoReset(Creature* owner)
     _waypointTimer.Reset(0);
 }
 
-void WaypointMovementGenerator<Creature>::DoDeactivate(Creature* owner)
-{
-    AddFlag(MOVEMENTGENERATOR_FLAG_DEACTIVATED);
-    owner->ClearUnitState(UNIT_STATE_ROAMING_MOVE);
-}
-
-void WaypointMovementGenerator<Creature>::DoFinalize(Creature* owner, bool active, bool/* movementInform*/)
-{
-    AddFlag(MOVEMENTGENERATOR_FLAG_FINALIZED);
-    if (active)
-    {
-        owner->ClearUnitState(UNIT_STATE_ROAMING_MOVE);
-
-        // TODO: Research if this modification is needed, which most likely isnt
-        owner->SetWalk(false);
-    }
-}
-
 bool WaypointMovementGenerator<Creature>::DoUpdate(Creature* owner, uint32 diff)
 {
     if (!owner || !owner->IsAlive() || !_path || _path->nodes.empty() || HasFlag(MOVEMENTGENERATOR_FLAG_FINALIZED | MOVEMENTGENERATOR_FLAG_PAUSED))
@@ -219,6 +201,24 @@ bool WaypointMovementGenerator<Creature>::DoUpdate(Creature* owner, uint32 diff)
     // Start Move handles next node an final node logic
     StartMove(owner);
     return true;
+}
+
+void WaypointMovementGenerator<Creature>::DoDeactivate(Creature* owner)
+{
+    AddFlag(MOVEMENTGENERATOR_FLAG_DEACTIVATED);
+    owner->ClearUnitState(UNIT_STATE_ROAMING_MOVE);
+}
+
+void WaypointMovementGenerator<Creature>::DoFinalize(Creature* owner, bool active, bool/* movementInform*/)
+{
+    AddFlag(MOVEMENTGENERATOR_FLAG_FINALIZED);
+    if (active)
+    {
+        owner->ClearUnitState(UNIT_STATE_ROAMING_MOVE);
+
+        // TODO: Research if this modification is needed, which most likely isnt
+        owner->SetWalk(false);
+    }
 }
 
 void WaypointMovementGenerator<Creature>::OnArrived(Creature* owner)
