@@ -35,10 +35,10 @@
 
 namespace
 {
-    // If the distance to the next waypoint is less than this do not truncate it, as this would put path points too close together
-    constexpr float TRUNCATE_PATH_FOR_SMOOTHING_THRESHOLD = 4.0f;
-    // If we are within this distance of the previous waypoint, start the next path directly from owner rather than the previous waypoint
-    constexpr float PATH_DIRECTLY_FROM_OWNER_THRESHOLD = 1.0f;
+    // If distance between waypoints is greater than this we can truncate the path to smooth the vertex
+    constexpr float TRUNCATE_PATH_MAX_THRESHOLD = 3.0f;
+    // If distance to the next waypoint is less than this start from the owner and skip the real destination
+    constexpr float TRUNCATE_PATH_MIN_THRESHOLD = 1.0f;
 }
 
 WaypointMovementGenerator<Creature>::WaypointMovementGenerator(uint32 pathId, bool repeating) : _pathId(pathId), _repeating(repeating), _loadedFromDB(true), _pauseTimer(0), _waypointTimer(0)
@@ -344,14 +344,11 @@ void WaypointMovementGenerator<Creature>::StartMove(Creature* owner)
 
     owner->AddUnitState(UNIT_STATE_ROAMING_MOVE);
 
-    // Determine the start and destination for our next path
-    // If we are already close enough to the last destination just start from the owner
-    // otherwise we want to smooth around the waypoint so calculate a path from the last destination and prepend the owner's position
-    float distanceFromLastWaypoint = _lastPath.empty() ? 9999.0f : owner->GetPosition().GetExactDist(_lastDestination);
-    // If are already at our waypoint simply start from the owner
-    bool startFromOwner = distanceFromLastWaypoint < PATH_DIRECTLY_FROM_OWNER_THRESHOLD;
-    Position start = startFromOwner ? owner->GetPosition() : _lastDestination;
+    // Lazy load path generator
+    if (!_pathGenerator)
+        _pathGenerator = std::make_unique<PathGenerator>(owner);
 
+    // Destination is always our current waypoint
     ASSERT(_currentNode < _path->nodes.size(), "WaypointMovementGenerator::StartMove: tried to reference a node id (%u) which is not included in path (%u)", _currentNode, _path->id);
     WaypointNode const &waypoint = _path->nodes[_currentNode];
     float x = waypoint.x;
@@ -366,31 +363,49 @@ void WaypointMovementGenerator<Creature>::StartMove(Creature* owner)
     //! but formationDest contains global coordinates
     Position dest = Position(x, y, z);
 
-    // Lazy load path generator
-    if (!_pathGenerator)
-        _pathGenerator = std::make_unique<PathGenerator>(owner);
+    Movement::PointsArray path;
+    bool canUseSmoothing = owner->CanFly();
+    canUseSmoothing = false; // for testing
 
-    // Calculate path from start to destination
-    bool success = _pathGenerator->CalculatePath(PositionToVector3(start), PositionToVector3(dest));
-    // We really should not fail here for waypoint paths, but we need to do something
-    if (!success)
+    if (canUseSmoothing)
     {
-        _interruptedBeforeArrive = true;
-        _waypointTimer.Reset(1000); // delay 1s
-        return;
+        Position start = _lastPath.empty() ? owner->GetPosition() : _lastDestination;
+        
+        float distanceToLastWaypoint = start.GetExactDist(dest);
+        float distanceBetweenWaypoints = start.GetExactDist(dest);
+
+        if (distanceToLastWaypoint < TRUNCATE_PATH_MIN_THRESHOLD)
+            start = owner->GetPosition();
+    
+        bool success = _pathGenerator->CalculatePath(PositionToVector3(start), PositionToVector3(dest));
+        // We really should not fail here for waypoint paths, but we need to do something
+        if (!success)
+        {
+            _interruptedBeforeArrive = true;
+            _waypointTimer.Reset(1000); // delay 1s
+            return;
+        }
+
+        if (!waypoint.delay && distanceBetweenWaypoints > TRUNCATE_PATH_MAX_THRESHOLD + TRUNCATE_PATH_MIN_THRESHOLD)
+            _pathGenerator->ShortenPathUntilDist(PositionToVector3(dest), TRUNCATE_PATH_MAX_THRESHOLD);
+
+        path = _pathGenerator->GetPath();
+        if (distanceToLastWaypoint >= TRUNCATE_PATH_MIN_THRESHOLD)
+            path.insert(path.begin(), PositionToVector3(owner->GetPosition()));
     }
+    else
+    {
+        bool success = _pathGenerator->CalculatePath(PositionToVector3(owner->GetPosition()), PositionToVector3(dest));
+        // We really should not fail here for waypoint paths, but we need to do something
+        if (!success)
+        {
+            _interruptedBeforeArrive = true;
+            _waypointTimer.Reset(1000); // delay 1s
+            return;
+        }
 
-    // If there is no delay and the path is long enough, we shorten the path so that we can put the waypoint position within the next spline
-    // This allows us to use spline smoothing for the natural vertexes produced by a waypoint path
-    // Shorten the path by an amount that at least leaves us PATH_DIRECTLY_FROM_OWNER_THRESHOLD threshold, this is our threshold for points too close together
-    float distanceBetweenWaypoints = start.GetExactDist(dest);
-    if (!waypoint.delay && distanceBetweenWaypoints > TRUNCATE_PATH_FOR_SMOOTHING_THRESHOLD)
-        _pathGenerator->ShortenPathUntilDist(PositionToVector3(dest), TRUNCATE_PATH_FOR_SMOOTHING_THRESHOLD - PATH_DIRECTLY_FROM_OWNER_THRESHOLD);
-
-    // Get the path and insert the owner's position at the start if we are not starting from the owner
-    Movement::PointsArray path = _pathGenerator->GetPath();
-    if (!startFromOwner)
-        path.insert(path.begin(), PositionToVector3(owner->GetPosition()));
+        path = _pathGenerator->GetPath();
+    }
 
     // Path is ready do do spline stuff
     Movement::MoveSplineInit init(owner);
@@ -417,11 +432,10 @@ void WaypointMovementGenerator<Creature>::StartMove(Creature* owner)
             break;
     }
 
-    if (owner->CanFly())
+    if (canUseSmoothing)
     {
-        //init.SetFly();
-        //init.SetSmooth();
-        //init.SetUncompressed();
+        init.SetFly();
+        init.SetSmooth();
     }
 
     // add support for velocity?
