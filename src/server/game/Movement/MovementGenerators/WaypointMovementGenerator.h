@@ -59,14 +59,11 @@ class WaypointMovementGenerator<Creature> : public MovementGeneratorMedium<Creat
         void OnArrived(Creature*);
         void StartMove(Creature*);
         bool ComputeNextNode();
-        bool HasNextNode();
-        uint32 GetNextNode();
 
         uint32 _pathId;
         bool _repeating;
         bool _loadedFromDB;
-        std::unique_ptr<PathGenerator> _pathGenerator;
-        Movement::PointsArray _lastPath;
+        bool _initialPathLaunched;
         TimeTracker _pauseTimer;
         TimeTracker _waypointTimer;
         bool _interruptedBeforeArrive;

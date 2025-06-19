@@ -33,7 +33,7 @@
 #include "TSCreature.h"
 // @tswow-end
 
-WaypointMovementGenerator<Creature>::WaypointMovementGenerator(uint32 pathId, bool repeating) : _pathId(pathId), _repeating(repeating), _loadedFromDB(true), _pauseTimer(0), _waypointTimer(0)
+WaypointMovementGenerator<Creature>::WaypointMovementGenerator(uint32 pathId, bool repeating) : _pathId(pathId), _repeating(repeating), _loadedFromDB(true), _initialPathLaunched(false), _pauseTimer(0), _waypointTimer(0)
 {
     Mode = MOTION_MODE_DEFAULT;
     Priority = MOTION_PRIORITY_NORMAL;
@@ -41,7 +41,7 @@ WaypointMovementGenerator<Creature>::WaypointMovementGenerator(uint32 pathId, bo
     BaseUnitState = UNIT_STATE_ROAMING;
 }
 
-WaypointMovementGenerator<Creature>::WaypointMovementGenerator(WaypointPath& path, bool repeating) : _pathId(0), _repeating(repeating), _loadedFromDB(false), _pauseTimer(0), _waypointTimer(0)
+WaypointMovementGenerator<Creature>::WaypointMovementGenerator(WaypointPath& path, bool repeating) : _pathId(0), _repeating(repeating), _loadedFromDB(false), _initialPathLaunched(false), _pauseTimer(0), _waypointTimer(0)
 {
     _path = &path;
 
@@ -132,7 +132,7 @@ void WaypointMovementGenerator<Creature>::DoInitialize(Creature* owner)
             {
                 _currentNode = i;
                 ComputeNextNode(); // Always set _currentNode to reached node + 1
-                return;
+                break;
             }
         }
     }
@@ -208,7 +208,7 @@ bool WaypointMovementGenerator<Creature>::DoUpdate(Creature* owner, uint32 diff)
         return true;
 
     // no previous path, interrupted before arrival, or already arrived - simply restart movement
-    if (_lastPath.empty() || _interruptedBeforeArrive || HasFlag(MOVEMENTGENERATOR_FLAG_INFORM_ENABLED)) 
+    if (!_initialPathLaunched || _interruptedBeforeArrive || HasFlag(MOVEMENTGENERATOR_FLAG_INFORM_ENABLED)) 
     {
         StartMove(owner);
         return true;
@@ -262,14 +262,12 @@ void WaypointMovementGenerator<Creature>::OnArrived(Creature* owner)
     }
     else
     {
-        bool const transportPath = owner->HasUnitMovementFlag(MOVEMENTFLAG_ONTRANSPORT) && !owner->GetTransGUID().IsEmpty();
-
         float x = waypoint.x;
         float y = waypoint.y;
         float z = waypoint.z;
         float o = owner->GetOrientation();
 
-        if (!transportPath)
+        if (!owner->HasUnitMovementFlag(MOVEMENTFLAG_ONTRANSPORT) || owner->GetTransGUID().IsEmpty())
             owner->SetHomePosition(x, y, z, o);
         else
         {
@@ -306,7 +304,7 @@ void WaypointMovementGenerator<Creature>::StartMove(Creature* owner)
     }
 
     // Initial path
-    if (_lastPath.empty())
+    if (!_initialPathLaunched)
     {
         // @tswow-begin
         FIRE_ID(owner->GetCreatureTemplate()->events.id,Creature,OnWaypointStarted,TSCreature(owner),_path->nodes[_currentNode].id, _path->id);
@@ -353,81 +351,9 @@ void WaypointMovementGenerator<Creature>::StartMove(Creature* owner)
         trans->CalculatePassengerPosition(x, y, z, &o);
     //! Do not use formationDest here, MoveTo requires transport offsets due to DisableTransportPathTransformations() call
     //! but formationDest contains global coordinates
-    Position pos = Position(x, y, z);
 
-    bool success = _pathGenerator->CalculatePath(PositionToVector3(owner->GetPosition()), PositionToVector3(pos));
-    // We really should not fail here for waypoint paths, but we need to do something
-    if (!success)
-    {
-        _interruptedBeforeArrive = true;
-        _waypointTimer.Reset(1000); // delay 1s
-        return;
-    }
-
-    Movement::PointsArray path = _pathGenerator->GetPath();
-
-    // If we are eligible for smoothing calculate the next pat
-    bool canUseSmoothing = owner->CanFly() && !waypoint.delay && HasNextNode();
-    canUseSmoothing = false; // for testing
-
-    if (canUseSmoothing)
-    {
-        WaypointNode const &nextWaypoint = _path->nodes[GetNextNode()];
-        float x = nextWaypoint.x;
-        float y = nextWaypoint.y;
-        float z = nextWaypoint.z;
-        float o = owner->GetOrientation();
-        if (GenericTransport* trans = owner->GetTransport())
-            trans->CalculatePassengerPosition(x, y, z, &o);
-        Position nextPos = Position(x, y, z);
-
-        bool success = _pathGenerator->CalculatePath(path.back(), PositionToVector3(nextPos));
-        if (!success)
-        {
-            _interruptedBeforeArrive = true;
-            _waypointTimer.Reset(1000); // delay 1s
-            return;
-        }
-
-        Movement::PointsArray nextPath = _pathGenerator->GetPath();
-        // insert the first segment of the next path
-        path.insert(path.end(), nextPath[1]);
-    }
-
-    // set what happens.
-    if (path.size() < 4)
-    {
-        auto const& first = path.front();
-        auto const& last = path.back();
-
-        // Compute two evenly spaced points between first and last
-        // t1 = 1/3, t2 = 2/3 for even spacing
-        auto mid1 = first + (last - first) * (1.0f / 3.0f);
-        auto mid2 = first + (last - first) * (2.0f / 3.0f);
-
-        path.clear();
-        path.push_back(first);
-        path.push_back(mid1);
-        path.push_back(mid2);
-        path.push_back(last);
-    }
-
-    if (owner->GetSpawnId() == 125724)
-    {
-        for (size_t i = 0; i + 1 < path.size(); ++i)
-        {
-            const G3D::Vector3& curr = path[i];
-            const G3D::Vector3& next = path[i + 1];
-            float v2x = next.x - curr.x;
-            float v2y = next.y - curr.y;
-            float v2Len = std::sqrt(v2x * v2x + v2y * v2y);
-            TC_LOG_DEBUG("smooth", "path vertex {} (x={}, y={}, z={}): distance to next: {}", i, curr.x, curr.y, curr.z, v2Len);
-        }
-    }
-
-    // Path is ready do do spline stuff
     Movement::MoveSplineInit init(owner);
-    init.MovebyPath(path);
+    init.MoveTo(x, y, z);
 
     if (waypoint.orientation.has_value() && waypoint.delay > 0)
         init.SetFacing(*waypoint.orientation);
@@ -450,25 +376,12 @@ void WaypointMovementGenerator<Creature>::StartMove(Creature* owner)
             break;
     }
 
-    init.SetSmooth();
-
-    //if (canUseSmoothing)
-    //{
-    //    init.SetFly();
-    //    init.SetSmooth();
-    //}
-
-    // add support for velocity?
-    //if (waypoint.Velocity > 0.f)
-    //    init.SetVelocity(waypoint.Velocity);
-
     init.Launch();
 
     // inform formation
     owner->SignalFormationMovement();
 
-    // store the path to indicate we have done our initial path
-    _lastPath = path;
+    _initialPathLaunched = true;
 }
 
 bool WaypointMovementGenerator<Creature>::ComputeNextNode()
@@ -478,22 +391,6 @@ bool WaypointMovementGenerator<Creature>::ComputeNextNode()
 
     _currentNode = (_currentNode + 1) % _path->nodes.size();
     return true;
-}
-
-bool WaypointMovementGenerator<Creature>::HasNextNode()
-{
-    if ((_currentNode == _path->nodes.size() - 1) && !_repeating)
-        return false;
-
-    return true;
-}
-
-uint32 WaypointMovementGenerator<Creature>::GetNextNode()
-{
-    if ((_currentNode == _path->nodes.size() - 1) && !_repeating)
-        return _currentNode;
-
-    return (_currentNode + 1) % _path->nodes.size();
 }
 
 std::string WaypointMovementGenerator<Creature>::GetDebugInfo() const
