@@ -33,14 +33,6 @@
 #include "TSCreature.h"
 // @tswow-end
 
-namespace
-{
-    // If distance between waypoints is greater than this we can truncate the path to smooth the vertex
-    constexpr float TRUNCATE_PATH_MAX_THRESHOLD = 3.0f;
-    // If distance to the next waypoint is less than this start from the owner and skip the real destination
-    constexpr float TRUNCATE_PATH_MIN_THRESHOLD = 1.0f;
-}
-
 WaypointMovementGenerator<Creature>::WaypointMovementGenerator(uint32 pathId, bool repeating) : _pathId(pathId), _repeating(repeating), _loadedFromDB(true), _pauseTimer(0), _waypointTimer(0)
 {
     Mode = MOTION_MODE_DEFAULT;
@@ -429,8 +421,8 @@ void WaypointMovementGenerator<Creature>::StartMove(Creature* owner)
 
     if (canUseSmoothing)
     {
-        //init.SetFly();
-        //init.SetSmooth();
+        init.SetFly();
+        init.SetSmooth();
     }
 
     // add support for velocity?
