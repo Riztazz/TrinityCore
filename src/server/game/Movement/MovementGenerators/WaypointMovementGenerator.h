@@ -58,8 +58,9 @@ class WaypointMovementGenerator<Creature> : public MovementGeneratorMedium<Creat
     private:
         void OnArrived(Creature*);
         void StartMove(Creature*);
-        bool HasNextNode();
         bool ComputeNextNode();
+        bool HasNextNode();
+        uint32 GetNextNode();
 
         uint32 _pathId;
         bool _repeating;

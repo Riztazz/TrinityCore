@@ -361,24 +361,35 @@ void WaypointMovementGenerator<Creature>::StartMove(Creature* owner)
         trans->CalculatePassengerPosition(x, y, z, &o);
     //! Do not use formationDest here, MoveTo requires transport offsets due to DisableTransportPathTransformations() call
     //! but formationDest contains global coordinates
-    Position dest = Position(x, y, z);
+    Position pos = Position(x, y, z);
 
-    Movement::PointsArray path;
-    bool canUseSmoothing = owner->CanFly();
+    bool success = _pathGenerator->CalculatePath(PositionToVector3(owner->GetPosition()), PositionToVector(pos));
+    // We really should not fail here for waypoint paths, but we need to do something
+    if (!success)
+    {
+        _interruptedBeforeArrive = true;
+        _waypointTimer.Reset(1000); // delay 1s
+        return;
+    }
+
+    path = _pathGenerator->GetPath();
+
+    // If we are eligible for smoothing calculate the next pat
+    bool canUseSmoothing = owner->CanFly() && !waypoint.delay && HasNextNode();
     //canUseSmoothing = false; // for testing
 
     if (canUseSmoothing)
     {
-        Position start = _lastPath.empty() ? owner->GetPosition() : _lastDestination;
-        
-        float distanceToLastWaypoint = start.GetExactDist(dest);
-        float distanceBetweenWaypoints = start.GetExactDist(dest);
+        WaypointNode const &nextWaypoint = _path->nodes[GetNextNode()];
+        float x = nextWaypoint.x;
+        float y = nextWaypoint.y;
+        float z = nextWaypoint.z;
+        float o = owner->GetOrientation();
+        if (GenericTransport* trans = owner->GetTransport())
+            trans->CalculatePassengerPosition(x, y, z, &o);
+        Position nextPos = Position(x, y, z);
 
-        if (distanceToLastWaypoint < TRUNCATE_PATH_MIN_THRESHOLD)
-            start = owner->GetPosition();
-    
-        bool success = _pathGenerator->CalculatePath(PositionToVector3(start), PositionToVector3(dest));
-        // We really should not fail here for waypoint paths, but we need to do something
+        bool success = _pathGenerator->CalculatePath(path.back(), PositionToVector(nextPos));
         if (!success)
         {
             _interruptedBeforeArrive = true;
@@ -386,25 +397,9 @@ void WaypointMovementGenerator<Creature>::StartMove(Creature* owner)
             return;
         }
 
-        if (!waypoint.delay && distanceBetweenWaypoints > TRUNCATE_PATH_MAX_THRESHOLD + TRUNCATE_PATH_MIN_THRESHOLD)
-            _pathGenerator->ShortenPathUntilDist(PositionToVector3(dest), TRUNCATE_PATH_MAX_THRESHOLD);
-
-        path = _pathGenerator->GetPath();
-        if (distanceToLastWaypoint >= TRUNCATE_PATH_MIN_THRESHOLD)
-            path.insert(path.begin(), PositionToVector3(owner->GetPosition()));
-    }
-    else
-    {
-        bool success = _pathGenerator->CalculatePath(PositionToVector3(owner->GetPosition()), PositionToVector3(dest));
-        // We really should not fail here for waypoint paths, but we need to do something
-        if (!success)
-        {
-            _interruptedBeforeArrive = true;
-            _waypointTimer.Reset(1000); // delay 1s
-            return;
-        }
-
-        path = _pathGenerator->GetPath();
+        Path nextPath = _pathGenerator->GetPath();
+        // insert the first segment of the next path
+        path.insert(path.end(), nextPath[1]);
     }
 
     // Path is ready do do spline stuff
@@ -452,6 +447,15 @@ void WaypointMovementGenerator<Creature>::StartMove(Creature* owner)
     _lastDestination = dest;
 }
 
+bool WaypointMovementGenerator<Creature>::ComputeNextNode()
+{
+    if ((_currentNode == _path->nodes.size() - 1) && !_repeating)
+        return false;
+
+    _currentNode = (_currentNode + 1) % _path->nodes.size();
+    return true;
+}
+
 bool WaypointMovementGenerator<Creature>::HasNextNode()
 {
     if ((_currentNode == _path->nodes.size() - 1) && !_repeating)
@@ -460,13 +464,12 @@ bool WaypointMovementGenerator<Creature>::HasNextNode()
     return true;
 }
 
-bool WaypointMovementGenerator<Creature>::ComputeNextNode()
+uint32 WaypointMovementGenerator<Creature>::GetNextNode()
 {
     if ((_currentNode == _path->nodes.size() - 1) && !_repeating)
-        return false;
+        return _currentNode;
 
-    _currentNode = (_currentNode + 1) % _path->nodes.size();
-    return true;
+    return (_currentNode + 1) % _path->nodes.size();
 }
 
 std::string WaypointMovementGenerator<Creature>::GetDebugInfo() const
