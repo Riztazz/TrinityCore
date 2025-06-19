@@ -19,9 +19,7 @@
 #define TRINITY_WAYPOINTMOVEMENTGENERATOR_H
 
 #include "MovementGenerator.h"
-#include "MoveSplineInitArgs.h"
 #include "PathMovementBase.h"
-#include "Position.h"
 #include "Timer.h"
 
 class Creature;

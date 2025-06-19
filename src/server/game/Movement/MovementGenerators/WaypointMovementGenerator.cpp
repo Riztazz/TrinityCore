@@ -19,7 +19,6 @@
 #include "Creature.h"
 #include "CreatureAI.h"
 #include "Errors.h"
-#include "G3DPosition.hpp"
 #include "Log.h"
 #include "Map.h"
 #include "MovementDefines.h"
@@ -282,6 +281,7 @@ void WaypointMovementGenerator<Creature>::StartMove(Creature* owner)
         // Can't compute a new node so we must be finished
         if (!ComputeNextNode())
         {
+            WaypointNode const &waypoint = _path->nodes[_currentNode];
             float x = waypoint.x;
             float y = waypoint.y;
             float z = waypoint.z;
