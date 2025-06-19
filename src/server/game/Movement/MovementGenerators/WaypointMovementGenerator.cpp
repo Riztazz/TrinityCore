@@ -421,7 +421,7 @@ void WaypointMovementGenerator<Creature>::StartMove(Creature* owner)
     {
         init.SetFly();
         init.SetSmooth();
-        init.SetUncompressed();
+        //init.SetUncompressed();
     }
 
     // add support for velocity?
