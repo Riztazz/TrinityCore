@@ -198,7 +198,7 @@ bool WaypointMovementGenerator<Creature>::DoUpdate(Creature* owner, uint32 diff)
     if (!_waypointTimer.Passed())
         return true;
 
-    // Start Move handles next node an final node logic
+    // Start Move handles next node and final node logic
     StartMove(owner);
     return true;
 }
