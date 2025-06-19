@@ -394,6 +394,24 @@ void WaypointMovementGenerator<Creature>::StartMove(Creature* owner)
         path.insert(path.end(), nextPath[1]);
     }
 
+    // set what happens.
+    if (path.size() < 4)
+    {
+        auto const& first = path.front();
+        auto const& last = path.back();
+
+        // Compute two evenly spaced points between first and last
+        // t1 = 1/3, t2 = 2/3 for even spacing
+        auto mid1 = first + (last - first) * (1.0f / 3.0f);
+        auto mid2 = first + (last - first) * (2.0f / 3.0f);
+
+        path.clear();
+        path.push_back(first);
+        path.push_back(mid1);
+        path.push_back(mid2);
+        path.push_back(last);
+    }
+
     if (owner->GetSpawnId() == 125724)
     {
         for (size_t i = 0; i + 1 < path.size(); ++i)
