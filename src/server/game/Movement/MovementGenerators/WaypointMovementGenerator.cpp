@@ -368,7 +368,7 @@ void WaypointMovementGenerator<Creature>::StartMove(Creature* owner)
 
     // If we are eligible for smoothing calculate the next pat
     bool canUseSmoothing = owner->CanFly() && !waypoint.delay && HasNextNode();
-    //canUseSmoothing = false; // for testing
+    canUseSmoothing = false; // for testing
 
     if (canUseSmoothing)
     {
