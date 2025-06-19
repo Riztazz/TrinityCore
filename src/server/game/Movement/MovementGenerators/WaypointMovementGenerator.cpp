@@ -160,9 +160,6 @@ bool WaypointMovementGenerator<Creature>::DoUpdate(Creature* owner, uint32 diff)
             _interruptedBeforeArrive = true;
             AddFlag(MOVEMENTGENERATOR_FLAG_INTERRUPTED);
             owner->StopMoving();
-
-            if (owner->GetSpawnId() == 125724)
-                TC_LOG_DEBUG("smooth", "WaypointMovementGenerator<Creature>::DoUpdate movement was interripted, stopping");
         }
 
         return true;
@@ -183,8 +180,6 @@ bool WaypointMovementGenerator<Creature>::DoUpdate(Creature* owner, uint32 diff)
         // relaunch movement if its speed has changed
         if (HasFlag(MOVEMENTGENERATOR_FLAG_SPEED_UPDATE_PENDING))
         {
-            if (owner->GetSpawnId() == 125724)
-                TC_LOG_DEBUG("smooth", "WaypointMovementGenerator<Creature>::DoUpdate movement speed changed, relaunching");
             _interruptedBeforeArrive = true;
             StartMove(owner);
         }
@@ -204,8 +199,6 @@ bool WaypointMovementGenerator<Creature>::DoUpdate(Creature* owner, uint32 diff)
         return true;
 
     // Start Move handles next node and final node logic
-    if (owner->GetSpawnId() == 125724)
-        TC_LOG_DEBUG("smooth", "WaypointMovementGenerator<Creature>::DoUpdate waypoint delay passed, StartMove");
     StartMove(owner);
     return true;
 }
@@ -261,9 +254,6 @@ void WaypointMovementGenerator<Creature>::OnArrived(Creature* owner)
     owner->UpdateCurrentWaypointInfo(waypointId, pathId);
 
     AddFlag(MOVEMENTGENERATOR_FLAG_INFORM_ENABLED); // signals to future StartMove that it reached a node
-
-    if (owner->GetSpawnId() == 125724)
-        TC_LOG_DEBUG("smooth", "WaypointMovementGenerator<Creature>::OnArrived");
 }
 
 void WaypointMovementGenerator<Creature>::StartMove(Creature* owner)
@@ -284,9 +274,6 @@ void WaypointMovementGenerator<Creature>::StartMove(Creature* owner)
         // inform AI
         if (CreatureAI* AI = owner->AI())
             AI->WaypointStarted(_path->nodes[_currentNode].id, _path->id);
-
-        if (owner->GetSpawnId() == 125724)
-            TC_LOG_DEBUG("smooth", "WaypointMovementGenerator<Creature>::StartMove for initial path");
     }
     // Next path or finish
     else if (HasFlag(MOVEMENTGENERATOR_FLAG_INFORM_ENABLED))
@@ -325,9 +312,6 @@ void WaypointMovementGenerator<Creature>::StartMove(Creature* owner)
             if (CreatureAI* AI = owner->AI())
                 AI->WaypointPathEnded(waypoint.id, _path->id);
 
-            if (owner->GetSpawnId() == 125724)
-                TC_LOG_DEBUG("smooth", "WaypointMovementGenerator<Creature>::StartMove for final path");
-
             return;
         }
 
@@ -338,9 +322,6 @@ void WaypointMovementGenerator<Creature>::StartMove(Creature* owner)
         // inform AI
         if (CreatureAI* AI = owner->AI())
             AI->WaypointStarted(_path->nodes[_currentNode].id, _path->id);
-
-        if (owner->GetSpawnId() == 125724)
-            TC_LOG_DEBUG("smooth", "WaypointMovementGenerator<Creature>::StartMove for next path");
     }
 
     RemoveFlag(MOVEMENTGENERATOR_FLAG_TRANSITORY | MOVEMENTGENERATOR_FLAG_INFORM_ENABLED | MOVEMENTGENERATOR_FLAG_TIMED_PAUSED);
