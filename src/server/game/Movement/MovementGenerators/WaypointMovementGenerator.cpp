@@ -434,8 +434,8 @@ void WaypointMovementGenerator<Creature>::StartMove(Creature* owner)
 
     if (canUseSmoothing)
     {
-        init.SetFly();
-        init.SetSmooth();
+        //init.SetFly();
+        //init.SetSmooth();
     }
 
     // add support for velocity?
