@@ -385,7 +385,7 @@ void WaypointMovementGenerator<Creature>::StartMove(Creature* owner)
     // Shorten the path by an amount that at least leaves us PATH_DIRECTLY_FROM_OWNER_THRESHOLD threshold, this is our threshold for points too close together
     float distanceBetweenWaypoints = start.GetExactDist(dest);
     if (!waypoint.delay && distanceBetweenWaypoints > TRUNCATE_PATH_FOR_SMOOTHING_THRESHOLD)
-        _pathGenerator->ShortenPathUntilDist(PositionToVector3(owner->GetPosition()), TRUNCATE_PATH_FOR_SMOOTHING_THRESHOLD - PATH_DIRECTLY_FROM_OWNER_THRESHOLD);
+        _pathGenerator->ShortenPathUntilDist(PositionToVector3(dest), TRUNCATE_PATH_FOR_SMOOTHING_THRESHOLD - PATH_DIRECTLY_FROM_OWNER_THRESHOLD);
 
     // Get the path and insert the owner's position at the start if we are not starting from the owner
     Movement::PointsArray path = _pathGenerator->GetPath();
