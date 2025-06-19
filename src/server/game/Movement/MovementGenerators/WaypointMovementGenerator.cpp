@@ -419,8 +419,8 @@ void WaypointMovementGenerator<Creature>::StartMove(Creature* owner)
 
     if (owner->CanFly())
     {
-        init.SetFly();
-        init.SetSmooth();
+        //init.SetFly();
+        //init.SetSmooth();
         //init.SetUncompressed();
     }
 
