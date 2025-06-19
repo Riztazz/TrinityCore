@@ -421,7 +421,7 @@ void WaypointMovementGenerator<Creature>::StartMove(Creature* owner)
 
     if (canUseSmoothing)
     {
-        init.SetFly();
+        //init.SetFly();
         init.SetSmooth();
     }
 
