@@ -9506,7 +9506,7 @@ void Unit::SetShapeshiftForm(ShapeshiftForm form)
     // Some UNIT_FIELD flags are used by the client to determine whether we can use some spells
     // Because of this we need to send the player his own update packet ASAP
     if (GetTypeId() == TYPEID_PLAYER)
-        SendUpdateToPlayer(this);
+        SendUpdateToPlayer(ToPlayer());
 }
 
 bool Unit::IsShapeShifted() const
