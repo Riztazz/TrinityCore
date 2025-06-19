@@ -9502,6 +9502,11 @@ uint32 Unit::GetCreatureTypeMask() const
 void Unit::SetShapeshiftForm(ShapeshiftForm form)
 {
     SetByteValue(UNIT_FIELD_BYTES_2, UNIT_BYTES_2_OFFSET_SHAPESHIFT_FORM, form);
+
+    // Some UNIT_FIELD flags are used by the client to determine whether we can use some spells
+    // Because of this we need to send the player his own update packet ASAP
+    if (GetTypeId() == TYPEID_PLAYER)
+        SendUpdateToPlayer(this);
 }
 
 bool Unit::IsShapeShifted() const
