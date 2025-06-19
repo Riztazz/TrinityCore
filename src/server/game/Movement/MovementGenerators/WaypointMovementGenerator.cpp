@@ -365,7 +365,7 @@ void WaypointMovementGenerator<Creature>::StartMove(Creature* owner)
 
     Movement::PointsArray path;
     bool canUseSmoothing = owner->CanFly();
-    canUseSmoothing = false; // for testing
+    //canUseSmoothing = false; // for testing
 
     if (canUseSmoothing)
     {
