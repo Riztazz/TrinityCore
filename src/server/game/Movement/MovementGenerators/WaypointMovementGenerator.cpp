@@ -363,7 +363,7 @@ void WaypointMovementGenerator<Creature>::StartMove(Creature* owner)
     //! but formationDest contains global coordinates
     Position pos = Position(x, y, z);
 
-    bool success = _pathGenerator->CalculatePath(PositionToVector3(owner->GetPosition()), PositionToVector(pos));
+    bool success = _pathGenerator->CalculatePath(PositionToVector3(owner->GetPosition()), PositionToVector3(pos));
     // We really should not fail here for waypoint paths, but we need to do something
     if (!success)
     {
@@ -372,7 +372,7 @@ void WaypointMovementGenerator<Creature>::StartMove(Creature* owner)
         return;
     }
 
-    path = _pathGenerator->GetPath();
+    Movement::PointsArray path = _pathGenerator->GetPath();
 
     // If we are eligible for smoothing calculate the next pat
     bool canUseSmoothing = owner->CanFly() && !waypoint.delay && HasNextNode();
@@ -389,7 +389,7 @@ void WaypointMovementGenerator<Creature>::StartMove(Creature* owner)
             trans->CalculatePassengerPosition(x, y, z, &o);
         Position nextPos = Position(x, y, z);
 
-        bool success = _pathGenerator->CalculatePath(path.back(), PositionToVector(nextPos));
+        bool success = _pathGenerator->CalculatePath(path.back(), PositionToVector3(nextPos));
         if (!success)
         {
             _interruptedBeforeArrive = true;
@@ -397,7 +397,7 @@ void WaypointMovementGenerator<Creature>::StartMove(Creature* owner)
             return;
         }
 
-        Path nextPath = _pathGenerator->GetPath();
+        Movement::PointsArray nextPath = _pathGenerator->GetPath();
         // insert the first segment of the next path
         path.insert(path.end(), nextPath[1]);
     }
@@ -442,9 +442,8 @@ void WaypointMovementGenerator<Creature>::StartMove(Creature* owner)
     // inform formation
     owner->SignalFormationMovement();
 
-    // Store last path and destination for later use
+    // store the path to indicate we have done our initial path
     _lastPath = path;
-    _lastDestination = dest;
 }
 
 bool WaypointMovementGenerator<Creature>::ComputeNextNode()
