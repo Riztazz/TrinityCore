@@ -394,6 +394,19 @@ void WaypointMovementGenerator<Creature>::StartMove(Creature* owner)
         path.insert(path.end(), nextPath[1]);
     }
 
+    if (owner->GetSpawnId() == 125724)
+    {
+        for (size_t i = 0; i + 1 < path.size(); ++i)
+        {
+            const G3D::Vector3& curr = path[i];
+            const G3D::Vector3& next = path[i + 1];
+            float v2x = next.x - curr.x;
+            float v2y = next.y - curr.y;
+            float v2Len = std::sqrt(v2x * v2x + v2y * v2y);
+            TC_LOG_DEBUG("smooth", "path vertex {} (x={}, y={}, z={}): distance to next: {}", i, curr.x, curr.y, curr.z, v2Len);
+        }
+    }
+
     // Path is ready do do spline stuff
     Movement::MoveSplineInit init(owner);
     init.MovebyPath(path);
@@ -419,11 +432,13 @@ void WaypointMovementGenerator<Creature>::StartMove(Creature* owner)
             break;
     }
 
-    if (canUseSmoothing)
-    {
-        //init.SetFly();
-        init.SetSmooth();
-    }
+    init.SetSmooth();
+
+    //if (canUseSmoothing)
+    //{
+    //    init.SetFly();
+    //    init.SetSmooth();
+    //}
 
     // add support for velocity?
     //if (waypoint.Velocity > 0.f)
