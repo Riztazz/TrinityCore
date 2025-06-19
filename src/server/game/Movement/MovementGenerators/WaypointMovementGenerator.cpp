@@ -33,6 +33,14 @@
 #include "TSCreature.h"
 // @tswow-end
 
+namespace
+{
+    // If the distance to the next waypoint is less than this do not truncate it, as this would put path points too close together
+    constexpr float TRUNCATE_PATH_FOR_SMOOTHING_THRESHOLD = 4.0f;
+    // If we are within this distance of the previous waypoint, start the next path directly from owner rather than the previous waypoint
+    constexpr float PATH_DIRECTLY_FROM_OWNER_THRESHOLD = 1.0f;
+}
+
 WaypointMovementGenerator<Creature>::WaypointMovementGenerator(uint32 pathId, bool repeating) : _pathId(pathId), _repeating(repeating), _loadedFromDB(true), _pauseTimer(0), _waypointTimer(0)
 {
     Mode = MOTION_MODE_DEFAULT;
@@ -339,7 +347,9 @@ void WaypointMovementGenerator<Creature>::StartMove(Creature* owner)
     // Determine the start and destination for our next path
     // If we are already close enough to the last destination just start from the owner
     // otherwise we want to smooth around the waypoint so calculate a path from the last destination and prepend the owner's position
-    bool startFromOwner = owner->GetPosition().GetExactDist(_lastDestination) < 1.0f;
+    float distanceFromLastWaypoint = _lastPath.empty() ? 9999.0f : owner->GetPosition().GetExactDist(_lastDestination);
+    // If are already at our waypoint simply start from the owner
+    bool startFromOwner = distanceFromLastWaypoint < PATH_DIRECTLY_FROM_OWNER_THRESHOLD;
     Position start = startFromOwner ? owner->GetPosition() : _lastDestination;
 
     ASSERT(_currentNode < _path->nodes.size(), "WaypointMovementGenerator::StartMove: tried to reference a node id (%u) which is not included in path (%u)", _currentNode, _path->id);
@@ -370,9 +380,12 @@ void WaypointMovementGenerator<Creature>::StartMove(Creature* owner)
         return;
     }
 
-    // We do not want to shorten the path if there is a delay, since we want to wait at the waypoint
-    if (!waypoint.delay)
-        _pathGenerator->ShortenPathUntilDist(PositionToVector3(owner->GetPosition()), maxTarget);
+    // If there is no delay and the path is long enough, we shorten the path so that we can put the waypoint position within the next spline
+    // This allows us to use spline smoothing for the natural vertexes produced by a waypoint path
+    // Shorten the path by an amount that at least leaves us PATH_DIRECTLY_FROM_OWNER_THRESHOLD threshold, this is our threshold for points too close together
+    float distanceBetweenWaypoints = start.GetExactDist(dest);
+    if (!waypoint.delay && distanceBetweenWaypoints > TRUNCATE_PATH_FOR_SMOOTHING_THRESHOLD)
+        _pathGenerator->ShortenPathUntilDist(PositionToVector3(owner->GetPosition()), TRUNCATE_PATH_FOR_SMOOTHING_THRESHOLD - PATH_DIRECTLY_FROM_OWNER_THRESHOLD);
 
     // Get the path and insert the owner's position at the start if we are not starting from the owner
     Movement::PointsArray path = _pathGenerator->GetPath();
