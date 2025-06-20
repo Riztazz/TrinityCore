@@ -2344,18 +2344,6 @@ void World::SetInitialWorldSettings()
     // Preload all cells, if required for the base maps
     if (sWorld->getBoolConfig(CONFIG_BASEMAP_LOAD_GRIDS))
     {
-        // Normally maps/partitions will lazy load, but in this case we need to ensure all partitions are created so that we can load them
-        for (auto mapId : mapIds)
-        {
-            if (MapEntry const* mapEntry = sMapStore.LookupEntry(mapId))
-            {
-                if (mapEntry->IsWorldMap())
-                {
-                    Map* map = sMapMgr->CreateBaseMap(mapId);
-                    map->ToMapPartitioned()->CreateAllPartitions();
-                }
-            }
-        }
         // Load all cells 
         sMapMgr->DoForAllMaps([](Map* map)
         {

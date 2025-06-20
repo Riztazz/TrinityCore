@@ -44,7 +44,6 @@ class TC_GAME_API MapManager
         std::vector<uint32> GetContinentPartitionIds(uint32 mapId);
         ChainedRange<Map::PlayerList> GetContinentPlayers(uint32 mapId);
 
-        Map* CreateBaseMap(uint32 mapId);
         Map* CreateMap(uint32 mapId, Position const& pos, Player* player = nullptr, uint32 loginInstanceId = 0);
         uint32 CalculatePartitionId(uint32 mapid, Position const& pos);
         Map* FindBaseMap(uint32 mapId) const
@@ -155,6 +154,8 @@ class TC_GAME_API MapManager
 
         MapManager(MapManager const&) = delete;
         MapManager& operator=(MapManager const&) = delete;
+
+        Map* CreateBaseMap(uint32 mapId);
 
         std::mutex _mapsLock;
         BaseMaps _baseMaps;

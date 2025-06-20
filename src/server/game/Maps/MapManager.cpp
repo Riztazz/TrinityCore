@@ -123,17 +123,23 @@ Map* MapManager::CreateBaseMap(uint32 id)
         ASSERT(entry);
 
         if (entry->Instanceable())
+        {
             map = new MapInstanced(id);
+            std::unique_ptr<Map> ptr(map); 
+            _baseMaps[id] = std::move(ptr);
+        }
         else
         {
             map = new MapPartitioned(id);
-            // MapPartitioned is an active map (partition 0) so we load its respawns and corpses
+            std::unique_ptr<Map> ptr(map); 
+            _baseMaps[id] = std::move(ptr);
+            // Create all partitions for this map
+            map->ToMapPartitioned()->CreateAllPartitions();
+            // Loading respawns and corpses will find the right partition to load into, so
+            // that is why we go ahead and creat all partitions up front
             map->LoadRespawnTimes();
             map->LoadCorpseData();
         }
-
-        std::unique_ptr<Map> ptr(map); 
-        _baseMaps[id] = std::move(ptr);
 
         sScriptMgr->OnCreateMap(map);
     }
@@ -155,7 +161,7 @@ Map* MapManager::CreateMap(uint32 id, Position const& pos, Player* player, uint3
     MapInstanced* mapInstanced = map->ToMapInstanced();
     if (mapInstanced)
     {
-        // For GameEventManager, Battlefield, Transports, when we spawn these in an instance map without a player they
+        // For GameEventManager, Transports, when we spawn these in an instance map without a player they
         // go into the base map - Im guessing they update the spawn tables and get replicated for new instances
         if (!player)
             return map;
