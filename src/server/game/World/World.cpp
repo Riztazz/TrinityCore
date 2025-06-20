@@ -2348,7 +2348,7 @@ void World::SetInitialWorldSettings()
         {
             if (!map->Instanceable())
             {
-                TC_LOG_INFO("server.loading", "Pre-loading base map data for map {}", map->GetId());
+                TC_LOG_INFO("server.loading", "Pre-loading base map data for map {} partition {}", map->GetId(), map->GetPartition());
                 map->LoadAllCells();
             }
         });
