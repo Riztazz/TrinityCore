@@ -428,10 +428,6 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
         virtual const Map* GetParent() const { return this; }
         virtual Map* GetParent() { return this; }
         virtual void LoadMapAndVMap(int gx, int gy);
-        virtual void LoadVMap(int gx, int gy);
-        virtual void LoadMap(int gx, int gy);
-        virtual void LoadMMap(int gx, int gy);
-        virtual GridMap* GetGrid(int gx, int gy);
         virtual GridMap* GetGrid(float x, float y);
         virtual void UpdateWeather(uint32 t_diff);
 
@@ -748,9 +744,11 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
     private:
         void SendInitSelf(Player* player);
 
+        void LoadVMap(int gx, int gy);
+        void LoadMap(int gx, int gy);
+        void LoadMMap(int gx, int gy);
         bool IsGridLoaded(GridCoord const&) const;
         void EnsureGridCreated(GridCoord const&);
-        void EnsureGridCreated_i(GridCoord const&);
         bool EnsureGridLoaded(Cell const&);
 
         void buildNGridLinkage(NGridType* pNGridType) { pNGridType->link(this); }
@@ -770,6 +768,7 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
     protected:
         std::mutex _mapLock;
         std::mutex _gridLock;
+        std::mutex _loadLock;
 
         MapEntry const* i_mapEntry;
         uint8 i_spawnMode;
@@ -961,10 +960,6 @@ class TC_GAME_API PartitionMap : public Map
         const Map* GetParent() const override { return _parent; }
         Map* GetParent() override { return _parent; }
         void LoadMapAndVMap(int gx, int gy) override { _parent->LoadMapAndVMap(gx, gy); }
-        void LoadVMap(int gx, int gy) override { _parent->LoadVMap(gx, gy); }
-        void LoadMap(int gx, int gy) override { _parent->LoadMap(gx, gy); }
-        void LoadMMap(int gx, int gy) override { _parent->LoadMMap(gx, gy); }
-        GridMap* GetGrid(int gx, int gy) override { return _parent->GetGrid(gx, gy); }
         GridMap* GetGrid(float x, float y) override { return _parent->GetGrid(x, y); }
         void UpdateWeather(uint32 t_diff) override { /* do nothing, parent updates weather */ }
 
@@ -1009,10 +1004,6 @@ class TC_GAME_API InstanceMap : public Map
         const Map* GetParent() const override { return _parent; }
         Map* GetParent() override { return _parent; }
         void LoadMapAndVMap(int gx, int gy) override { _parent->LoadMapAndVMap(gx, gy); }
-        void LoadVMap(int gx, int gy) override { _parent->LoadVMap(gx, gy); }
-        void LoadMap(int gx, int gy) override { _parent->LoadMap(gx, gy); }
-        void LoadMMap(int gx, int gy) override { _parent->LoadMMap(gx, gy); }
-        GridMap* GetGrid(int gx, int gy) override { return _parent->GetGrid(gx, gy); }
         GridMap* GetGrid(float x, float y) override { return _parent->GetGrid(x, y); }
 
         bool AddPlayerToMap(Player*) override;
@@ -1064,10 +1055,6 @@ class TC_GAME_API BattlegroundMap : public Map
         const Map* GetParent() const override { return _parent; }
         Map* GetParent() override { return _parent; }
         void LoadMapAndVMap(int gx, int gy) override { _parent->LoadMapAndVMap(gx, gy); }
-        void LoadVMap(int gx, int gy) override { _parent->LoadVMap(gx, gy); }
-        void LoadMap(int gx, int gy) override { _parent->LoadMap(gx, gy); }
-        void LoadMMap(int gx, int gy) override { _parent->LoadMMap(gx, gy); }
-        GridMap* GetGrid(int gx, int gy) override { return _parent->GetGrid(gx, gy); }
         GridMap* GetGrid(float x, float y) override { return _parent->GetGrid(x, y); }
 
         bool AddPlayerToMap(Player*) override;

@@ -219,6 +219,7 @@ void Map::LoadMap(int gx, int gy)
 
 void Map::LoadMapAndVMap(int gx, int gy)
 {
+    std::lock_guard<std::mutex> lock(_loadLock);
     if (GridMaps[gx][gy])
         return;
 
@@ -417,16 +418,11 @@ void Map::DeleteFromWorld(Transport* transport)
     delete transport;
 }
 
+//Create NGrid so the object can be added to it
+//But object data is not loaded here
 void Map::EnsureGridCreated(GridCoord const& p)
 {
     std::lock_guard<std::mutex> lock(_gridLock);
-    EnsureGridCreated_i(p);
-}
-
-//Create NGrid so the object can be added to it
-//But object data is not loaded here
-void Map::EnsureGridCreated_i(GridCoord const& p)
-{
     if (!getNGrid(p.x_coord, p.y_coord))
     {
         TC_LOG_DEBUG("maps", "Creating grid[{}, {}] for map {} instance {}", p.x_coord, p.y_coord, GetId(), GetInstanceId());
@@ -2114,10 +2110,7 @@ inline ZLiquidStatus GridMap::GetLiquidStatus(float x, float y, float z, Optiona
     return LIQUID_MAP_ABOVE_WATER;
 }
 
-inline GridMap* Map::GetGrid(int gx, int gy)
-{
-    return GridMaps[gx][gy];
-}
+
 
 inline GridMap* Map::GetGrid(float x, float y)
 {
