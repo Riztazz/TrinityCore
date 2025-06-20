@@ -179,13 +179,13 @@ void MapManager::DoForAllMaps(Worker&& worker)
         Map* baseMap = mapPtr.get();
         if (auto* mapInstanced = baseMap->ToMapInstanced())
         {
-            for (auto& [__, instancePtr] : mapInstanced->GetInstances())
+            for (auto& [_, instancePtr] : mapInstanced->GetInstances())
                 worker(instancePtr.get());
         }
         else if (auto* mapPartitioned = baseMap->ToMapPartitioned())
         {
             worker(baseMap);
-            for (auto& [__, partitionPtr] : mapPartitioned->GetPartitions())
+            for (auto& [_, partitionPtr] : mapPartitioned->GetPartitions())
                 worker(partitionPtr.get());
         }
     }
@@ -204,12 +204,12 @@ inline void MapManager::DoForAllMapsWithMapId(uint32 mapId, Worker&& worker)
 
         if (auto* mapInstanced = map->ToMapInstanced())
         {
-            for (auto& [__, instancePtr] : mapInstanced->GetInstances())
+            for (auto& [_, instancePtr] : mapInstanced->GetInstances())
                 worker(instancePtr.get());
         }
         else if (auto* mapPartitioned = map->ToMapPartitioned())
         {
-            for (auto& [__, partitionPtr] : mapPartitioned->GetPartitions())
+            for (auto& [_, partitionPtr] : mapPartitioned->GetPartitions())
                 worker(partitionPtr.get());
         }
     }

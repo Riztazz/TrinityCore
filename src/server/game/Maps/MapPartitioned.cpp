@@ -223,14 +223,9 @@ Map* MapPartitioned::CreatePartition(uint32 mapId, uint32 partitionId)
     Map* map = new PartitionMap(GetId(), partitionId, this);
     ASSERT(map->IsWorldMap());
 
-    map->LoadRespawnTimes();
-    map->LoadCorpseData();
-
     Trinity::unique_trackable_ptr<Map>& ptr = _partitions[partitionId];
     ptr.reset(map);
     map->SetWeakPtr(ptr);
-
-    sScriptMgr->OnCreateMap(map);
 
     return map;
 }

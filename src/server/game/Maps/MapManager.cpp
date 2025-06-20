@@ -133,15 +133,27 @@ Map* MapManager::CreateBaseMap(uint32 id)
             map = new MapPartitioned(id);
             std::unique_ptr<Map> ptr(map); 
             _baseMaps[id] = std::move(ptr);
-            // Create all partitions for this map
-            map->ToMapPartitioned()->CreateAllPartitions();
-            // Loading respawns and corpses will find the right partition to load into, so
-            // that is why we go ahead and creat all partitions up front
+
+            MapPartitioned* mapPartitioned = map->ToMapPartitioned();
+
+            // Create all partitions for this map before loading respawns and corpses
+            for (auto& partitionEntry : mapPartitioned->GetPartitionEntries())
+            {
+                mapPartitioned->CreatePartition(id, partitionEntry.partitionId);
+            }
+
             map->LoadRespawnTimes();
             map->LoadCorpseData();
-        }
+            sScriptMgr->OnCreateMap(map);
 
-        sScriptMgr->OnCreateMap(map);
+            for (auto& [_, partitionPtr] : mapPartitioned->GetPartitions())
+            {
+                partitionPtr.get()->LoadRespawnTimes();
+                partitionPtr.get()->LoadCorpseData();
+                // Call on create after loading respawns and corpses for consistency
+                sScriptMgr->OnCreateMap(partitionPtr.get());
+            }
+        }
     }
 
     ASSERT(map);
