@@ -4394,7 +4394,14 @@ void Map::LoadRespawnTimes()
             if (SpawnData::TypeHasData(type))
             {
                 if (SpawnData const* data = sObjectMgr->GetSpawnData(type, spawnId))
+                {
+                    // We only load respawns for the current partition, we don't save partitionId to the database so that this can
+                    // be dynamically calculated at runtime
+                    if (sMapMgr->CalculatePartitionId(GetId(), data->spawnPoint) != GetPartitionId())
+                        continue;
+
                     SaveRespawnTime(type, spawnId, data->id, time_t(respawnTime), Trinity::ComputeGridCoord(data->spawnPoint.GetPositionX(), data->spawnPoint.GetPositionY()).GetId(), nullptr, true);
+                }
                 else
                     TC_LOG_ERROR("maps", "Loading saved respawn time of {} for spawnid ({},{}) - spawn does not exist, ignoring", respawnTime, uint32(type), spawnId);
             }
@@ -4627,6 +4634,14 @@ void Map::LoadCorpseData()
         Corpse* corpse = new Corpse(type);
 
         if (!corpse->LoadCorpseFromDB(GenerateLowGuid<HighGuid::Corpse>(), fields))
+        {
+            delete corpse;
+            continue;
+        }
+
+        // We only load corpses for the current partition, we don't save partitionId to the database so that this can
+        // be dynamically calculated at runtime
+        if (sMapMgr->CalculatePartitionId(GetId(), corpse->GetPosition()) != GetPartitionId())
         {
             delete corpse;
             continue;

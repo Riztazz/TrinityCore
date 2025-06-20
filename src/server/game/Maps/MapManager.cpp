@@ -125,7 +125,12 @@ Map* MapManager::CreateBaseMap(uint32 id)
         if (entry->Instanceable())
             map = new MapInstanced(id);
         else
+        {
             map = new MapPartitioned(id);
+            // MapPartitioned is an active map (partition 0) so we load its respawns and corpses
+            map->LoadRespawnTimes();
+            map->LoadCorpseData();
+        }
 
         std::unique_ptr<Map> ptr(map); 
         _baseMaps[id] = std::move(ptr);
