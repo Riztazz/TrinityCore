@@ -727,13 +727,6 @@ void Map::UpdatePlayerZoneStats(uint32 oldZone, uint32 newZone)
     ++_zonePlayerCountMap[newZone];
 }
 
-uint32 Map::GetZonePlayerCount(uint32 zoneId) const {
-    auto it = _zonePlayerCountMap.find(zoneId);
-    if (it == _zonePlayerCountMap.end())
-        return 0;
-    return it->second;
-}
-
 // @tswow-begin tracy
 void Map::Update(uint32 t_diff)
 {
@@ -801,7 +794,6 @@ void Map::Update(uint32 t_diff)
     resetMarkedCells();
 
     Trinity::ObjectUpdater updater(t_diff);
-
     // for creature
     TypeContainerVisitor<Trinity::ObjectUpdater, GridTypeMapContainer  > grid_object_update(updater);
     // for pets
@@ -1121,8 +1113,8 @@ void Map::RemovePlayerFromPartition(Player* player)
     ZoneScopedN("Map::RemovePlayerFromPartition");
     TC_LOG_DEBUG("partitions", "Map::RemovePlayerFromPartition called");
 
-    // Before leaving map, update zone/area for stats
-    //player->UpdateZone(MAP_INVALID_ZONE, 0);
+    // Before leaving partition, update zone/area for stats
+    player->UpdateZone(MAP_INVALID_ZONE, 0);
     // @tswow-begin
     //FIRE_ID(GetId(),Map,OnPlayerLeave,TSMap(this),TSPlayer(player));
     //player->m_tsWorldEntity.m_timers.remove_on_map_change();
@@ -1153,6 +1145,7 @@ void Map::RemoveFromMap(T *obj, bool remove)
 
     if (obj->isActiveObject())
         RemoveFromActive(obj);
+
     if (obj->IsCreature() && obj->ToCreature()->GetWaypointPath() != 0)
         RemoveFromWaypointCreatures(obj->ToCreature());
 
@@ -3169,11 +3162,11 @@ void Map::ApplyDynamicModeRespawnScaling(WorldObject const* obj, ObjectGuid::Low
             const GameObject* go = obj->ToGameObject();
 
             // Overall Zone Count
-            int32 count = GetZonePlayerCount(obj->GetZoneId());
-            if (count <= 0)
+            auto it = _zonePlayerCountMap.find(obj->GetZoneId());
+            if (it == _zonePlayerCountMap.end())
                 return;
 
-            count -= sWorld->getIntConfig(CONFIG_RESPAWN_DYNAMIC_GOBJECT_PLAYER_THRESHOLD);
+            int32 count = it->second;
             if (count <= 0)
                 return;
 
