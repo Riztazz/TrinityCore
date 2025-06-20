@@ -1694,7 +1694,7 @@ void World::SetInitialWorldSettings()
 
     std::vector<uint32> mapIds;
     for (uint32 mapId = 0; mapId < sMapStore.GetNumRows(); mapId++)
-        if (MapEntry const* mapEntry = sMapStore.LookupEntry(mapId))
+        if (sMapStore.LookupEntry(mapId))
             mapIds.push_back(mapId);
 
     vmmgr2->InitializeThreadUnsafe(mapIds);
@@ -2344,7 +2344,6 @@ void World::SetInitialWorldSettings()
     // Preload all cells, if required for the base maps
     if (sWorld->getBoolConfig(CONFIG_BASEMAP_LOAD_GRIDS))
     {
-        // Load all cells 
         sMapMgr->DoForAllMaps([](Map* map)
         {
             if (!map->Instanceable())
