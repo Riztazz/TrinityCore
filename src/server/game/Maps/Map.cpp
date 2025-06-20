@@ -727,7 +727,7 @@ void Map::UpdatePlayerZoneStats(uint32 oldZone, uint32 newZone)
     ++_zonePlayerCountMap[newZone];
 }
 
-uint32 Map::GetZonePlayerCount(uint32 zoneId) {
+uint32 Map::GetZonePlayerCount(uint32 zoneId) const {
     auto it = _zonePlayerCountMap.find(zoneId);
     if (it == _zonePlayerCountMap.end())
         return 0;
