@@ -186,14 +186,6 @@ uint32 MapPartitioned::CalculatePartitionId(Position const& pos) const
     return 0;
 }
 
-void MapPartitioned::CreateAllPartitions()
-{
-    for (const auto& partition : _partitionEntries)
-    {
-        CreatePartition(GetId(), partition.partitionId);
-    }
-}
-
 Map* MapPartitioned::CreatePartition(uint32 mapId, uint32 partitionId)
 {
     ASSERT(GetId() == mapId);
@@ -206,11 +198,6 @@ Map* MapPartitioned::CreatePartition(uint32 mapId, uint32 partitionId)
     Map* partition = FindPartition(partitionId);
     if (partition)
         return partition;
-
-    ZoneScopedNC("Map* MapPartitioned::CreatePartition", WORLD_UPDATE_COLOR)
-
-    // load/create a map
-    std::lock_guard<std::mutex> lock(_mapLock);
 
     // make sure we have a valid map id
     MapEntry const* entry = sMapStore.LookupEntry(GetId());

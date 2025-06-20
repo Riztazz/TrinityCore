@@ -48,7 +48,6 @@ class TC_GAME_API MapPartitioned : public Map
         void UnloadAll() override;
 
         uint32 CalculatePartitionId(Position const& pos) const;
-        void CreateAllPartitions();
         Map* CreatePartition(uint32 mapId, uint32 partitionId);
         Map* FindPartition(uint32 partitionId) const
         {
