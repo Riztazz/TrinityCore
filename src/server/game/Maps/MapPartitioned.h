@@ -48,13 +48,13 @@ class TC_GAME_API MapPartitioned : public Map
         void UnloadAll() override;
 
         uint32 CalculatePartitionId(Position const& pos) const;
+        void CreateAllPartitions();
         Map* CreatePartition(uint32 mapId, uint32 partitionId);
         Map* FindPartition(uint32 partitionId) const
         {
             auto it = _partitions.find(partitionId);
             return (it != _partitions.end()) ? it->second.get() : nullptr;
         }
-        bool DestroyPartition(Partitions::iterator &itr);
 
         Partitions &GetPartitions() { return _partitions; }
         PartitionEntries &GetPartitionEntries() { return _partitionEntries; }

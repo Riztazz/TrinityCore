@@ -186,6 +186,14 @@ uint32 MapPartitioned::CalculatePartitionId(Position const& pos) const
     return 0;
 }
 
+void MapPartitioned::CreateAllPartitions()
+{
+    for (const auto& partition : _partitionEntries)
+    {
+        CreatePartition(GetId(), partition.partitionId);
+    }
+}
+
 Map* MapPartitioned::CreatePartition(uint32 mapId, uint32 partitionId)
 {
     ASSERT(GetId() == mapId);

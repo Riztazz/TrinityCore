@@ -175,16 +175,15 @@ void MapManager::DoForAllMaps(Worker&& worker)
 
     for (auto& [_, mapPtr] : _baseMaps)
     {
-        Map* map = mapPtr.get();
-        worker(map);
-
-        if (auto* mapInstanced = map->ToMapInstanced())
+        Map* baseMap = mapPtr.get();
+        if (auto* mapInstanced = baseMap->ToMapInstanced())
         {
             for (auto& [__, instancePtr] : mapInstanced->GetInstances())
                 worker(instancePtr.get());
         }
-        else if (auto* mapPartitioned = map->ToMapPartitioned())
+        else if (auto* mapPartitioned = baseMap->ToMapPartitioned())
         {
+            worker(baseMap);
             for (auto& [__, partitionPtr] : mapPartitioned->GetPartitions())
                 worker(partitionPtr.get());
         }
