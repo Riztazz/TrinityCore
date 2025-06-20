@@ -386,7 +386,7 @@ void Creature::AddToPartition()
     TC_LOG_DEBUG("entities.unit", "Adding creature {} with DBGUID {} to world in map {}", GetGUID().ToString(), m_spawnId, GetMap()->GetId());
 
     Unit::AddToPartition();
-    //AIM_Initialize();
+    AIM_Initialize();
     SearchFormation();
     //if (IsVehicle())
     //    GetVehicleKit()->Install();
