@@ -968,7 +968,7 @@ class TC_GAME_API PartitionMap : public Map
         GridMap* GetGrid(float x, float y) override { return _parent->GetGrid(x, y); }
         void UpdateWeather(uint32 t_diff) override { /* do nothing, parent updates weather */ }
         void UpdatePlayerZoneStats(uint32 oldZone, uint32 newZone) override { _parent->UpdatePlayerZoneStats(oldZone, newZone); }
-        uint32 GetZonePlayerCount(uint32 zoneId) const override { return _parent->GetZonePlayerCount(zoneId); }
+        uint32 GetZonePlayerCount(uint32 zoneId) override { return _parent->GetZonePlayerCount(zoneId); }
 
         void SendZoneDynamicInfo(uint32 zoneId, Player* player) const override
         {
