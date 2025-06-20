@@ -727,6 +727,13 @@ void Map::UpdatePlayerZoneStats(uint32 oldZone, uint32 newZone)
     ++_zonePlayerCountMap[newZone];
 }
 
+uint32 Map::GetZonePlayerCount(uint32 zoneId) const {
+    auto it = _zonePlayerCountMap.find(zoneId);
+    if (it == _zonePlayerCountMap.end())
+        return 0;
+    return it->second;
+}
+
 // @tswow-begin tracy
 void Map::Update(uint32 t_diff)
 {
@@ -3162,11 +3169,10 @@ void Map::ApplyDynamicModeRespawnScaling(WorldObject const* obj, ObjectGuid::Low
             const GameObject* go = obj->ToGameObject();
 
             // Overall Zone Count
-            auto it = _zonePlayerCountMap.find(obj->GetZoneId());
-            if (it == _zonePlayerCountMap.end())
+            int32 count = GetZonePlayerCount(obj->GetZoneId());
+            if (count <= 0)
                 return;
 
-            int32 count = it->second;
             count -= sWorld->getIntConfig(CONFIG_RESPAWN_DYNAMIC_GOBJECT_PLAYER_THRESHOLD);
             if (count <= 0)
                 return;

@@ -434,6 +434,8 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
         virtual GridMap* GetGrid(int gx, int gy);
         virtual GridMap* GetGrid(float x, float y);
         virtual void UpdateWeather(uint32 t_diff);
+        virtual void UpdatePlayerZoneStats(uint32 oldZone, uint32 newZone);
+        virtual uint32 GetZonePlayerCount(uint32 zoneId);
 
         static bool ExistMap(uint32 mapId, int gx, int gy);
         static bool ExistVMap(uint32 mapId, int gx, int gy);
@@ -678,8 +680,6 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
         }
         time_t GetCreatureRespawnTime(ObjectGuid::LowType spawnId) const { return GetRespawnTime(SPAWN_TYPE_CREATURE, spawnId); }
         time_t GetGORespawnTime(ObjectGuid::LowType spawnId) const { return GetRespawnTime(SPAWN_TYPE_GAMEOBJECT, spawnId); }
-
-        void UpdatePlayerZoneStats(uint32 oldZone, uint32 newZone);
 
         void SaveRespawnTime(SpawnObjectType type, ObjectGuid::LowType spawnId, uint32 entry, time_t respawnTime, uint32 gridId, CharacterDatabaseTransaction dbTrans = nullptr, bool startup = false);
         void SaveRespawnInfoDB(RespawnInfo const& info, CharacterDatabaseTransaction dbTrans = nullptr);
@@ -967,7 +967,9 @@ class TC_GAME_API PartitionMap : public Map
         GridMap* GetGrid(int gx, int gy) override { return _parent->GetGrid(gx, gy); }
         GridMap* GetGrid(float x, float y) override { return _parent->GetGrid(x, y); }
         void UpdateWeather(uint32 t_diff) override { /* do nothing, parent updates weather */ }
-       
+        void UpdatePlayerZoneStats(uint32 oldZone, uint32 newZone) override { _parent->UpdatePlayerZoneStats(oldZone, newZone); }
+        uint32 GetZonePlayerCount(uint32 zoneId) const override { return _parent->GetZonePlayerCount(zoneId); }
+
         void SendZoneDynamicInfo(uint32 zoneId, Player* player) const override
         {
             return _parent->SendZoneDynamicInfo(zoneId, player);
