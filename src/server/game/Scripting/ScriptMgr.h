@@ -314,10 +314,10 @@ class TC_GAME_API MapScript
         virtual void OnDestroy(TMap* map);
 
         // Called when a grid map is loaded.
-        virtual void OnLoadGridMap(Map* /*map*/, GridMap* /*gmap*/, uint32 /*gx*/, uint32 /*gy*/) { }
+        virtual void OnLoadGridMap(TMap* /*map*/, GridMap* /*gmap*/, uint32 /*gx*/, uint32 /*gy*/) { }
 
         // Called when a grid map is unloaded.
-        virtual void OnUnloadGridMap(Map* /*map*/, GridMap* /*gmap*/, uint32 /*gx*/, uint32 /*gy*/)  { }
+        virtual void OnUnloadGridMap(TMap* /*map*/, GridMap* /*gmap*/, uint32 /*gx*/, uint32 /*gy*/)  { }
 
         // Called when a player enters the map.
         virtual void OnPlayerEnter(TMap* map, Player* player);

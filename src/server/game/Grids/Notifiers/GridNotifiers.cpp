@@ -15,7 +15,6 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-
 #include "GridNotifiers.h"
 #include "GridNotifiersImpl.h"
 #include "WorldPacket.h"
@@ -24,7 +23,6 @@
 #include "Transport.h"
 #include "ObjectAccessor.h"
 #include "CellImpl.h"
-
 // @tswow-begin
 #include "TSUnit.h"
 #include "TSCreature.h"
