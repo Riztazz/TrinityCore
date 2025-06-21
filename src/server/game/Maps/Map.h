@@ -427,8 +427,6 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
         virtual uint8 GetSpawnMode() const { return REGULAR_DIFFICULTY; }
         virtual const Map* GetParent() const { return this; }
         virtual Map* GetParent() { return this; }
-        virtual void LoadMapAndVMap(int gx, int gy);
-        virtual GridMap* GetGrid(float x, float y);
         virtual void UpdateWeather(uint32 t_diff);
 
         static bool ExistMap(uint32 mapId, int gx, int gy);
@@ -742,11 +740,14 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
         virtual std::string GetDebugInfo() const;
 
     private:
-        void SendInitSelf(Player* player);
-
         void LoadVMap(int gx, int gy);
         void LoadMap(int gx, int gy);
         void LoadMMap(int gx, int gy);
+        GridMap* GetGrid(int gx, int gy);
+        GridMap* GetGrid(float x, float y);
+
+        void SendInitSelf(Player* player);
+
         bool IsGridLoaded(GridCoord const&) const;
         void EnsureGridCreated(GridCoord const&);
         bool EnsureGridLoaded(Cell const&);
@@ -768,7 +769,6 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
     protected:
         std::mutex _mapLock;
         std::mutex _gridLock;
-        std::mutex _loadLock;
 
         MapEntry const* i_mapEntry;
         uint8 i_spawnMode;
@@ -959,8 +959,6 @@ class TC_GAME_API PartitionMap : public Map
         uint32 GetPartitionId() const override { return _partitionId; }
         const Map* GetParent() const override { return _parent; }
         Map* GetParent() override { return _parent; }
-        void LoadMapAndVMap(int gx, int gy) override { _parent->LoadMapAndVMap(gx, gy); }
-        GridMap* GetGrid(float x, float y) override { return _parent->GetGrid(x, y); }
         void UpdateWeather(uint32 t_diff) override { /* do nothing, parent updates weather */ }
 
         void SendZoneDynamicInfo(uint32 zoneId, Player* player) const override
@@ -1003,8 +1001,6 @@ class TC_GAME_API InstanceMap : public Map
         uint8 GetSpawnMode() const override { return _spawnMode; }
         const Map* GetParent() const override { return _parent; }
         Map* GetParent() override { return _parent; }
-        void LoadMapAndVMap(int gx, int gy) override { _parent->LoadMapAndVMap(gx, gy); }
-        GridMap* GetGrid(float x, float y) override { return _parent->GetGrid(x, y); }
 
         bool AddPlayerToMap(Player*) override;
         void RemovePlayerFromMap(Player*, bool) override;
@@ -1054,8 +1050,6 @@ class TC_GAME_API BattlegroundMap : public Map
         uint8 GetSpawnMode() const override { return _spawnMode; }
         const Map* GetParent() const override { return _parent; }
         Map* GetParent() override { return _parent; }
-        void LoadMapAndVMap(int gx, int gy) override { _parent->LoadMapAndVMap(gx, gy); }
-        GridMap* GetGrid(float x, float y) override { return _parent->GetGrid(x, y); }
 
         bool AddPlayerToMap(Player*) override;
         void RemovePlayerFromMap(Player*, bool) override;

@@ -206,6 +206,14 @@ void Map::LoadMap(int gx, int gy)
     if (GridMaps[gx][gy])
         return;
 
+    // All child maps use the same load logic so inlining it here
+    if (GetParent() != this)
+    {
+        // ensure parent grid is created and set reference
+        GridMaps[gx][gy] = GetParent()->GetGrid(gx, gy);
+        return;
+    }
+
     // map file name
     std::string fileName = Trinity::StringFormat("{}maps/{:03}{:02}{:02}.map", sWorld->GetDataPath(), GetId(), gx, gy);
     TC_LOG_DEBUG("maps", "Loading map {}", fileName);
@@ -215,15 +223,8 @@ void Map::LoadMap(int gx, int gy)
         TC_LOG_ERROR("maps", "Error loading map file: \n {}\n", fileName);
 
     sScriptMgr->OnLoadGridMap(this, GridMaps[gx][gy], gx, gy);
-}
 
-void Map::LoadMapAndVMap(int gx, int gy)
-{
-    std::lock_guard<std::mutex> lock(_loadLock);
-    if (GridMaps[gx][gy])
-        return;
-
-    LoadMap(gx, gy);
+    // only loaded for parent map
     LoadVMap(gx, gy);
     LoadMMap(gx, gy);
 }
@@ -437,7 +438,7 @@ void Map::EnsureGridCreated(GridCoord const& p)
         int gx = (MAX_NUMBER_OF_GRIDS - 1) - p.x_coord;
         int gy = (MAX_NUMBER_OF_GRIDS - 1) - p.y_coord;
 
-        LoadMapAndVMap(gx, gy);
+        LoadMap(gx, gy);
     }
 }
 
@@ -1373,7 +1374,7 @@ void Map::UnloadGrid(NGridType& ngrid)
 
     if (GetParent() == this)
     {
-        ZoneScopedNC("Map::UnloadGrid i_InstanceId == 0", WORLD_UPDATE_COLOR)
+        ZoneScopedNC("Map::UnloadGrid i_InstanceId == {}", WORLD_UPDATE_COLOR)
 
         if (GridMaps[gx][gy])
         {
@@ -2110,7 +2111,12 @@ inline ZLiquidStatus GridMap::GetLiquidStatus(float x, float y, float z, Optiona
     return LIQUID_MAP_ABOVE_WATER;
 }
 
+inline GridMap* Map::GetGrid(int gx, int gy)
+{
+    EnsureGridCreated(GridCoord((MAX_NUMBER_OF_GRIDS - 1) - gx, (MAX_NUMBER_OF_GRIDS - 1) - gy));
 
+    return GridMaps[gx][gy];
+}
 
 inline GridMap* Map::GetGrid(float x, float y)
 {
@@ -2120,11 +2126,7 @@ inline GridMap* Map::GetGrid(float x, float y)
     int gx=(int)(CENTER_GRID_ID - x/SIZE_OF_GRIDS);                       //grid x
     int gy=(int)(CENTER_GRID_ID - y/SIZE_OF_GRIDS);                       //grid y
 
-    // ensure GridMap is loaded
-    // GridCoords go from 0>N-1, so we need to invert gx/gy
-    EnsureGridCreated(GridCoord((MAX_NUMBER_OF_GRIDS - 1) - gx, (MAX_NUMBER_OF_GRIDS - 1) - gy));
-
-    return GridMaps[gx][gy];
+    return GetGrid(gx, gy);
 }
 
 float Map::GetWaterOrGroundLevel(uint32 phasemask, float x, float y, float z, float* ground /*= nullptr*/, bool /*swim = false*/, float collisionHeight /*= DEFAULT_COLLISION_HEIGHT*/) const
