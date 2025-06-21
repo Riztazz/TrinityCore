@@ -26607,7 +26607,7 @@ void Player::SetMap(Map* map)
 // Only call from Map Delayed Update (map thread safety)
 void Player::UpdateMapPartition(Map* forcedMap)
 {
-    // Ignore players update if we are in a vehicle, the vehicle creature needs to move first
+    // When players are in a vehicle the vehicle needs to move first, and this called from the vehicle with a forcedMap
     if (m_vehicle && !forcedMap)
         return;
 
