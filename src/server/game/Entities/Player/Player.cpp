@@ -4878,7 +4878,21 @@ void Player::SpawnCorpseBones(bool triggerSave /*= true*/)
 
 Corpse* Player::GetCorpse() const
 {
-    return GetMap()->GetCorpseByPlayer(GetGUID());
+    Map* map = GetMap();
+    if (!map)
+        return nullptr;
+
+    if (MapPartitioned* mapPartitioned = map->ToMapPartitioned())
+    {
+        for (auto& [_, partitionPtr] : mapPartitioned->GetPartitions())
+        {
+            if (Corpse* corpse = partitionPtr->GetCorpseByPlayer(GetGUID()))
+                return corpse;
+        }
+        return nullptr;
+    }
+
+    return map->GetCorpseByPlayer(GetGUID());
 }
 
 void Player::SendDurabilityLoss()
