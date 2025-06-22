@@ -710,7 +710,7 @@ void WorldSession::HandleReclaimCorpse(WorldPackets::Misc::ReclaimCorpse& /*pack
     if (time_t(corpse->GetGhostTime() + _player->GetCorpseReclaimDelay(corpse->GetType() == CORPSE_RESURRECTABLE_PVP)) > GameTime::GetGameTime())
         return;
 
-    if (!corpse->IsWithinDistInMap(_player, CORPSE_RECLAIM_RADIUS, true))
+    if (!corpse->IsWithinSpawnDist(_player, CORPSE_RECLAIM_RADIUS, true))
         return;
 
     // resurrect

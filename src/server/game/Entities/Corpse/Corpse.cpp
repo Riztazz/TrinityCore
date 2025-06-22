@@ -209,3 +209,14 @@ bool Corpse::IsExpired(time_t t) const
     else
         return m_time < t - 3 * DAY;
 }
+
+bool Corpse::IsWithinSpawnDist(WorldObject const* obj, float dist2compare, bool is3D /*= true*/, bool incOwnRadius /*= true*/, bool incTargetRadius /*= true*/) const
+{
+    return obj && IsInSpawnMap(obj) && InSamePhase(obj) && _IsWithinDist(obj, dist2compare, is3D, incOwnRadius, incTargetRadius);
+}
+
+// Allow respawning if in same map but not same partition of corpse
+bool Corpse::IsInSpawnMap(WorldObject const* obj) const
+{
+    return obj && IsInWorld() && obj->IsInWorld() && (GetMapId() == obj->GetMapId()) && (GetMap()->GetInstanceId() == obj->GetMap()->GetInstanceId());
+}
