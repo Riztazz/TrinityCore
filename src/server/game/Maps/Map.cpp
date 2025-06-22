@@ -727,7 +727,6 @@ void Map::UpdatePlayerZoneStats(uint32 oldZone, uint32 newZone)
 // @tswow-begin tracy
 void Map::Update(uint32 t_diff)
 {
-    TC_LOG_DEBUG("partitions", "Map::Update {} - {} - {} ", GetId(), GetPartitionId(), GameTime::GetGameTime());
     ZoneScopedC(MAP_UPDATE_COLOR)
     // @tswow-begin tswow-events
     m_tsWorldEntity.tick(TSMap(this));
