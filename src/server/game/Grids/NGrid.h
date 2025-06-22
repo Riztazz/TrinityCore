@@ -41,7 +41,7 @@ class NGrid
     public:
         typedef Grid<ACTIVE_OBJECT, WORLD_OBJECT_TYPES, GRID_OBJECT_TYPES> GridType;
         NGrid(uint32 id, int32 x, int32 y) :
-            i_gridId(id), i_x(x), i_y(y), vis_Update(0, irand(0, DEFAULT_VISIBILITY_NOTIFY_PERIOD))
+            i_gridId(id), i_x(x), i_y(y), i_GridObjectDataLoaded(false), vis_Update(0, irand(0, DEFAULT_VISIBILITY_NOTIFY_PERIOD))
         { }
 
         GridType& GetGridType(const uint32 x, const uint32 y)
