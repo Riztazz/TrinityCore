@@ -26645,9 +26645,26 @@ void Player::UpdateMapPartition(Map* forcedMap)
     UpdateData deleteData;
     for (auto it = m_clientGUIDs.begin(); it != m_clientGUIDs.end(); ++it)
     {
-        // Don't delete the vehicle
-        if (m_vehicle && m_vehicle->GetBase()->GetGUID() == *it)
-            continue;
+        if (m_vehicle)
+        {
+            // Don't delete the vehicle
+            if (m_vehicle->GetBase()->GetGUID() == *it)
+                continue;
+
+            // Don't delete passengers
+            bool passenger = false;
+            for (auto const& [_, seat] : m_vehicle->Seats)
+            {
+                if (seat.Passenger.Guid == *it)
+                {
+                    passenger = true;
+                    break;
+                }
+            }
+            if (passenger)
+                continue;
+        }
+
         deleteData.AddOutOfRangeGUID(*it);
     }
     if (deleteData.HasData())
