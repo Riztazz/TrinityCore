@@ -109,7 +109,7 @@ Map::~Map()
     if (!m_scriptSchedule.empty())
         sMapMgr->DecreaseScheduledScriptCount(m_scriptSchedule.size());
 
-    MMAP::MMapFactory::createOrGetMMapManager()->unloadMapInstance(GetId(), GetInstanceId());
+    MMAP::MMapFactory::createOrGetMMapManager()->unloadMapInstance(GetId(), GetInstanceId() ? GetInstanceId() : GetPartitionId());
 }
 
 bool Map::ExistMap(uint32 mapId, int gx, int gy)
@@ -264,7 +264,7 @@ i_scriptLock(false), _respawnTimes(std::make_unique<RespawnListContainer>()), _r
     FIRE_ID(GetId(),Map,OnCreate,TSMap(this));
     FIRE_ID(GetId(),Map,OnReload,TSMap(this));
     // @tswow-end
-    MMAP::MMapFactory::createOrGetMMapManager()->loadMapInstance(sWorld->GetDataPath(), GetId(), GetInstanceId());
+    MMAP::MMapFactory::createOrGetMMapManager()->loadMapInstance(sWorld->GetDataPath(), GetId(), GetInstanceId() ? GetInstanceId() : GetPartitionId());
 }
 
 void Map::InitVisibilityDistance()
