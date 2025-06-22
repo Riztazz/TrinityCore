@@ -1896,16 +1896,19 @@ bool Creature::LoadFromDB(ObjectGuid::LowType spawnId, Map* map, bool addToMap, 
         return false;
     }
 
-    m_spawnId = spawnId;
+    Position spawnPoint = data->spawnPoint;
 
+    // Only load creatures into their respective partitions
+    if (sMapMgr->CalculatePartitionId(map->GetId(), spawnPoint) != map->GetPartitionId())
+        return false;
+
+    m_spawnId = spawnId;
     m_respawnCompatibilityMode = ((data->spawnGroupData->flags & SPAWNGROUP_FLAG_COMPATIBILITY_MODE) != 0);
     m_creatureData = data;
     m_wanderDistance = data->wander_distance;
     m_respawnDelay = data->spawntimesecs;
-    Position spawnPoint = data->spawnPoint;
 
     // Change our spawn/home position to the leader's position if we are in a formation
-    
     if (FormationInfo const* formationInfo = sFormationMgr->GetFormationInfo(spawnId))
         if (CreatureGroup* formation = sFormationMgr->GetCreatureGroup(formationInfo->LeaderSpawnId, map))
             if (Creature* leader = formation->GetLeader())

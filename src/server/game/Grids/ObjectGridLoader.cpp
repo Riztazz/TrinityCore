@@ -90,16 +90,6 @@ void LoadHelper(CellGuidSet const& guid_set, CellCoord &cell, GridRefManager<T> 
             continue;
         }
 
-        // Here we skip objects that should be loaded in a different partition
-        Position pos;
-        if constexpr (std::is_same_v<T, GameObject>)
-            pos = obj->GetGameObjectData()->spawnPoint;
-        else if constexpr (std::is_same_v<T, Creature>)
-            pos = obj->GetCreatureData()->spawnPoint;
-
-        if (sMapMgr->CalculatePartitionId(map->GetId(), pos) != map->GetPartitionId())
-            continue;
-
         AddObjectHelper(cell, m, count, map, obj);
     }
 }
