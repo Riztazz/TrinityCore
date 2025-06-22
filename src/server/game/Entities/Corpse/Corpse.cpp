@@ -210,7 +210,7 @@ bool Corpse::IsExpired(time_t t) const
         return m_time < t - 3 * DAY;
 }
 
-bool Corpse::IsWithinSpawnDist(WorldObject const* obj, float dist2compare, bool is3D /*= true*/, bool incOwnRadius /*= true*/, bool incTargetRadius /*= true*/) const
+bool Corpse::IsWithinDistInSpawnMap(WorldObject const* obj, float dist2compare, bool is3D /*= true*/, bool incOwnRadius /*= true*/, bool incTargetRadius /*= true*/) const
 {
     return obj && IsInSpawnMap(obj) && InSamePhase(obj) && _IsWithinDist(obj, dist2compare, is3D, incOwnRadius, incTargetRadius);
 }
