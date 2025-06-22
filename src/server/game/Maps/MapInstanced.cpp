@@ -28,7 +28,7 @@
 #include "TSProfile.h"
 #include "World.h"
 
-MapInstanced::MapInstanced(uint32 id) : Map(id)
+MapInstanced::MapInstanced(uint32 id) : Map(id, 0)
 {
     // This is the parent map for instance maps
 }

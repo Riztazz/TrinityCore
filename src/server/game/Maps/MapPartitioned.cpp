@@ -26,7 +26,7 @@
 #include "TemporarySummon.h"
 #include "TSProfile.h"
 
-MapPartitioned::MapPartitioned(uint32 id) : Map(id)
+MapPartitioned::MapPartitioned(uint32 id) : Map(id, 0)
 {
     PartitionEntries const* entries = sObjectMgr->GetMapPartitions(id);
 
