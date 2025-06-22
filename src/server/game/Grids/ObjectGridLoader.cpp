@@ -156,6 +156,7 @@ void ObjectGridLoader::LoadN(void)
 
             //Load creatures and game objects
             {
+                TC_LOG_DEBUG("partitionsE", "ObjectGridLoader::LoadN visiting Grid x, y {} {} ", x, y);
                 TypeContainerVisitor<ObjectGridLoader, GridTypeMapContainer> visitor(*this);
                 i_grid.VisitGrid(x, y, visitor);
             }
