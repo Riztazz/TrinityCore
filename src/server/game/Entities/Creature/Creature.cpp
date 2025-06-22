@@ -363,7 +363,6 @@ void Creature::RemoveFromWorld()
 void Creature::AddToPartition()
 {
     TC_LOG_DEBUG("partitions", "Creature::AddToPartition called");
-
     if (IsInWorld())
         return;
 
@@ -398,6 +397,7 @@ void Creature::AddToPartition()
 
 void Creature::RemoveFromPartition()
 {
+    TC_LOG_DEBUG("partitions", "Creature::RemoveFromPartition called");
     if (!IsInWorld())
         return;
 
@@ -418,6 +418,7 @@ void Creature::RemoveFromPartition()
 
     //TC_LOG_DEBUG("entities.unit", "Removing creature {} with DBGUID {} to world in map {}", GetGUID().ToString(), m_spawnId, GetMap()->GetId());
     GetMap()->GetObjectsStore().Remove<Creature>(GetGUID());
+    TC_LOG_DEBUG("partitions", "Creature::RemoveFromPartition done");
 }
 
 void Creature::SetOutfit(std::shared_ptr<CreatureOutfit> const & outfit)
@@ -3855,6 +3856,7 @@ uint32 Creature::GetModelID() const
 
 void Creature::UpdateMapPartition(Map* forcedMap)
 {
+    //TC_LOG_DEBUG("partitions", "Creature::UpdateMapPartition called");
     // When creatures are in a vehicle the vehicle needs to move first, and this called from the vehicle with a forcedMap
     if (m_vehicle && !forcedMap)
         return;

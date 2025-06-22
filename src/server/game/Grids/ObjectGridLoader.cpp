@@ -95,7 +95,11 @@ void LoadHelper(CellGuidSet const& guid_set, CellCoord &cell, GridRefManager<T> 
         if constexpr (std::is_same_v<T, GameObject>)
             pos = obj->GetGameObjectData()->spawnPoint;
         else if constexpr (std::is_same_v<T, Creature>)
+        {
             pos = obj->GetCreatureData()->spawnPoint;
+            TC_LOG_DEBUG("partitions", "ObjectGridLoader::LoadHelper for mapId {} partitionId {} creature guid {} spawn partitionId {} ", map->GetId(), map->GetPartitionId(), guid, sMapMgr->CalculatePartitionId(map->GetId(), pos));
+        }
+
         if (sMapMgr->CalculatePartitionId(map->GetId(), pos) != map->GetPartitionId())
             continue;
 
