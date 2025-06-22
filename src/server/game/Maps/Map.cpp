@@ -109,6 +109,7 @@ Map::~Map()
     if (!m_scriptSchedule.empty())
         sMapMgr->DecreaseScheduledScriptCount(m_scriptSchedule.size());
 
+    TC_LOG_DEBUG("partitions", "Unloading map instance/partition {} for map {}", GetInstanceId() ? GetInstanceId() : GetPartitionId(), GetId());
     MMAP::MMapFactory::createOrGetMMapManager()->unloadMapInstance(GetId(), GetInstanceId() ? GetInstanceId() : GetPartitionId());
 }
 
@@ -264,6 +265,8 @@ i_scriptLock(false), _respawnTimes(std::make_unique<RespawnListContainer>()), _r
     FIRE_ID(GetId(),Map,OnCreate,TSMap(this));
     FIRE_ID(GetId(),Map,OnReload,TSMap(this));
     // @tswow-end
+
+    TC_LOG_DEBUG("partitions", "Loading map instance/partition {} for map {}", GetInstanceId() ? GetInstanceId() : GetPartitionId(), GetId());
     MMAP::MMapFactory::createOrGetMMapManager()->loadMapInstance(sWorld->GetDataPath(), GetId(), GetInstanceId() ? GetInstanceId() : GetPartitionId());
 }
 

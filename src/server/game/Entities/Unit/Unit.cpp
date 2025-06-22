@@ -10344,7 +10344,7 @@ void Unit::AddToPartition()
         return;
 
     WorldObject::AddToPartition();
-    i_motionMaster->AddToWorld();
+    //i_motionMaster->AddToWorld();
 }
 
 void Unit::RemoveFromPartition()
