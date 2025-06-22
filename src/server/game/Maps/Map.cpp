@@ -445,6 +445,7 @@ void Map::EnsureGridCreated(GridCoord const& p)
 //Create NGrid and load the object data in it
 bool Map::EnsureGridLoaded(Cell const& cell)
 {
+    TC_LOG_DEBUG("partitions", "Map::EnsureGridLoaded called for mapId {} partitionId {} cell GridX {} GridY {} ", GetId(), GetPartitionId(), cell.GridX(), cell.GridY());
     EnsureGridCreated(GridCoord(cell.GridX(), cell.GridY()));
     NGridType *grid = getNGrid(cell.GridX(), cell.GridY());
 
