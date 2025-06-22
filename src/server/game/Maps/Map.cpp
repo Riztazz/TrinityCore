@@ -109,7 +109,7 @@ Map::~Map()
     if (!m_scriptSchedule.empty())
         sMapMgr->DecreaseScheduledScriptCount(m_scriptSchedule.size());
 
-    MMAP::MMapFactory::createOrGetMMapManager()->unloadMapInstance(GetId(), _instanceOrPartitionId);
+    MMAP::MMapFactory::createOrGetMMapManager()->unloadMapInstance(GetId(), GetInstanceOrPartitionId());
 }
 
 bool Map::ExistMap(uint32 mapId, int gx, int gy)
@@ -237,7 +237,7 @@ void Map::LoadAllCells()
 }
 
 Map::Map(uint32 id, uint32 instanceOrPartitionId):
-i_mapEntry(sMapStore.LookupEntry(id)), _instanceOrPartitionId(instanceOrPartitionId),
+i_mapEntry(sMapStore.LookupEntry(id)),
 m_unloadTimer(0), m_VisibleDistance(DEFAULT_VISIBILITY_DISTANCE),
 m_VisibilityNotifyPeriod(DEFAULT_VISIBILITY_NOTIFY_PERIOD),
 m_activeNonPlayersIter(m_activeNonPlayers.end()), m_waypointCreaturesIter(m_waypointCreatures.end()), _transportsUpdateIter(_transports.end()),
@@ -265,8 +265,8 @@ i_scriptLock(false), _respawnTimes(std::make_unique<RespawnListContainer>()), _r
     FIRE_ID(GetId(),Map,OnReload,TSMap(this));
     // @tswow-end
 
-    TC_LOG_DEBUG("partitions", "Loading map instance/partition {} for map {}", _instanceOrPartitionId, GetId());
-    MMAP::MMapFactory::createOrGetMMapManager()->loadMapInstance(sWorld->GetDataPath(), GetId(), _instanceOrPartitionId);
+    TC_LOG_DEBUG("partitions", "Loading map instance/partition {} for map {}", instanceOrPartitionId, GetId());
+    MMAP::MMapFactory::createOrGetMMapManager()->loadMapInstance(sWorld->GetDataPath(), GetId(), instanceOrPartitionId);
 }
 
 void Map::InitVisibilityDistance()
@@ -428,7 +428,7 @@ void Map::EnsureGridCreated(GridCoord const& p)
     std::lock_guard<std::mutex> lock(_gridLock);
     if (!getNGrid(p.x_coord, p.y_coord))
     {
-        TC_LOG_DEBUG("maps", "Creating grid[{}, {}] for map {} instance {}", p.x_coord, p.y_coord, GetId(), GetInstanceId());
+        TC_LOG_DEBUG("maps", "Creating grid[{}, {}] for map {} instance/partition {}", p.x_coord, p.y_coord, GetId(), GetInstanceOrPartitionId());
 
         setNGrid(new NGridType(p.x_coord*MAX_NUMBER_OF_GRIDS + p.y_coord, p.x_coord, p.y_coord),
             p.x_coord, p.y_coord);
@@ -452,7 +452,7 @@ bool Map::EnsureGridLoaded(Cell const& cell)
     ASSERT(grid != nullptr);
     if (!grid->isGridObjectDataLoaded())
     {
-        TC_LOG_DEBUG("maps", "Loading grid[{}, {}] for map {} instance {}", cell.GridX(), cell.GridY(), GetId(), GetInstanceId());
+        TC_LOG_DEBUG("maps", "Loading grid[{}, {}] for map {} instance/partition {}", cell.GridX(), cell.GridY(), GetId(), GetInstanceOrPartitionId());
         grid->setGridObjectDataLoaded(true);
 
         ObjectGridLoader loader(*grid, this, cell);

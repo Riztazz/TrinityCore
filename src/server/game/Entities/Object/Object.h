@@ -353,6 +353,8 @@ class TC_GAME_API WorldObject : public Object, public WorldLocation
         float GetObjectSize() const;
 
         uint32 GetInstanceId() const { return m_InstanceId; }
+        uint32 GetPartitionId() const { return m_partitionId; }
+        uint32 GetInstanceOrPartitionId() const { return GetInstanceId() ? GetInstanceId() : GetPartitionId(); }
 
         // @tswow-begin
         virtual void SetPhaseMask(uint32 newPhaseMask, bool update, uint64 newPhaseId = 0);
@@ -623,6 +625,7 @@ class TC_GAME_API WorldObject : public Object, public WorldLocation
         Map* m_currMap;                                   // current object's Map location
 
         uint32 m_InstanceId;                              // in map copy with instance id
+        uint32 m_partitionId;                             // in map copy with partition id
         uint32 m_phaseMask;                               // in area phase state
 
         uint16 m_notifyflags;

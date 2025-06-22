@@ -416,6 +416,7 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
         virtual void UnloadAll();
 
         uint32 GetId() const;
+        uint32 GetInstanceOrPartitionId() const { return GetInstanceId() ? GetInstanceId() : GetPartitionId(); }
         virtual uint32 GetPartitionId() const { return 0; }
         virtual uint32 GetInstanceId() const { return 0; }
         virtual uint8 GetSpawnMode() const { return REGULAR_DIFFICULTY; }
@@ -765,7 +766,6 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
         std::mutex _gridLock;
 
         MapEntry const* i_mapEntry;
-        uint32 _instanceOrPartitionId;
         Trinity::unique_weak_ptr<Map> m_weakRef;
         uint32 m_unloadTimer;
         float m_VisibleDistance;
