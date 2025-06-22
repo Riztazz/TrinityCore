@@ -24,7 +24,6 @@
 #include "Log.h"
 #include "GameObject.h"
 #include "GameTime.h"
-#include "MapManager.h"
 #include "ObjectAccessor.h"
 #include "ObjectMgr.h"
 #include "ScriptMgr.h"
@@ -89,7 +88,6 @@ void LoadHelper(CellGuidSet const& guid_set, CellCoord &cell, GridRefManager<T> 
             delete obj;
             continue;
         }
-
         AddObjectHelper(cell, m, count, map, obj);
     }
 }
