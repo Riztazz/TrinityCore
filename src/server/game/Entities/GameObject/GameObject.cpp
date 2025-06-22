@@ -1131,7 +1131,7 @@ bool GameObject::LoadFromDB(ObjectGuid::LowType spawnId, Map* map, bool addToMap
 
     Position spawnPoint = data->spawnPoint;
 
-    // Only load creatures into their respective partitions
+    // Only load game objects into their respective partitions
     if (sMapMgr->CalculatePartitionId(map->GetId(), spawnPoint) != map->GetPartitionId())
         return false;
 
