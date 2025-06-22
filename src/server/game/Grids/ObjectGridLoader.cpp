@@ -67,7 +67,6 @@ void AddObjectHelper(CellCoord &cell, GridRefManager<T> &m, uint32 &count, Map* 
 template <class T>
 void LoadHelper(CellGuidSet const& guid_set, CellCoord &cell, GridRefManager<T> &m, uint32 &count, Map* map)
 {
-    TC_LOG_DEBUG("partitions", "ObjectGridLoader::LoadHelper called for mapId {} partitionId {} ", map->GetId(), map->GetPartitionId());
     for (CellGuidSet::const_iterator i_guid = guid_set.begin(); i_guid != guid_set.end(); ++i_guid)
     {
         // Don't spawn at all if there's a respawn timer
@@ -87,7 +86,6 @@ void LoadHelper(CellGuidSet const& guid_set, CellCoord &cell, GridRefManager<T> 
         //TC_LOG_INFO("misc", "DEBUG: LoadHelper from table: {} for (guid: {}) Loading", table, guid);
         if (!obj->LoadFromDB(guid, map, false, false))
         {
-            TC_LOG_DEBUG("partitions", "ObjectGridLoader::LoadHelper failed to LoadFromDB mapId {} partitionId {} creature guid {}", map->GetId(), map->GetPartitionId(), guid);
             delete obj;
             continue;
         }
@@ -97,10 +95,7 @@ void LoadHelper(CellGuidSet const& guid_set, CellCoord &cell, GridRefManager<T> 
         if constexpr (std::is_same_v<T, GameObject>)
             pos = obj->GetGameObjectData()->spawnPoint;
         else if constexpr (std::is_same_v<T, Creature>)
-        {
             pos = obj->GetCreatureData()->spawnPoint;
-            TC_LOG_DEBUG("partitions", "ObjectGridLoader::LoadHelper for mapId {} partitionId {} creature guid {} spawn partitionId {} ", map->GetId(), map->GetPartitionId(), guid, sMapMgr->CalculatePartitionId(map->GetId(), pos));
-        }
 
         if (sMapMgr->CalculatePartitionId(map->GetId(), pos) != map->GetPartitionId())
             continue;
@@ -118,7 +113,6 @@ void ObjectGridLoader::Visit(GameObjectMapType &m)
 
 void ObjectGridLoader::Visit(CreatureMapType &m)
 {
-    TC_LOG_DEBUG("partitions", "ObjectGridLoader::Visit called for mapId {} partitionId {} ", i_map->GetId(), i_map->GetPartitionId());
     CellCoord cellCoord = i_cell.GetCellCoord();
     if (CellObjectGuids const* cell_guids = sObjectMgr->GetCellObjectGuids(i_map->GetId(), i_map->GetSpawnMode(), cellCoord.GetId()))
         LoadHelper(cell_guids->creatures, cellCoord, m, i_creatures, i_map);
@@ -156,7 +150,6 @@ void ObjectGridLoader::LoadN(void)
 
             //Load creatures and game objects
             {
-                TC_LOG_DEBUG("partitionsE", "ObjectGridLoader::LoadN visiting Grid x, y {} {} ", x, y);
                 TypeContainerVisitor<ObjectGridLoader, GridTypeMapContainer> visitor(*this);
                 i_grid.VisitGrid(x, y, visitor);
             }

@@ -446,25 +446,20 @@ void Map::EnsureGridCreated(GridCoord const& p)
 bool Map::EnsureGridLoaded(Cell const& cell)
 {
     EnsureGridCreated(GridCoord(cell.GridX(), cell.GridY()));
-    TC_LOG_DEBUG("partitionsA", "Map::EnsureGridLoaded finished creating grid for mapId {} partitionId {} cell GridX {} GridY {} ", GetId(), GetPartitionId(), cell.GridX(), cell.GridY());
     NGridType *grid = getNGrid(cell.GridX(), cell.GridY());
     ASSERT(grid != nullptr);
     if (!grid->isGridObjectDataLoaded())
     {
         TC_LOG_DEBUG("maps", "Loading grid[{}, {}] for map {} instance {}", cell.GridX(), cell.GridY(), GetId(), GetInstanceId());
-        TC_LOG_DEBUG("partitionsC", "Map::EnsureGridLoaded Setting grid object data loaded for mapId {} partitionId {} cell GridX {} GridY {} ", GetId(), GetPartitionId(), cell.GridX(), cell.GridY());
         grid->setGridObjectDataLoaded(true);
 
         ObjectGridLoader loader(*grid, this, cell);
-        TC_LOG_DEBUG("partitionsD", "Map::EnsureGridLoaded calling LoadN for mapId {} partitionId {} cell GridX {} GridY {} ", GetId(), GetPartitionId(), cell.GridX(), cell.GridY());
         loader.LoadN();
 
         Balance();
-        TC_LOG_DEBUG("partitionsE", "Map::EnsureGridLoaded Balanced for mapId {} partitionId {} cell GridX {} GridY {} ", GetId(), GetPartitionId(), cell.GridX(), cell.GridY());
         return true;
     }
 
-    TC_LOG_DEBUG("partitionsB", "Map::EnsureGridLoaded DID NOT LOAD for mapId {} partitionId {} cell GridX {} GridY {} ", GetId(), GetPartitionId(), cell.GridX(), cell.GridY());
     return false;
 }
 
