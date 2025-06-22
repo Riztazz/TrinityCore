@@ -765,7 +765,6 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
         std::mutex _gridLock;
 
         MapEntry const* i_mapEntry;
-        uint8 i_spawnMode;
         uint32 _instanceOrPartitionId;
         Trinity::unique_weak_ptr<Map> m_weakRef;
         uint32 m_unloadTimer;
