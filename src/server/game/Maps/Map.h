@@ -355,7 +355,7 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
 {
     friend class MapReference;
     public:
-        Map(uint32 id);
+        Map(uint32 id, uint32 instanceOrPartitionId);
         virtual ~Map();
 
         MapEntry const* GetEntry() const { return i_mapEntry; }
@@ -766,7 +766,7 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
 
         MapEntry const* i_mapEntry;
         uint8 i_spawnMode;
-        uint32 i_InstanceId;
+        uint32 _instanceOrPartitionId;
         Trinity::unique_weak_ptr<Map> m_weakRef;
         uint32 m_unloadTimer;
         float m_VisibleDistance;

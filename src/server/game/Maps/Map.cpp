@@ -109,8 +109,7 @@ Map::~Map()
     if (!m_scriptSchedule.empty())
         sMapMgr->DecreaseScheduledScriptCount(m_scriptSchedule.size());
 
-    TC_LOG_DEBUG("partitions", "Unloading map instance/partition {} for map {}", GetInstanceId() ? GetInstanceId() : GetPartitionId(), GetId());
-    MMAP::MMapFactory::createOrGetMMapManager()->unloadMapInstance(GetId(), GetInstanceId() ? GetInstanceId() : GetPartitionId());
+    MMAP::MMapFactory::createOrGetMMapManager()->unloadMapInstance(GetId(), _instanceOrPartitionId);
 }
 
 bool Map::ExistMap(uint32 mapId, int gx, int gy)
@@ -237,8 +236,8 @@ void Map::LoadAllCells()
             LoadGrid((cellX + 0.5f - CENTER_GRID_CELL_ID) * SIZE_OF_GRID_CELL, (cellY + 0.5f - CENTER_GRID_CELL_ID) * SIZE_OF_GRID_CELL);
 }
 
-Map::Map(uint32 id):
-i_mapEntry(sMapStore.LookupEntry(id)),
+Map::Map(uint32 id, uint32 instanceOrPartitionId):
+i_mapEntry(sMapStore.LookupEntry(id)), _instanceOrPartitionId(instanceOrPartitionId),
 m_unloadTimer(0), m_VisibleDistance(DEFAULT_VISIBILITY_DISTANCE),
 m_VisibilityNotifyPeriod(DEFAULT_VISIBILITY_NOTIFY_PERIOD),
 m_activeNonPlayersIter(m_activeNonPlayers.end()), m_waypointCreaturesIter(m_waypointCreatures.end()), _transportsUpdateIter(_transports.end()),
@@ -266,8 +265,8 @@ i_scriptLock(false), _respawnTimes(std::make_unique<RespawnListContainer>()), _r
     FIRE_ID(GetId(),Map,OnReload,TSMap(this));
     // @tswow-end
 
-    TC_LOG_DEBUG("partitions", "Loading map instance/partition {} for map {}", GetInstanceId() ? GetInstanceId() : GetPartitionId(), GetId());
-    MMAP::MMapFactory::createOrGetMMapManager()->loadMapInstance(sWorld->GetDataPath(), GetId(), GetInstanceId() ? GetInstanceId() : GetPartitionId());
+    TC_LOG_DEBUG("partitions", "Loading map instance/partition {} for map {}", _instanceOrPartitionId, GetId());
+    MMAP::MMapFactory::createOrGetMMapManager()->loadMapInstance(sWorld->GetDataPath(), GetId(), _instanceOrPartitionId);
 }
 
 void Map::InitVisibilityDistance()
@@ -3632,7 +3631,7 @@ template TC_GAME_API void Map::RemoveFromPartition(DynamicObject*);
 
 /* ******* Partition Maps ******* */
 
-PartitionMap::PartitionMap(uint32 id, uint32 partitionId, Map* parent): Map(id), _partitionId(partitionId), _parent(parent)
+PartitionMap::PartitionMap(uint32 id, uint32 partitionId, Map* parent): Map(id, partitionId), _partitionId(partitionId), _parent(parent)
 {
 }
 
@@ -3645,7 +3644,7 @@ PartitionMap::~PartitionMap()
 /* ******* Dungeon Instance Maps ******* */
 
 InstanceMap::InstanceMap(uint32 id, uint32 instanceId, uint8 spawnMode, Map* parent, TeamId instanceTeam)
-  : Map(id), _instanceId(instanceId), _spawnMode(spawnMode), _parent(parent),
+  : Map(id, instanceId), _instanceId(instanceId), _spawnMode(spawnMode), _parent(parent),
     m_resetAfterUnload(false), m_unloadWhenEmpty(false),
     i_data(nullptr), i_script_id(0), i_script_team(instanceTeam)
 {
@@ -4166,7 +4165,7 @@ uint32 InstanceMap::GetMaxResetDelay() const
 /* ******* Battleground Instance Maps ******* */
 
 BattlegroundMap::BattlegroundMap(uint32 id, uint32 instanceId, uint8 spawnMode, Map* parent)
-  : Map(id), _instanceId(instanceId), _spawnMode(spawnMode), _parent(parent), m_bg(nullptr)
+  : Map(id, instanceId), _instanceId(instanceId), _spawnMode(spawnMode), _parent(parent), m_bg(nullptr)
 {
     //lets initialize visibility distance for BG/Arenas
     BattlegroundMap::InitVisibilityDistance();
