@@ -83,9 +83,7 @@ class TC_GAME_API Object
         bool IsInWorld() const { return m_inWorld; }
 
         virtual void AddToWorld();
-        virtual void AddToPartition();
         virtual void RemoveFromWorld();
-        virtual void RemoveFromPartition();
 
         static ObjectGuid GetGUID(Object const* o) { return o ? o->GetGUID() : ObjectGuid::Empty; }
         ObjectGuid GetGUID() const { return GetGuidValue(OBJECT_FIELD_GUID); }
@@ -330,8 +328,8 @@ class TC_GAME_API WorldObject : public Object, public WorldLocation
         void _Create(ObjectGuid::LowType guidlow, HighGuid guidhigh, uint32 phaseMask);
         void AddToWorld() override;
         void RemoveFromWorld() override;
-        void AddToPartition() override;
-        void RemoveFromPartition() override;
+        virtual void AddToPartition();
+        virtual void RemoveFromPartition();
 
         void GetNearPoint2D(WorldObject const* searcher, float& x, float& y, float distance, float absAngle) const;
         void GetNearPoint(WorldObject const* searcher, float& x, float& y, float& z, float distance2d, float absAngle) const;

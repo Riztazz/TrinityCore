@@ -2049,9 +2049,9 @@ void Player::AddToPartition()
     ///- The player should only be added when logging in
     Unit::AddToPartition();
 
-    //for (uint8 i = PLAYER_SLOT_START; i < PLAYER_SLOT_END; ++i)
-    //    if (m_items[i])
-    //        m_items[i]->AddToWorld();
+    for (uint8 i = PLAYER_SLOT_START; i < PLAYER_SLOT_END; ++i)
+        if (m_items[i])
+            m_items[i]->AddToWorld();
     TC_LOG_DEBUG("partitions", "Player::AddToPartition done");
 }
 
@@ -2074,19 +2074,19 @@ void Player::RemoveFromPartition()
     sBattlefieldMgr->HandlePlayerLeaveZone(this, m_zoneUpdateId);
 
     // Remove items from world before self - player must be found in Item::RemoveFromObjectUpdate
-    //for (uint8 i = PLAYER_SLOT_START; i < PLAYER_SLOT_END; ++i)
-    //{
-    //    if (m_items[i])
-    //        m_items[i]->RemoveFromWorld();
-    //}
+    for (uint8 i = PLAYER_SLOT_START; i < PLAYER_SLOT_END; ++i)
+    {
+        if (m_items[i])
+            m_items[i]->RemoveFromWorld();
+    }
 
     ///- Do not add/remove the player from the object storage
     ///- It will crash when updating the ObjectAccessor
     ///- The player should only be removed when logging out
     Unit::RemoveFromPartition();
 
-    //for (ItemMap::iterator iter = mMitems.begin(); iter != mMitems.end(); ++iter)
-    //    iter->second->RemoveFromWorld();
+    for (ItemMap::iterator iter = mMitems.begin(); iter != mMitems.end(); ++iter)
+        iter->second->RemoveFromWorld();
 
     if (m_uint32Values)
     {

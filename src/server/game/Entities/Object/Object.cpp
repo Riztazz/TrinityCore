@@ -165,16 +165,6 @@ void Object::RemoveFromWorld()
     m_scriptRef = nullptr;
 }
 
-void Object::AddToPartition()
-{
-    Object::AddToWorld();
-}
-
-void Object::RemoveFromPartition()
-{
-    Object::RemoveFromWorld();
-}
-
 void Object::BuildMovementUpdateBlock(UpdateData* data, uint32 flags) const
 {
     ByteBuffer& buf = data->GetBuffer();
@@ -1129,8 +1119,8 @@ void WorldObject::AddToPartition()
     if (IsInWorld())
         return;
 
-    Object::AddToPartition();
-    //GetMap()->GetZoneAndAreaId(GetPhaseMask(), m_zoneId, m_areaId, GetPositionX(), GetPositionY(), GetPositionZ());
+    Object::AddToWorld();
+    GetMap()->GetZoneAndAreaId(GetPhaseMask(), m_zoneId, m_areaId, GetPositionX(), GetPositionY(), GetPositionZ());
 }
 
 void WorldObject::RemoveFromPartition()
@@ -1140,7 +1130,7 @@ void WorldObject::RemoveFromPartition()
 
     DestroyForNearbyPlayers();
 
-    Object::RemoveFromPartition();
+    Object::RemoveFromWorld();
     // @tswow-begin
     RemoveFromAllGroups();
     // @tswow-end
@@ -2063,8 +2053,10 @@ TempSummon* Map::SummonCreature(uint32 entry, Position const& pos, SummonPropert
             break;
     }
 
+    TC_LOG_DEBUG("partitions", "Map::SummonCreature: Summoning {}", GetId());
     if (!summon->Create(GenerateLowGuid<HighGuid::Unit>(), this, phase, entry, pos, nullptr, vehId, true))
     {
+        TC_LOG_DEBUG("partitions", "Map::SummonCreature: cant create deleting {}", GetId());
         delete summon;
         return nullptr;
     }
@@ -2077,6 +2069,7 @@ TempSummon* Map::SummonCreature(uint32 entry, Position const& pos, SummonPropert
 
     summon->SetVisibleBySummonerOnly(visibleBySummonerOnly);
 
+    TC_LOG_DEBUG("partitions", "Map::SummonCreature: adding to map {}", GetId());
     AddToMap(summon->ToCreature());
 
     summon->InitSummon();
@@ -2085,6 +2078,7 @@ TempSummon* Map::SummonCreature(uint32 entry, Position const& pos, SummonPropert
     Trinity::AIRelocationNotifier notifier(*summon);
     Cell::VisitAllObjects(summon, notifier, GetVisibilityRange());
 
+    TC_LOG_DEBUG("partitions", "Map::SummonCreature: finish visit {}", GetId());
     return summon;
 }
 

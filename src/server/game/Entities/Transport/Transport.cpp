@@ -754,8 +754,6 @@ void Transport::UpdateMapPartition()
     if (!newMap)
         return;
 
-    TC_LOG_DEBUG("partitionsA", "Transport::UpdateMapPartition called");
-
     // Update transport map first immediately
     if (newMap != currentMap)
     {
