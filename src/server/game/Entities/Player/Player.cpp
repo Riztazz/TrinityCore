@@ -4674,11 +4674,67 @@ void Player::BuildPlayerRepop()
 
     // to prevent cheating
     corpse->ResetGhostTime();
+    _corpseTime = corpse->GetGhostTime();
 
     StopMirrorTimers();                                     //disable timers(bars)
 
     // OnPlayerRepop hook
     sScriptMgr->OnPlayerRepop(this);
+}
+
+void Player::ReclaimCorpse()
+{
+    if (IsAlive())
+        return;
+
+    // do not allow corpse reclaim in arena
+    if (InArena())
+        return;
+
+    // body not released yet
+    if (!HasFlag(PLAYER_FLAGS, PLAYER_FLAGS_GHOST))
+        return;
+
+    Corpse* corpse = GetCorpse();
+    // Original Logic
+    if (corpse)
+    {
+        // prevent resurrect before 30-sec delay after body release not finished
+        if (time_t(corpse->GetGhostTime() + GetCorpseReclaimDelay(corpse->GetType() == CORPSE_RESURRECTABLE_PVP)) > GameTime::GetGameTime())
+            return;
+
+        if (!corpse->IsWithinDistInMap(this, CORPSE_RECLAIM_RADIUS, true))
+            return;
+
+        // resurrect
+        ResurrectPlayer(InBattleground() ? 1.0f : 0.5f);
+
+        // spawn bones
+        SpawnCorpseBones();
+    }
+    // Cross partition logic
+    else if (_corpseLocation.GetMapId() == GetMapId())
+    {
+        // prevent resurrect before 30-sec delay after body release not finished
+        if (time_t(_corpseTime + GetCorpseReclaimDelay(false)) > GameTime::GetGameTime())
+            return;
+
+        if (!IsInRange(_corpseLocation.GetPositionX(), _corpseLocation.GetPositionY(), _corpseLocation.GetPositionZ(), CORPSE_RECLAIM_RADIUS))
+            return;
+
+        // resurrect
+        ResurrectPlayer(InBattleground() ? 1.0f : 0.5f);
+        
+        // we cannot actually spawn bones immediately since we are in the wrong partition,
+        // but we need to call it anyway to reset our _corpseLocation
+        // corpse will be converted to bones on map.AddPlayerToPartition if we ever return to the same partition
+        SpawnCorpseBones();
+    }
+}
+
+bool Corpse::IsWithinDistInSpawnMap(WorldObject const* obj, float dist2compare, bool is3D /*= true*/, bool incOwnRadius /*= true*/, bool incTargetRadius /*= true*/) const
+{
+    return obj && IsInWorld() && obj->IsInWorld() && (GetMapId() == obj->GetMapId()) && (GetMap()->GetInstanceId() == obj->GetMap()->GetInstanceId()) && InSamePhase(obj) && _IsWithinDist(obj, dist2compare, is3D, incOwnRadius, incTargetRadius);
 }
 
 void Player::ResurrectPlayer(float restore_percent, bool applySickness)
@@ -4823,6 +4879,7 @@ Corpse* Player::CreateCorpse()
     }
 
     _corpseLocation.WorldRelocate(*this);
+    _corpseTime = corpse->GetGhostTime();
 
     _cfb1 = ((0x00) | (GetRace() << 8) | (GetNativeGender() << 16) | (GetSkinId() << 24));
     _cfb2 = (GetFaceId() | (GetHairStyleId() << 8) | (GetHairColorId() << 16) | (GetFacialStyle() << 24));
@@ -4878,21 +4935,7 @@ void Player::SpawnCorpseBones(bool triggerSave /*= true*/)
 
 Corpse* Player::GetCorpse() const
 {
-    Map* map = GetMap();
-    if (!map)
-        return nullptr;
-
-    if (MapPartitioned* mapPartitioned = map->ToMapPartitioned())
-    {
-        for (auto& [_, partitionPtr] : mapPartitioned->GetPartitions())
-        {
-            if (Corpse* corpse = partitionPtr->GetCorpseByPlayer(GetGUID()))
-                return corpse;
-        }
-        return nullptr;
-    }
-
-    return map->GetCorpseByPlayer(GetGUID());
+    return GetMap()->GetCorpseByPlayer(GetGUID());
 }
 
 void Player::SendDurabilityLoss()

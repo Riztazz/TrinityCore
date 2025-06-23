@@ -2707,8 +2707,6 @@ void Map::UpdateMapPartitions()
 {
     ZoneScopedN("Map::UpdateMapPartitions");
 
-    // Every time a player is relocated we check their map partition to see if they need to be moved to a different map
-    // This is a set since multiple events in the update can result in the same player being added multiple times (movement, spells, transports etc)
     for (Player* player : _updateMapPartitionPlayers)
         player->UpdateMapPartition();
 
@@ -4629,15 +4627,7 @@ void Map::LoadCorpseData()
 
         Corpse* corpse = new Corpse(type);
 
-        if (!corpse->LoadCorpseFromDB(GenerateLowGuid<HighGuid::Corpse>(), fields))
-        {
-            delete corpse;
-            continue;
-        }
-
-        // We only load corpses for the current partition, we don't save partitionId to the database so that this can
-        // be dynamically calculated at runtime
-        if (sMapMgr->CalculatePartitionId(GetId(), corpse->GetPosition()) != GetPartitionId())
+        if (!corpse->LoadCorpseFromDB(GenerateLowGuid<HighGuid::Corpse>(), fields, this))
         {
             delete corpse;
             continue;

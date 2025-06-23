@@ -21,7 +21,7 @@
 #include "DBCStores.h"
 #include "GameTime.h"
 #include "Log.h"
-#include "Map.h"
+#include "MapManager.h"
 #include "Player.h"
 #include "UpdateData.h"
 #include "UpdateMask.h"
@@ -148,7 +148,7 @@ void Corpse::ResetGhostTime()
     m_time = GameTime::GetGameTime();
 }
 
-bool Corpse::LoadCorpseFromDB(ObjectGuid::LowType guid, Field* fields)
+bool Corpse::LoadCorpseFromDB(ObjectGuid::LowType guid, Field* fields, Map* map)
 {
     //        0     1     2     3            4      5          6          7       8       9        10     11        12    13          14          15         16
     // SELECT posX, posY, posZ, orientation, mapId, displayId, itemCache, bytes1, bytes2, guildId, flags, dynFlags, time, corpseType, instanceId, phaseMask, guid FROM corpse WHERE mapId = ? AND instanceId = ?
@@ -194,6 +194,11 @@ bool Corpse::LoadCorpseFromDB(ObjectGuid::LowType guid, Field* fields)
         return false;
     }
 
+    // We only load corpses for the current partition, we don't save partitionId to the database so that this can
+    // be dynamically calculated at runtime
+    if (mapId != map->GetId() || sMapMgr->CalculatePartitionId(map->GetId(), GetPosition()) != map->GetPartitionId())
+        return false;
+
     _cellCoord = Trinity::ComputeCellCoord(GetPositionX(), GetPositionY());
     return true;
 }
@@ -208,15 +213,4 @@ bool Corpse::IsExpired(time_t t) const
         return m_time < t - 60 * MINUTE;
     else
         return m_time < t - 3 * DAY;
-}
-
-bool Corpse::IsWithinDistInSpawnMap(WorldObject const* obj, float dist2compare, bool is3D /*= true*/, bool incOwnRadius /*= true*/, bool incTargetRadius /*= true*/) const
-{
-    return obj && IsInSpawnMap(obj) && InSamePhase(obj) && _IsWithinDist(obj, dist2compare, is3D, incOwnRadius, incTargetRadius);
-}
-
-// Allow respawning if in same map but not same partition of corpse
-bool Corpse::IsInSpawnMap(WorldObject const* obj) const
-{
-    return obj && IsInWorld() && obj->IsInWorld() && (GetMapId() == obj->GetMapId()) && (GetMap()->GetInstanceId() == obj->GetMap()->GetInstanceId());
 }
