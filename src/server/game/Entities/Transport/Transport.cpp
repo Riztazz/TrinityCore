@@ -775,26 +775,28 @@ void Transport::UpdateMapPartition()
                 passenger->ToPlayer()->UpdateMapPartition(newMap);
                 break;
             case TYPEID_GAMEOBJECT:
-                //passenger->ToGameObject()->UpdateMapPartition(newMap);
+                currentMap->RemoveFromMap(passenger->ToGameObject());
+                passenger->ToGameObject()->SetMap(newMap);
+                newMap->AddToMap(passenger->ToGameObject());
                 break;
             case TYPEID_DYNAMICOBJECT:
-                //passenger->ToDynObject()->UpdateMapPartition(newMap);
+                currentMap->RemoveFromMap(passenger->ToDynObject());
+                passenger->ToDynObject()->SetMap(newMap);
+                newMap->AddToMap(passenger->ToDynObject());
                 break;
             default:
                 break;
         }
-
-        if (Unit* unit = passenger->ToUnit())
-            if (Vehicle* vehicle = unit->GetVehicleKit())
-                vehicle->UpdatePassengersMapPartition(newMap);
     }
 
-    //currentMap->RemoveFromPartition(this);
+    UnloadStaticPassengers();
+
     currentMap->RemoveFromMap<Transport>(this, false);
     SetMap(newMap);
 
     newMap->AddToMap<Transport>(this);
-    //newMap->AddToPartition(this);
+
+    LoadStaticPassengers();
 }
 
 // bool ElevatorTransport::Create(uint32 dbGuid, uint32 guidlow, uint32 name_id, Map* map, Position const& pos, float ang, const QuaternionData& rotation, uint32 animprogress, GOState go_state)
