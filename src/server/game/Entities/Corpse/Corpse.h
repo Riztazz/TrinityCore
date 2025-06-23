@@ -79,8 +79,6 @@ class TC_GAME_API Corpse : public WorldObject, public GridObject<Corpse>
         Player* lootRecipient;
 
         bool IsExpired(time_t t) const;
-        bool IsWithinDistInSpawnMap(WorldObject const* obj, float dist2compare, bool is3D = true, bool incOwnRadius = true, bool incTargetRadius = true) const;
-        bool IsInSpawnMap(WorldObject const* obj) const;
 
     private:
         CorpseType m_type;

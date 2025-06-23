@@ -4719,7 +4719,7 @@ void Player::ReclaimCorpse()
         if (time_t(_corpseTime + GetCorpseReclaimDelay(false)) > GameTime::GetGameTime())
             return;
 
-        if (!IsInRange(_corpseLocation.GetPositionX(), _corpseLocation.GetPositionY(), _corpseLocation.GetPositionZ(), CORPSE_RECLAIM_RADIUS))
+        if (!IsInDist(_corpseLocation, CORPSE_RECLAIM_RADIUS))
             return;
 
         // resurrect
@@ -4730,11 +4730,6 @@ void Player::ReclaimCorpse()
         // corpse will be converted to bones on map.AddPlayerToPartition if we ever return to the same partition
         SpawnCorpseBones();
     }
-}
-
-bool Corpse::IsWithinDistInSpawnMap(WorldObject const* obj, float dist2compare, bool is3D /*= true*/, bool incOwnRadius /*= true*/, bool incTargetRadius /*= true*/) const
-{
-    return obj && IsInWorld() && obj->IsInWorld() && (GetMapId() == obj->GetMapId()) && (GetMap()->GetInstanceId() == obj->GetMap()->GetInstanceId()) && InSamePhase(obj) && _IsWithinDist(obj, dist2compare, is3D, incOwnRadius, incTargetRadius);
 }
 
 void Player::ResurrectPlayer(float restore_percent, bool applySickness)
