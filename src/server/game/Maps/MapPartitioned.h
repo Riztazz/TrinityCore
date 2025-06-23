@@ -57,6 +57,15 @@ class TC_GAME_API MapPartitioned : public Map
 
         Partitions &GetPartitions() { return _partitions; }
         PartitionEntries &GetPartitionEntries() { return _partitionEntries; }
+        PartitionEntry* GetPartitionEntry(uint32 partitionId)
+        {
+            for (auto& entry : _partitionEntries)
+            {
+                if (entry.partitionId == partitionId)
+                    return &entry;
+            }
+            return nullptr;
+        }
     private:
         static bool IsPointInPolygon(Position const& pos, PartitionPolygon const& polygon);
 

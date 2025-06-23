@@ -49,47 +49,37 @@ static const float BOUNDARY_VISUALIZE_HEIGHT_OFFSET = 50.0f;
 static const float BOUNDARY_VISUALIZE_HEIGHT_SEARCH = 100.0f;
 void MapPartitioned::VisualizePartitions(Unit* owner, Seconds duration)
 {
-    for (const auto& partition : _partitionEntries)
+    const PartitionEntry* partition = GetPartitionEntry(owner->GetMap()->GetPartitionId());
+    if (!partition || partition->polygon.size() < 2)
+        return;
+
+    for (size_t i = 0; i < partition->polygon.size(); ++i)
     {
-        if (partition.polygon.size() < 2)
-            continue; // Not a valid polygon
+        const Position& start = partition->polygon[i];
+        const Position& end = partition->polygon[(i + 1) % partition->polygon.size()]; // Wrap to first point
 
-        for (size_t i = 0; i < partition.polygon.size(); ++i)
+        float dx = end.GetPositionX() - start.GetPositionX();
+        float dy = end.GetPositionY() - start.GetPositionY();
+        float length = std::sqrt(dx * dx + dy * dy);
+
+        if (length < 1e-3f)
+            continue;
+
+        float stepCount = std::floor(length / BOUNDARY_VISUALIZE_STEP_SIZE);
+        float stepX = dx / length * BOUNDARY_VISUALIZE_STEP_SIZE;
+        float stepY = dy / length * BOUNDARY_VISUALIZE_STEP_SIZE;
+        float lastZ = owner->GetPositionZ();
+
+        for (int step = 0; step <= stepCount; ++step)
         {
-            const Position& start = partition.polygon[i];
-            const Position& end = partition.polygon[(i + 1) % partition.polygon.size()]; // Wrap to first point
+            float x = start.GetPositionX() + step * stepX;
+            float y = start.GetPositionY() + step * stepY;
+            float z = GetHeight(0, x, y, lastZ + BOUNDARY_VISUALIZE_HEIGHT_OFFSET, true, BOUNDARY_VISUALIZE_HEIGHT_SEARCH);
 
-            float dx = end.GetPositionX() - start.GetPositionX();
-            float dy = end.GetPositionY() - start.GetPositionY();
-            float length = std::sqrt(dx * dx + dy * dy);
-
-            if (length < 1e-3f)
-                continue;
-
-            float stepCount = std::floor(length / BOUNDARY_VISUALIZE_STEP_SIZE);
-            float stepX = dx / length * BOUNDARY_VISUALIZE_STEP_SIZE;
-            float stepY = dy / length * BOUNDARY_VISUALIZE_STEP_SIZE;
-            float lastZ = owner->GetPositionZ();
-
-            for (int step = 0; step <= stepCount; ++step)
-            {
-                float x = start.GetPositionX() + step * stepX;
-                float y = start.GetPositionY() + step * stepY;
-                float z = GetHeight(0, x, y, lastZ + BOUNDARY_VISUALIZE_HEIGHT_OFFSET, true, BOUNDARY_VISUALIZE_HEIGHT_SEARCH);
-
-                if (TempSummon* point = owner->SummonCreature(BOUNDARY_VISUALIZE_CREATURE, Position(x, y, z), TEMPSUMMON_TIMED_DESPAWN, duration))
-                {
-                    point->SetObjectScale(BOUNDARY_VISUALIZE_CREATURE_SCALE);
-                    point->SetUnitFlag(UNIT_FLAG_STUNNED);
-                    point->SetImmuneToAll(true);
-                    point->SetUnitFlag(UNIT_FLAG_UNINTERACTIBLE);
-                    lastZ = z;
-                }
-                else
-                {
-                    lastZ = owner->GetPositionZ();
-                }
-            }
+            if (owner->SummonCreature(VISUAL_WAYPOINT, x, y, z, 0, TEMPSUMMON_TIMED_DESPAWN, duration))
+                lastZ = z;
+            else
+                lastZ = owner->GetPositionZ();
         }
     }
 }
