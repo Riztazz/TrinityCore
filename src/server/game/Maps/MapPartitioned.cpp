@@ -70,11 +70,7 @@ void MapPartitioned::VisualizePartitions(Unit* owner, Seconds duration)
             float x = start.GetPositionX() + step * stepX;
             float y = start.GetPositionY() + step * stepY;
             float z = owner->GetPositionZ();
-
-            if (owner->SummonCreature(VISUAL_WAYPOINT, x, y, z, 0, TEMPSUMMON_TIMED_DESPAWN, duration))
-                lastZ = z;
-            else
-                lastZ = owner->GetPositionZ();
+            owner->SummonCreature(VISUAL_WAYPOINT, x, y, z, 0, TEMPSUMMON_TIMED_DESPAWN, duration);
         }
     }
 }
