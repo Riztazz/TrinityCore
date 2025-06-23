@@ -347,7 +347,7 @@ Creature* Transport::CreateNPCPassenger(ObjectGuid::LowType guid, CreatureData c
 
     Creature* creature = new Creature();
 
-    if (!creature->LoadFromDB(guid, map, false, false))
+    if (!creature->LoadFromDB(guid, map, false, false, true))
     {
         delete creature;
         return nullptr;
@@ -395,7 +395,7 @@ GameObject* Transport::CreateGOPassenger(ObjectGuid::LowType guid, GameObjectDat
 
     GameObject* go = new GameObject();
 
-    if (!go->LoadFromDB(guid, map, false))
+    if (!go->LoadFromDB(guid, map, false, false, true))
     {
         delete go;
         return nullptr;

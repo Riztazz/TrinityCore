@@ -1856,7 +1856,7 @@ bool Creature::CreateFromProto(ObjectGuid::LowType guidlow, uint32 entry, Creatu
     return true;
 }
 
-bool Creature::LoadFromDB(ObjectGuid::LowType spawnId, Map* map, bool addToMap, bool allowDuplicate)
+bool Creature::LoadFromDB(ObjectGuid::LowType spawnId, Map* map, bool addToMap, bool allowDuplicate, bool allowAnyPartition /*= false*/)
 {
     if (!allowDuplicate)
     {
@@ -1899,7 +1899,7 @@ bool Creature::LoadFromDB(ObjectGuid::LowType spawnId, Map* map, bool addToMap, 
     Position spawnPoint = data->spawnPoint;
 
     // Only load creatures into their respective partitions
-    if (sMapMgr->CalculatePartitionId(map->GetId(), spawnPoint) != map->GetPartitionId())
+    if (!allowAnyPartition && sMapMgr->CalculatePartitionId(map->GetId(), spawnPoint) != map->GetPartitionId())
         return false;
 
     m_spawnId = spawnId;

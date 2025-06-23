@@ -45,7 +45,9 @@ MapPartitioned::MapPartitioned(uint32 id) : Map(id, 0)
 static const int8 BOUNDARY_VISUALIZE_STEP_SIZE = 5;
 void MapPartitioned::VisualizePartitions(Unit* owner, Seconds duration)
 {
+    TC_LOG_DEBUG("visualize", "Visualizing partitions for map {}", owner->GetMap()->GetId());
     MapPartition* partition = GetPartitionEntry(owner->GetMap()->GetPartitionId());
+    TC_LOG_DEBUG("visualize", "Got Partition Entry {} size {}", partition->partitionId, partition->polygon.size());
     if (!partition || partition->polygon.size() < 2)
         return;
 
@@ -65,6 +67,7 @@ void MapPartitioned::VisualizePartitions(Unit* owner, Seconds duration)
         float stepX = dx / length * BOUNDARY_VISUALIZE_STEP_SIZE;
         float stepY = dy / length * BOUNDARY_VISUALIZE_STEP_SIZE;
 
+        TC_LOG_DEBUG("visualize", "For point {} summon {} waypoints", i, stepCount);
         for (int step = 0; step <= stepCount; ++step)
         {
             float x = start.GetPositionX() + step * stepX;

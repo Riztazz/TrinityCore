@@ -1119,7 +1119,7 @@ void GameObject::SaveToDB(uint32 mapid, uint8 spawnMask, uint32 phaseMask)
     WorldDatabase.CommitTransaction(trans);
 }
 
-bool GameObject::LoadFromDB(ObjectGuid::LowType spawnId, Map* map, bool addToMap, bool)
+bool GameObject::LoadFromDB(ObjectGuid::LowType spawnId, Map* map, bool addToMap, bool /*= true*/, bool allowAnyPartition /*= false*/)
 {
     GameObjectData const* data = sObjectMgr->GetGameObjectData(spawnId);
 
@@ -1132,7 +1132,7 @@ bool GameObject::LoadFromDB(ObjectGuid::LowType spawnId, Map* map, bool addToMap
     Position spawnPoint = data->spawnPoint;
 
     // Only load game objects into their respective partitions
-    if (sMapMgr->CalculatePartitionId(map->GetId(), spawnPoint) != map->GetPartitionId())
+    if (!allowAnyPartition && sMapMgr->CalculatePartitionId(map->GetId(), spawnPoint) != map->GetPartitionId())
         return false;
 
     uint32 entry = data->id;
