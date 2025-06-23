@@ -194,7 +194,7 @@ void Transport::Update(uint32 diff)
 
         // Departure event
         if (_currentFrame->IsTeleportFrame())
-            if (TeleportTransport())
+            if (TeleportTransport(_nextFrame->Node->ContinentID, _nextFrame->Node->Loc.X, _nextFrame->Node->Loc.Y, _nextFrame->Node->Loc.Z, _nextFrame->InitialOrientation))
                 return; // Update more in new map thread
     }
 
@@ -652,19 +652,11 @@ float Transport::CalculateSegmentPos(float now)
     return segmentPos / frame.NextDistFromPrev;
 }
 
-bool Transport::TeleportTransport()
+bool Transport::TeleportTransport(uint32 newMapid, float x, float y, float z, float o)
 {
-    uint32 newMapId = _nextFrame->Node->ContinentID;
-    float x = _nextFrame->Node->Loc.X,
-          y = _nextFrame->Node->Loc.Y,
-          z = _nextFrame->Node->Loc.Z,
-          o =_nextFrame->InitialOrientation;
-
-    Map* newMap = sMapMgr->CreateMap(newMapId, {x, y, z});
     Map const* oldMap = GetMap();
 
-    // Add/remove map for both diff map id and diff partitions
-    if (newMap != oldMap)
+    if (oldMap->GetId() != newMapid)
     {
         _delayedTeleport = true;
         UnloadStaticPassengers();
@@ -686,7 +678,7 @@ bool Transport::TeleportTransport()
                 (*itr)->m_movementInfo.transport.pos.GetPosition(destX, destY, destZ, destO);
                 TransportBase::CalculatePassengerPosition(destX, destY, destZ, &destO, x, y, z, o);
 
-                (*itr)->ToPlayer()->TeleportTo(newMapId, destX, destY, destZ, destO,
+                (*itr)->ToPlayer()->TeleportTo(newMapid, destX, destY, destZ, destO,
                     TELE_TO_NOT_LEAVE_TRANSPORT | TELE_TO_NOT_LEAVE_COMBAT | TELE_TO_NOT_UNSUMMON_PET | TELE_TO_TRANSPORT_TELEPORT);
             }
         }
@@ -702,16 +694,14 @@ void Transport::DelayedTeleportTransport()
         return;
 
     _delayedTeleport = false;
+    Map* newMap = sMapMgr->CreateMap(_nextFrame->Node->ContinentID, GetPosition());
+    GetMap()->RemoveFromMap<Transport>(this, false);
+    SetMap(newMap);
 
-    uint32 newMapId = _nextFrame->Node->ContinentID;
     float x = _nextFrame->Node->Loc.X,
           y = _nextFrame->Node->Loc.Y,
           z = _nextFrame->Node->Loc.Z,
           o =_nextFrame->InitialOrientation;
-
-    Map* newMap = sMapMgr->CreateMap(newMapId, {x, y, z});
-    GetMap()->RemoveFromMap<Transport>(this, false);
-    SetMap(newMap);
 
     for (_passengerTeleportItr = _passengers.begin(); _passengerTeleportItr != _passengers.end();)
     {
@@ -724,12 +714,12 @@ void Transport::DelayedTeleportTransport()
         // TODO Needs a more robust way to teleport vehicle passengers.
         if (Unit* unit = obj->ToUnit())
             if (unit->GetVehicleKit())
-                unit->GetVehicleKit()->TeleportPassengers(newMapId, destX, destY, destZ, destO);
+                unit->GetVehicleKit()->TeleportPassengers(_nextFrame->Node->ContinentID, destX, destY, destZ, destO);
 
         switch (obj->GetTypeId())
         {
             case TYPEID_PLAYER:
-                if (!obj->ToPlayer()->TeleportTo(newMapId, destX, destY, destZ, destO, TELE_TO_NOT_LEAVE_TRANSPORT))
+                if (!obj->ToPlayer()->TeleportTo(_nextFrame->Node->ContinentID, destX, destY, destZ, destO, TELE_TO_NOT_LEAVE_TRANSPORT))
                     RemovePassenger(obj);
                 break;
             case TYPEID_DYNAMICOBJECT:

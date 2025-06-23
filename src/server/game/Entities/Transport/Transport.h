@@ -145,7 +145,7 @@ class TC_GAME_API Transport : public GenericTransport
     private:
         void MoveToNextWaypoint();
         float CalculateSegmentPos(float perc);
-        bool TeleportTransport();
+        bool TeleportTransport(uint32 newMapid, float x, float y, float z, float o);
         void DelayedTeleportTransport();
         void DoEventIfAny(KeyFrame const& node, bool departure);
 
