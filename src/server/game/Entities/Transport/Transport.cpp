@@ -750,21 +750,30 @@ void Transport::UpdateMapPartition()
         return;
 
     Map* newMap = sMapMgr->CreateMap(currentMap->GetId(), GetPosition());
-    // We don't change partitions if already in the correct partition
-    if (!newMap || newMap == currentMap)
+    // Sanity checks
+    if (!newMap)
         return;
 
     TC_LOG_DEBUG("partitionsA", "Transport::UpdateMapPartition called");
 
-    currentMap->RemoveFromMap<Transport>(this, false);
-    SetMap(newMap);
+    // Update transport map first immediately
+    if (newMap != currentMap)
+    {
+        UnloadStaticPassengers();
+        currentMap->RemoveFromMap<Transport>(this, false);
+        SetMap(newMap);
+        newMap->AddToMap<Transport>(this);
+        LoadStaticPassengers();
+    }
 
-    // Update passengers first
+    // Check passenger maps since they cannot update themselves
     for (PassengerSet::iterator itr = _passengers.begin(); itr != _passengers.end(); ++itr)
     {
         WorldObject* passenger = *itr;
+        if (!passenger->IsInWorld() || passenger->GetMap() == newMap)
+            continue;
 
-        // if passenger is on vehicle we have to assume the vehicle is also on transport
+        // if passenger is on a vehicle we have to assume the vehicle is also on transport
         // and its the vehicle that will be updating its passengers
         if (Unit* unit = passenger->ToUnit())
             if (unit->GetVehicle())
@@ -776,11 +785,9 @@ void Transport::UpdateMapPartition()
                 passenger->ToCreature()->UpdateMapPartition(newMap);
                 break;
             case TYPEID_PLAYER:
-                // if player is logging in/being teleported they will update partitions when added to the map
-                if (passenger->IsInWorld() && !passenger->ToPlayer()->IsBeingTeleported())
-                {
+                // we need to wait for teleport to finish before updating partitions
+                if (!passenger->ToPlayer()->IsBeingTeleported())
                     passenger->ToPlayer()->UpdateMapPartition(newMap);
-                }
                 break;
             case TYPEID_GAMEOBJECT:
                 // Only Creatures and Players have UpdateMapPartition/AddToPartition/RemoveFromPartition methods defined
@@ -798,13 +805,6 @@ void Transport::UpdateMapPartition()
                 break;
         }
     }
-
-    // Just reuse the existing code, we fully remove and re-add static passengers on map change
-    UnloadStaticPassengers();
-
-    newMap->AddToMap<Transport>(this);
-
-    LoadStaticPassengers();
 }
 
 // bool ElevatorTransport::Create(uint32 dbGuid, uint32 guidlow, uint32 name_id, Map* map, Position const& pos, float ang, const QuaternionData& rotation, uint32 animprogress, GOState go_state)
