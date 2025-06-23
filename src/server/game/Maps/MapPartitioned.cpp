@@ -42,11 +42,7 @@ MapPartitioned::MapPartitioned(uint32 id) : Map(id, 0)
     }
 }
 
-static const uint32 BOUNDARY_VISUALIZE_CREATURE = 15425;
-static const float BOUNDARY_VISUALIZE_CREATURE_SCALE = 0.5f;
 static const int8 BOUNDARY_VISUALIZE_STEP_SIZE = 5;
-static const float BOUNDARY_VISUALIZE_HEIGHT_OFFSET = 50.0f;
-static const float BOUNDARY_VISUALIZE_HEIGHT_SEARCH = 100.0f;
 void MapPartitioned::VisualizePartitions(Unit* owner, Seconds duration)
 {
     MapPartition* partition = GetPartitionEntry(owner->GetMap()->GetPartitionId());
@@ -68,13 +64,12 @@ void MapPartitioned::VisualizePartitions(Unit* owner, Seconds duration)
         float stepCount = std::floor(length / BOUNDARY_VISUALIZE_STEP_SIZE);
         float stepX = dx / length * BOUNDARY_VISUALIZE_STEP_SIZE;
         float stepY = dy / length * BOUNDARY_VISUALIZE_STEP_SIZE;
-        float lastZ = owner->GetPositionZ();
 
         for (int step = 0; step <= stepCount; ++step)
         {
             float x = start.GetPositionX() + step * stepX;
             float y = start.GetPositionY() + step * stepY;
-            float z = GetHeight(0, x, y, lastZ + BOUNDARY_VISUALIZE_HEIGHT_OFFSET, true, BOUNDARY_VISUALIZE_HEIGHT_SEARCH);
+            float z = owner->GetPositionZ();
 
             if (owner->SummonCreature(VISUAL_WAYPOINT, x, y, z, 0, TEMPSUMMON_TIMED_DESPAWN, duration))
                 lastZ = z;
