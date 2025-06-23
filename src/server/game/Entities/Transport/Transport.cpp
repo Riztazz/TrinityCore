@@ -754,7 +754,7 @@ void Transport::UpdateMapPartition()
         return;
 
     // Update passengers first
-    for (PassengerSet::iterator itr = passengers.begin(); itr != passengers.end(); ++itr)
+    for (PassengerSet::iterator itr = _passengers.begin(); itr != _passengers.end(); ++itr)
     {
         WorldObject* passenger = *itr;
 
