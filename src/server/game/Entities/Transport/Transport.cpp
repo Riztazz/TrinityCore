@@ -251,6 +251,8 @@ void Transport::DelayedUpdate(uint32 /*diff*/)
         return;
 
     DelayedTeleportTransport();
+
+    UpdateMapPartition();
 }
 
 void GenericTransport::AddPassenger(WorldObject* passenger)
@@ -694,14 +696,15 @@ void Transport::DelayedTeleportTransport()
         return;
 
     _delayedTeleport = false;
-    Map* newMap = sMapMgr->CreateMap(_nextFrame->Node->ContinentID, GetPosition());
-    GetMap()->RemoveFromMap<Transport>(this, false);
-    SetMap(newMap);
 
     float x = _nextFrame->Node->Loc.X,
           y = _nextFrame->Node->Loc.Y,
           z = _nextFrame->Node->Loc.Z,
           o =_nextFrame->InitialOrientation;
+
+    Map* newMap = sMapMgr->CreateMap(_nextFrame->Node->ContinentID, {x, y, z, o});
+    GetMap()->RemoveFromMap<Transport>(this, false);
+    SetMap(newMap);
 
     for (_passengerTeleportItr = _passengers.begin(); _passengerTeleportItr != _passengers.end();)
     {
@@ -736,6 +739,62 @@ void Transport::DelayedTeleportTransport()
 
     Relocate(x, y, z, o);
     GetMap()->AddToMap<Transport>(this);
+}
+
+void Transport::UpdateMapPartition()
+{
+    Map* currentMap = IsInWorld() ? GetMap() : nullptr;
+    // Sanity checks
+    if (!currentMap || !currentMap->IsWorldMap())
+        return;
+
+    Map* newMap = sMapMgr->CreateMap(currentMap->GetId(), GetPosition());
+    // We don't change partitions if already in the correct partition
+    if (!newMap || newMap == currentMap)
+        return;
+
+    // Update passengers first
+    for (PassengerSet::iterator itr = passengers.begin(); itr != passengers.end(); ++itr)
+    {
+        WorldObject* passenger = *itr;
+
+        // if passenger is on vehicle we have to assume the vehicle is also on transport
+        // and its the vehicle that will be updating its passengers
+        if (Unit* unit = passenger->ToUnit())
+            if (unit->GetVehicle())
+                continue;
+
+        switch (passenger->GetTypeId())
+        {
+            case TYPEID_UNIT:
+            {
+                passenger->ToCreature()->UpdateMapPartition(newMap);
+                break;
+            }
+            case TYPEID_PLAYER:
+                passenger->ToPlayer()->UpdateMapPartition(newMap);
+                break;
+            case TYPEID_GAMEOBJECT:
+                //passenger->ToGameObject()->UpdateMapPartition(newMap);
+                break;
+            case TYPEID_DYNAMICOBJECT:
+                //passenger->ToDynObject()->UpdateMapPartition(newMap);
+                break;
+            default:
+                break;
+        }
+
+        if (Unit* unit = passenger->ToUnit())
+            if (Vehicle* vehicle = unit->GetVehicleKit())
+                vehicle->UpdatePassengersMapPartition(newMap);
+    }
+
+    //currentMap->RemoveFromPartition(this);
+    currentMap->RemoveFromMap<Transport>(this, false);
+    SetMap(newMap);
+
+    newMap->AddToMap<Transport>(this);
+    //newMap->AddToPartition(this);
 }
 
 // bool ElevatorTransport::Create(uint32 dbGuid, uint32 guidlow, uint32 name_id, Map* map, Position const& pos, float ang, const QuaternionData& rotation, uint32 animprogress, GOState go_state)

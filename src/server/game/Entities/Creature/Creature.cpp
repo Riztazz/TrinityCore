@@ -3860,8 +3860,8 @@ uint32 Creature::GetModelID() const
 void Creature::UpdateMapPartition(Map* forcedMap)
 {
     //TC_LOG_DEBUG("partitions", "Creature::UpdateMapPartition called");
-    // When creatures are in a vehicle the vehicle needs to move first, and this called from the vehicle with a forcedMap
-    if (m_vehicle && !forcedMap)
+    // When creatures are in a vehicle or on transport these entities are responsible for updating partition
+    if ((m_vehicle || m_transport) && !forcedMap)
         return;
 
     Vehicle* vehicle = GetVehicleKit();

@@ -26659,8 +26659,8 @@ void Player::SetMap(Map* map)
 // Only call from Map Delayed Update (map thread safety)
 void Player::UpdateMapPartition(Map* forcedMap)
 {
-    // When players are in a vehicle the vehicle needs to move first, and this called from the vehicle with a forcedMap
-    if (m_vehicle && !forcedMap)
+    // When players are in a vehicle or on transport these entities are responsible for updating partition
+    if ((m_vehicle || m_transport) && !forcedMap)
         return;
 
     Map* currentMap = IsInWorld() ? GetMap() : nullptr;
