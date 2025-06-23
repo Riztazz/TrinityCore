@@ -2059,16 +2059,16 @@ void Player::RemoveFromPartition()
         return;
 
     ///- Release charmed creatures, unsummon totems and remove pets/guardians
-    //StopCastingCharm();
+    StopCastingCharm();
     StopCastingBindSight();
     UnsummonPetTemporaryIfAny();
-    //ClearComboPoints();
-    //ClearComboPointHolders();
+    ClearComboPoints();
+    ClearComboPointHolders();
     ObjectGuid lootGuid = GetLootGUID();
     if (!lootGuid.IsEmpty())
         m_session->DoLootRelease(lootGuid);
-    //sOutdoorPvPMgr->HandlePlayerLeaveZone(this, m_zoneUpdateId);
-    //sBattlefieldMgr->HandlePlayerLeaveZone(this, m_zoneUpdateId);
+    sOutdoorPvPMgr->HandlePlayerLeaveZone(this, m_zoneUpdateId);
+    sBattlefieldMgr->HandlePlayerLeaveZone(this, m_zoneUpdateId);
 
     // Remove items from world before self - player must be found in Item::RemoveFromObjectUpdate
     //for (uint8 i = PLAYER_SLOT_START; i < PLAYER_SLOT_END; ++i)
@@ -2085,15 +2085,15 @@ void Player::RemoveFromPartition()
     //for (ItemMap::iterator iter = mMitems.begin(); iter != mMitems.end(); ++iter)
     //    iter->second->RemoveFromWorld();
 
-    //if (m_uint32Values)
-    //{
-    //    if (WorldObject* viewpoint = GetViewpoint())
-    //    {
-    //        TC_LOG_ERROR("entities.player", "Player::RemoveFromWorld: Player '{}' ({}) has viewpoint (Entry:{}, Type: {}) when removed from world",
-    //            GetName(), GetGUID().ToString(), viewpoint->GetEntry(), viewpoint->GetTypeId());
-    //        SetViewpoint(viewpoint, false);
-    //    }
-    //}
+    if (m_uint32Values)
+    {
+        if (WorldObject* viewpoint = GetViewpoint())
+        {
+            TC_LOG_ERROR("entities.player", "Player::RemoveFromPartition: Player '{}' ({}) has viewpoint (Entry:{}, Type: {}) when removed from world",
+                GetName(), GetGUID().ToString(), viewpoint->GetEntry(), viewpoint->GetTypeId());
+            SetViewpoint(viewpoint, false);
+        }
+    }
     TC_LOG_DEBUG("partitions", "Player::RemoveFromPartition done");
 }
 
@@ -26732,7 +26732,6 @@ void Player::UpdateMapPartition(Map* forcedMap)
 
     newMap->AddPlayerToPartition(this);
 
-    // TODO try not unsummon and summon, but rather move pet with me
     ResummonPetTemporaryUnSummonedIfAny();
 
     // idk if we need this either

@@ -3859,15 +3859,15 @@ uint32 Creature::GetModelID() const
 
 void Creature::UpdateMapPartition(Map* forcedMap)
 {
+    
     //TC_LOG_DEBUG("partitions", "Creature::UpdateMapPartition called");
     // When creatures are in a vehicle or on transport these entities are responsible for updating partition
     if ((m_vehicle || m_transport) && !forcedMap)
         return;
 
-    Vehicle* vehicle = GetVehicleKit();
-    // Only support vehicles for now
-    //if (!vehicle)
-    //    return;
+    // Pets are moved manually by owner
+    if (IsPet())
+        return;
 
     Map* currentMap = IsInWorld() ? GetMap() : nullptr;
     // We only ever change partitions if we are currently in a world map
@@ -3882,6 +3882,7 @@ void Creature::UpdateMapPartition(Map* forcedMap)
     TC_LOG_DEBUG("partitions", "Creature::UpdateMapPartition {} Moving From Partition {} To Partition {} ", GetGUID(), currentMap->GetPartitionId(), newMap->GetPartitionId());
 
     // Now update passengers
+    Vehicle* vehicle = GetVehicleKit();
     if (vehicle)
         vehicle->UpdatePassengersMapPartition(newMap);
 
