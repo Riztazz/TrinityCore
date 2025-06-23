@@ -20,6 +20,7 @@
 #include "CellImpl.h"
 #include "Common.h"
 #include "DBCStores.h"
+#include "DynamicObject.h"
 #include "GameObjectAI.h"
 #include "Log.h"
 #include "MapManager.h"
