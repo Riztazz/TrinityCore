@@ -272,6 +272,7 @@ void WorldSession::HandleMoveTeleportAck(WorldPacket& recvData)
     }
 
     // resummon pet
+    TC_LOG_DEBUG("partitionsA", "WorldSession::HandleMoveTeleportAck ResummonPetTemporaryUnSummonedIfAny called");
     GetPlayer()->ResummonPetTemporaryUnSummonedIfAny();
 
     //lets process all delayed operations on successful teleport

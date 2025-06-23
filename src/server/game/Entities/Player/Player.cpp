@@ -1762,9 +1762,12 @@ bool Player::TeleportTo(uint32 mapid, float x, float y, float z, float orientati
             return true;
         }
 
+        TC_LOG_DEBUG("partitionsA", "Player has pet {} and is within 50 yards of dest {}", pet ? pet->GetGUID().ToString() : "none", GetGUID().ToString(), mapid);
         //same map, only remove pet if out of range for new position
-        if (pet && !pet->IsWithinDist3d(x, y, z, 50.0f))
+        if (pet && !pet->IsWithinDist3d(x, y, z, 50.0f)) {
+            TC_LOG_DEBUG("partitionsA", "Player::TeleportTo UnsummonPetTemporaryIfAny called");
             UnsummonPetTemporaryIfAny();
+        }
 
         if (!IsAlive() && options & TELE_REVIVE_AT_TELEPORT)
             ResurrectPlayer(0.5f);
@@ -26674,9 +26677,6 @@ void Player::UpdateMapPartition(Map* forcedMap)
         return;
 
     TC_LOG_DEBUG("partitions", "Player::UpdateMapPartition {} Moving From Partition {} To Partition {} ", GetGUID(), currentMap->GetPartitionId(), newMap->GetPartitionId());
-
-    // TODO anything else we and can't gracefully handle/cancel we should TeleportOut to Homebind rather than bug out
-    //TeleportTo(m_homebindMapId, m_homebindX, m_homebindY, m_homebindZ, GetOrientation());
 
     // Experiment with all of the things we should set off when we cross partitions, these are taken from teleport
     DuelComplete(DUEL_FLED);

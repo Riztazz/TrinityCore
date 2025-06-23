@@ -272,8 +272,8 @@ void GenericTransport::AddPassenger(WorldObject* passenger)
         {
             sScriptMgr->OnAddPassenger(this, plr);
 
-        if (Pet* pet = plr->GetPet())
-            AddFollowerToTransport(plr, pet);
+            if (Pet* pet = plr->GetPet())
+                AddFollowerToTransport(plr, pet);
         }
     }
 }
@@ -754,6 +754,11 @@ void Transport::UpdateMapPartition()
     if (!newMap || newMap == currentMap)
         return;
 
+    TC_LOG_DEBUG("partitionsA", "Transport::UpdateMapPartition called");
+
+    currentMap->RemoveFromMap<Transport>(this, false);
+    SetMap(newMap);
+
     // Update passengers first
     for (PassengerSet::iterator itr = _passengers.begin(); itr != _passengers.end(); ++itr)
     {
@@ -768,10 +773,8 @@ void Transport::UpdateMapPartition()
         switch (passenger->GetTypeId())
         {
             case TYPEID_UNIT:
-            {
                 passenger->ToCreature()->UpdateMapPartition(newMap);
                 break;
-            }
             case TYPEID_PLAYER:
                 passenger->ToPlayer()->UpdateMapPartition(newMap);
                 break;
@@ -794,9 +797,6 @@ void Transport::UpdateMapPartition()
 
     // Just reuse the existing code, we fully remove and re-add static passengers on map change
     UnloadStaticPassengers();
-
-    currentMap->RemoveFromMap<Transport>(this, false);
-    SetMap(newMap);
 
     newMap->AddToMap<Transport>(this);
 
