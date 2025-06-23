@@ -775,12 +775,14 @@ void Transport::UpdateMapPartition()
                 passenger->ToPlayer()->UpdateMapPartition(newMap);
                 break;
             case TYPEID_GAMEOBJECT:
-                currentMap->RemoveFromMap(passenger->ToGameObject());
+                // Only Creatures and Players have UpdateMapPartition/AddToPartition/RemoveFromPartition methods defined
+                currentMap->RemoveFromMap(passenger->ToGameObject(), false);
                 passenger->ToGameObject()->SetMap(newMap);
                 newMap->AddToMap(passenger->ToGameObject());
                 break;
             case TYPEID_DYNAMICOBJECT:
-                currentMap->RemoveFromMap(passenger->ToDynObject());
+                // Only Creatures and Players have UpdateMapPartition/AddToPartition/RemoveFromPartition methods defined
+                currentMap->RemoveFromMap(passenger->ToDynObject(), false);
                 passenger->ToDynObject()->SetMap(newMap);
                 newMap->AddToMap(passenger->ToDynObject());
                 break;
@@ -789,6 +791,7 @@ void Transport::UpdateMapPartition()
         }
     }
 
+    // Just reuse the existing code, we fully remove and re-add static passengers on map change
     UnloadStaticPassengers();
 
     currentMap->RemoveFromMap<Transport>(this, false);
