@@ -49,7 +49,7 @@ static const float BOUNDARY_VISUALIZE_HEIGHT_OFFSET = 50.0f;
 static const float BOUNDARY_VISUALIZE_HEIGHT_SEARCH = 100.0f;
 void MapPartitioned::VisualizePartitions(Unit* owner, Seconds duration)
 {
-    const PartitionEntry* partition = GetPartitionEntry(owner->GetMap()->GetPartitionId());
+    MapPartition* partition = GetPartitionEntry(owner->GetMap()->GetPartitionId());
     if (!partition || partition->polygon.size() < 2)
         return;
 
