@@ -147,6 +147,7 @@ class TC_GAME_API Transport : public GenericTransport
         float CalculateSegmentPos(float perc);
         bool TeleportTransport(uint32 newMapid, float x, float y, float z, float o);
         void DelayedTeleportTransport();
+        void UpdateMapPartition();
         void DoEventIfAny(KeyFrame const& node, bool departure);
 
         //! Helpers to know if stop frame was reached
