@@ -776,7 +776,11 @@ void Transport::UpdateMapPartition()
                 passenger->ToCreature()->UpdateMapPartition(newMap);
                 break;
             case TYPEID_PLAYER:
-                passenger->ToPlayer()->UpdateMapPartition(newMap);
+                // if player is logging in/being teleported they will update partitions when added to the map
+                if (passenger->IsInWorld() && !passenger->ToPlayer()->IsBeingTeleported())
+                {
+                    passenger->ToPlayer()->UpdateMapPartition(newMap);
+                }
                 break;
             case TYPEID_GAMEOBJECT:
                 // Only Creatures and Players have UpdateMapPartition/AddToPartition/RemoveFromPartition methods defined
