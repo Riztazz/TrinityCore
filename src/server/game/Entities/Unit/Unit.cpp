@@ -10365,6 +10365,8 @@ void Unit::RemoveFromPartition()
     //    RemoveVehicleKit();
 
     //RemoveCharmAuras();
+    if (!IsVehicle())
+        RemoveCharmAuras();
     RemoveBindSightAuras();
     RemoveNotOwnSingleTargetAuras();
 
