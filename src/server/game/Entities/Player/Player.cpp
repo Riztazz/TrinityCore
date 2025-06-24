@@ -2179,7 +2179,10 @@ void Player::UpdateMapPartition(Map* forcedMap)
 
     newMap->AddPlayerToPartition(this);
 
-    ResummonPetTemporaryUnSummonedIfAny();
+    if (!m_vehicle)
+    {
+        ResummonPetTemporaryUnSummonedIfAny();
+    }
     // Trying to move the controlled units is a challenge, for now we will just resummon pets
     // for (ControlList::iterator itr = m_Controlled.begin(); itr != m_Controlled.end(); ++itr)
     // {
