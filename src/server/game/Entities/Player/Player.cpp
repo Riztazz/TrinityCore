@@ -2063,7 +2063,7 @@ void Player::RemoveFromPartition()
 
     ///- Release charmed creatures, unsummon totems and remove pets/guardians
     //StopCastingCharm();
-    //StopCastingBindSight();
+    StopCastingBindSight();
     UnsummonPetTemporaryIfAny();
     ClearComboPoints();
     ClearComboPointHolders();
@@ -2088,15 +2088,15 @@ void Player::RemoveFromPartition()
     for (ItemMap::iterator iter = mMitems.begin(); iter != mMitems.end(); ++iter)
         iter->second->RemoveFromWorld();
 
-    if (m_uint32Values)
-    {
-        if (WorldObject* viewpoint = GetViewpoint())
-        {
-            TC_LOG_ERROR("entities.player", "Player::RemoveFromPartition: Player '{}' ({}) has viewpoint (Entry:{}, Type: {}) when removed from world",
-                GetName(), GetGUID().ToString(), viewpoint->GetEntry(), viewpoint->GetTypeId());
-            SetViewpoint(viewpoint, false);
-        }
-    }
+    // if (m_uint32Values)
+    // {
+    //     if (WorldObject* viewpoint = GetViewpoint())
+    //     {
+    //         TC_LOG_ERROR("entities.player", "Player::RemoveFromPartition: Player '{}' ({}) has viewpoint (Entry:{}, Type: {}) when removed from world",
+    //             GetName(), GetGUID().ToString(), viewpoint->GetEntry(), viewpoint->GetTypeId());
+    //         SetViewpoint(viewpoint, false);
+    //     }
+    // }
     TC_LOG_DEBUG("partitions", "Player::RemoveFromPartition done");
 }
 
