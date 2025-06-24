@@ -2063,7 +2063,7 @@ void Player::RemoveFromPartition()
 
     ///- Release charmed creatures, unsummon totems and remove pets/guardians
     //StopCastingCharm();
-    StopCastingBindSight();
+    //StopCastingBindSight();
     UnsummonPetTemporaryIfAny();
     ClearComboPoints();
     ClearComboPointHolders();
