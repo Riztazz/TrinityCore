@@ -2104,7 +2104,8 @@ void Player::RemoveFromPartition()
 void Player::UpdateMapPartition(Map* forcedMap)
 {
     // When players are in a vehicle or on transport these entities are responsible for updating partition
-    if ((m_vehicle || m_transport) && !forcedMap)
+    // when players are charmed by other players they need to move with their charmer
+    if ((m_vehicle || m_transport || GetCharmerOrOwner()) && !forcedMap)
         return;
 
     Map* currentMap = IsInWorld() ? GetMap() : nullptr;
@@ -2176,14 +2177,15 @@ void Player::UpdateMapPartition(Map* forcedMap)
 
     newMap->AddPlayerToPartition(this);
 
-    //ResummonPetTemporaryUnSummonedIfAny();
-    // move all controlled units except vehicles (vehicles will move their own passengers)
-    // not sure vehicles will be in this list but doesnt hurt to exclude
     for (ControlList::iterator itr = m_Controlled.begin(); itr != m_Controlled.end(); ++itr)
-        if (!(*itr)->IsVehicle())
-            (*itr)->UpdateMapPartition(newMap);
-
-    //ProcessDelayedOperations();
+        // controlled players always need to move with their controller (if on boat etc)
+        if (auto player : (*itr)->ToPlayer())
+            player->UpdateMapPartition(newMap);
+        // controlled creatures as well, except for vehicles, I hope 'controlled' vehicle are always driven and will update their
+        // passengers, but we can test for edge cases here
+        else if (auto creature : (*itr)->ToCreature())
+            if (!creature->IsVehicle())
+                creature->UpdateMapPartition(newMap);
 
     TC_LOG_DEBUG("partitions", "Player::UpdateMapPartition done");
 }
