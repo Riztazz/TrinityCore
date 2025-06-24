@@ -416,6 +416,11 @@ void Creature::RemoveFromPartition()
     GetMap()->GetObjectsStore().Remove<Creature>(GetGUID());
 }
 
+void Creature::UpdateMapPartition(Map* forcedMap)
+{
+    Unit::UpdateMapPartition(forcedMap);
+}
+
 void Creature::SetOutfit(std::shared_ptr<CreatureOutfit> const & outfit)
 {
     // @tswow-begin apply weapons
