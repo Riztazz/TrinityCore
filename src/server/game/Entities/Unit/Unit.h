@@ -896,6 +896,7 @@ class TC_GAME_API Unit : public WorldObject
         void RemoveFromWorld() override;
         void AddToPartition() override;
         void RemoveFromPartition() override;
+        virtual void UpdateMapPartition(Map* forcedMap = nullptr);
 
         void CleanupBeforeRemoveFromMap(bool finalCleanup);
         void CleanupsBeforeDelete(bool finalCleanup = true) override;                        // used in ~Creature/~Player (or before mass creature delete to remove cross-references to already deleted units)

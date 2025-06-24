@@ -778,6 +778,7 @@ void Transport::UpdateMapPartition()
         switch (passenger->GetTypeId())
         {
             case TYPEID_UNIT:
+                // owned units will be ignored in here and updated when player is updated
                 passenger->ToCreature()->UpdateMapPartition(newMap);
                 break;
             case TYPEID_PLAYER:
@@ -787,13 +788,13 @@ void Transport::UpdateMapPartition()
                     passenger->ToPlayer()->UpdateMapPartition(newMap);
                 break;
             case TYPEID_GAMEOBJECT:
-                // Only Creatures and Players have UpdateMapPartition/AddToPartition/RemoveFromPartition methods defined
+                // Only Units have UpdateMapPartition/AddToPartition/RemoveFromPartition methods defined
                 currentMap->RemoveFromMap(passenger->ToGameObject(), false);
                 passenger->ToGameObject()->SetMap(newMap);
                 newMap->AddToMap(passenger->ToGameObject());
                 break;
             case TYPEID_DYNAMICOBJECT:
-                // Only Creatures and Players have UpdateMapPartition/AddToPartition/RemoveFromPartition methods defined
+                // Only Units have UpdateMapPartition/AddToPartition/RemoveFromPartition methods defined
                 currentMap->RemoveFromMap(passenger->ToDynObject(), false);
                 passenger->ToDynObject()->SetMap(newMap);
                 newMap->AddToMap(passenger->ToDynObject());

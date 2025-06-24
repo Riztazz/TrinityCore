@@ -2064,7 +2064,7 @@ void Player::RemoveFromPartition()
     ///- Release charmed creatures, unsummon totems and remove pets/guardians
     //StopCastingCharm();
     StopCastingBindSight();
-    UnsummonPetTemporaryIfAny();
+    //UnsummonPetTemporaryIfAny();
     ClearComboPoints();
     ClearComboPointHolders();
     ObjectGuid lootGuid = GetLootGUID();
@@ -2098,6 +2098,94 @@ void Player::RemoveFromPartition()
     //     }
     // }
     TC_LOG_DEBUG("partitions", "Player::RemoveFromPartition done");
+}
+
+// Only call from Map Delayed Update (map thread safety)
+void Player::UpdateMapPartition(Map* forcedMap)
+{
+    // When players are in a vehicle or on transport these entities are responsible for updating partition
+    if ((m_vehicle || m_transport) && !forcedMap)
+        return;
+
+    Map* currentMap = IsInWorld() ? GetMap() : nullptr;
+    // We only ever change partitions if we are currently in a world map
+    if (!currentMap || !currentMap->IsWorldMap())
+        return;
+
+    Map* newMap = forcedMap ? forcedMap : sMapMgr->CreateMap(currentMap->GetId(), GetPosition(), this);
+    // We don't change partitions if already in the correct partition
+    if (!newMap || newMap == currentMap)
+        return;
+
+    TC_LOG_DEBUG("partitions", "Player::UpdateMapPartition {} Moving From Partition {} To Partition {} ", GetGUID(), currentMap->GetPartitionId(), newMap->GetPartitionId());
+
+    // Experiment with all of the things we should set off when we cross partitions, these are taken from teleport
+    DuelComplete(DUEL_FLED);
+    SetSelection(ObjectGuid::Empty);
+    CombatStop();
+    ResetContestedPvP();
+
+    if (IsNonMeleeSpellCast(true))
+        InterruptNonMeleeSpells(true);
+
+    // TODO do we need to remove these?
+    RemoveAurasWithInterruptFlags(AURA_INTERRUPT_FLAG_CHANGE_MAP | AURA_INTERRUPT_FLAG_MOVE | AURA_INTERRUPT_FLAG_TURNING);
+
+    currentMap->RemovePlayerFromPartition(this);
+
+    // Delete all existing visible objects, we don't have an existing function that does this
+    // since usually we send teleport packets for changing maps
+    UpdateData deleteData;
+    for (auto it = m_clientGUIDs.begin(); it != m_clientGUIDs.end(); ++it)
+    {
+        if (m_vehicle)
+        {
+            // Don't delete the vehicle
+            if (m_vehicle->GetBase()->GetGUID() == *it)
+                continue;
+
+            // Don't delete passengers
+            bool passenger = false;
+            for (auto const& [_, seat] : m_vehicle->Seats)
+            {
+                if (seat.Passenger.Guid == *it)
+                {
+                    passenger = true;
+                    break;
+                }
+            }
+            if (passenger)
+                continue;
+        }
+
+        // Transport static passengers get new guids each time, and other passengers will eventually appear, this
+        // isn't a priority to not clear visibility
+
+        deleteData.AddOutOfRangeGUID(*it);
+    }
+    if (deleteData.HasData())
+    {
+        WorldPacket packet;
+        deleteData.BuildPacket(&packet);
+        SendDirectMessage(&packet);
+    }
+
+    // Set the new map
+    ResetMap();
+    SetMap(newMap);
+
+    newMap->AddPlayerToPartition(this);
+
+    //ResummonPetTemporaryUnSummonedIfAny();
+    // move all controlled units except vehicles (vehicles will move their own passengers)
+    // not sure vehicles will be in this list but doesnt hurt to exclude
+    for (ControlList::iterator = m_Controlled.begin(); itr != m_Controlled.end(); ++itr)
+        if (!(*itr)->IsVehicle())
+            (*itr)->UpdateMapPartition(newMap);
+
+    //ProcessDelayedOperations();
+
+    TC_LOG_DEBUG("partitions", "Player::UpdateMapPartition done");
 }
 
 void Player::SetObjectScale(float scale)
@@ -26662,87 +26750,6 @@ void Player::SetMap(Map* map)
 {
     Unit::SetMap(map);
     m_mapRef.link(map, this);
-}
-
-// Only call from Map Delayed Update (map thread safety)
-void Player::UpdateMapPartition(Map* forcedMap)
-{
-    // When players are in a vehicle or on transport these entities are responsible for updating partition
-    if ((m_vehicle || m_transport) && !forcedMap)
-        return;
-
-    Map* currentMap = IsInWorld() ? GetMap() : nullptr;
-    // We only ever change partitions if we are currently in a world map
-    if (!currentMap || !currentMap->IsWorldMap())
-        return;
-
-    Map* newMap = forcedMap ? forcedMap : sMapMgr->CreateMap(currentMap->GetId(), GetPosition(), this);
-    // We don't change partitions if already in the correct partition
-    if (!newMap || newMap == currentMap)
-        return;
-
-    TC_LOG_DEBUG("partitions", "Player::UpdateMapPartition {} Moving From Partition {} To Partition {} ", GetGUID(), currentMap->GetPartitionId(), newMap->GetPartitionId());
-
-    // Experiment with all of the things we should set off when we cross partitions, these are taken from teleport
-    DuelComplete(DUEL_FLED);
-    SetSelection(ObjectGuid::Empty);
-    CombatStop();
-    ResetContestedPvP();
-
-    if (IsNonMeleeSpellCast(true))
-        InterruptNonMeleeSpells(true);
-
-    // TODO do we need to remove these?
-    RemoveAurasWithInterruptFlags(AURA_INTERRUPT_FLAG_CHANGE_MAP | AURA_INTERRUPT_FLAG_MOVE | AURA_INTERRUPT_FLAG_TURNING);
-
-    currentMap->RemovePlayerFromPartition(this);
-
-    // Delete all existing visible objects, we don't have an existing function that does this
-    // since usually we send teleport packets for changing maps
-    UpdateData deleteData;
-    for (auto it = m_clientGUIDs.begin(); it != m_clientGUIDs.end(); ++it)
-    {
-        if (m_vehicle)
-        {
-            // Don't delete the vehicle
-            if (m_vehicle->GetBase()->GetGUID() == *it)
-                continue;
-
-            // Don't delete passengers
-            bool passenger = false;
-            for (auto const& [_, seat] : m_vehicle->Seats)
-            {
-                if (seat.Passenger.Guid == *it)
-                {
-                    passenger = true;
-                    break;
-                }
-            }
-            if (passenger)
-                continue;
-        }
-
-        deleteData.AddOutOfRangeGUID(*it);
-    }
-    if (deleteData.HasData())
-    {
-        WorldPacket packet;
-        deleteData.BuildPacket(&packet);
-        SendDirectMessage(&packet);
-    }
-
-    // Set the new map
-    ResetMap();
-    SetMap(newMap);
-
-    newMap->AddPlayerToPartition(this);
-
-    ResummonPetTemporaryUnSummonedIfAny();
-
-    // idk if we need this either
-    ProcessDelayedOperations();
-
-    TC_LOG_DEBUG("partitions", "Player::UpdateMapPartition done");
 }
 
 void Player::_LoadGlyphs(PreparedQueryResult result)

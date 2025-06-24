@@ -940,6 +940,7 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
         void RemoveFromWorld() override;
         void AddToPartition() override;
         void RemoveFromPartition() override;
+        void UpdateMapPartition(Map* forcedMap = nullptr) override;
 
         void SetObjectScale(float scale) override;
 
@@ -2224,7 +2225,6 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
         // Set map to player and add reference
         void SetMap(Map* map) override;
         void ResetMap() override;
-        void UpdateMapPartition(Map* forcedMap = nullptr);
 
         // @epoch-begin
         bool CanTeleport() { return m_canTeleport; }
