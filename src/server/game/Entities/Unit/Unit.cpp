@@ -10374,6 +10374,20 @@ void Unit::RemoveFromPartition()
     //ExitVehicle();  // Remove applied auras with SPELL_AURA_CONTROL_VEHICLE
     UnsummonAllTotems();
     //RemoveAllControlled();
+    // unsummon any controlled temp summons
+    for (auto itr = m_Controlled.begin(); itr != m_Controlled.end(); )
+    {
+        Unit* target = *itr;
+        if (target->GetOwnerGUID() == GetGUID() && target->IsSummon())
+        {
+            itr = m_Controlled.erase(itr); // erase returns the next iterator
+            target->ToTempSummon()->UnSummon();
+        }
+        else
+        {
+            ++itr;
+        }
+    }
 
     //RemoveAreaAurasDueToLeaveWorld();
 
