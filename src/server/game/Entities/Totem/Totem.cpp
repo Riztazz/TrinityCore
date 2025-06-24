@@ -52,6 +52,7 @@ void Totem::Update(uint32 time)
 
 void Totem::InitStats(uint32 duration)
 {
+    TC_LOG_DEBUG("partitions", "Totem::InitStats called setting duration {} ", duration);
     // client requires SMSG_TOTEM_CREATED to be sent before adding to world and before removing old totem
     if (Player* owner = GetOwner()->ToPlayer())
     {
@@ -84,7 +85,7 @@ void Totem::InitStats(uint32 duration)
     if (GetEntry() == SENTRY_TOTEM_ENTRY)
         SetReactState(REACT_AGGRESSIVE);
 
-    TC_LOG_DEBUG("partitions", "Totem::InitStats called setting duration {}", duration);
+    TC_LOG_DEBUG("partitions", "Totem::InitStats finished setting duration {}", duration);
     m_duration = duration;
 
     SetLevel(GetOwner()->GetLevel());

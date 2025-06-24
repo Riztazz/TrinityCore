@@ -554,6 +554,7 @@ bool Map::AddToMap(T* obj)
     /// @todo Needs clean up. An object should not be added to map twice.
     if (obj->IsInWorld())
     {
+        TC_LOG_DEBUG("partitions", "Map::AddToMap: Object {} is already in world", obj->GetGUID().GetCounter());
         ASSERT(obj->IsInGrid());
         obj->UpdateObjectVisibility(true);
         return true;
@@ -588,6 +589,7 @@ bool Map::AddToMap(T* obj)
     obj->SetIsNewObject(true);
     obj->UpdateObjectVisibilityOnCreate();
     obj->SetIsNewObject(false);
+    //TC_LOG_DEBUG("partitions", "Map::AddToMap: Object {} added to world in map {} partition {}", obj->GetGUID().GetCounter(), GetId(), GetPartitionId());
     return true;
 }
 
@@ -3442,6 +3444,7 @@ void Map::DelayedUpdate(uint32 t_diff)
 
 void Map::AddObjectToRemoveList(WorldObject* obj)
 {
+    TC_LOG_DEBUG("partitions", "Map::AddObjectToRemoveList: Object {} added to world in map {} partition {}", obj->GetGUID().GetCounter(), GetId(), GetPartitionId());
     ASSERT(obj->GetMapId() == GetId() && obj->GetInstanceId() == GetInstanceId());
 
     obj->CleanupsBeforeDelete(false);                            // remove or simplify at least cross referenced links
