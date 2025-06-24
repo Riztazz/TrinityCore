@@ -2178,14 +2178,16 @@ void Player::UpdateMapPartition(Map* forcedMap)
     newMap->AddPlayerToPartition(this);
 
     for (ControlList::iterator itr = m_Controlled.begin(); itr != m_Controlled.end(); ++itr)
+    {
         // controlled players always need to move with their controller (if on boat etc)
         if (auto player : (*itr)->ToPlayer())
-            player->UpdateMapPartition(newMap);
+        player->UpdateMapPartition(newMap);
         // controlled creatures as well, except for vehicles, I hope 'controlled' vehicle are always driven and will update their
         // passengers, but we can test for edge cases here
         else if (auto creature : (*itr)->ToCreature())
-            if (!creature->IsVehicle())
-                creature->UpdateMapPartition(newMap);
+        if (!creature->IsVehicle())
+            creature->UpdateMapPartition(newMap);
+    }
 
     TC_LOG_DEBUG("partitions", "Player::UpdateMapPartition done");
 }
