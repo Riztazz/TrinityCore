@@ -276,6 +276,10 @@ void WorldSession::HandleMoveTeleportAck(WorldPacket& recvData)
 
     //lets process all delayed operations on successful teleport
     GetPlayer()->ProcessDelayedOperations();
+
+    // if the player is on a transport force update partitions to transport partition
+    if (GetPlayer()->GetTransport())
+        GetPlayer()->UpdateMapPartition(GetPlayer()->GetTransport()->GetMap());
 }
 
 void WorldSession::HandleMovementOpcodes(WorldPacket& recvData)

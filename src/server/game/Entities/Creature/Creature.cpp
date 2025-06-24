@@ -593,7 +593,6 @@ void Creature::RemoveCorpse(bool setSpawnTime, bool destroyForNearbyPlayers)
             SaveRespawnTime();
         }
 
-        TC_LOG_DEBUG("partitions", "RemoveCorpse called");
         if (TempSummon* summon = ToTempSummon())
             summon->UnSummon();
         else
@@ -2468,7 +2467,6 @@ void Creature::ForcedDespawn(uint32 timeMSToDespawn, Seconds forceRespawnTimer)
 
 void Creature::DespawnOrUnsummon(Milliseconds timeToDespawn /*= 0s*/, Seconds forceRespawnTimer /*= 0s*/)
 {
-    TC_LOG_DEBUG("partitions", "DespawnOrUnsummon called");
     if (TempSummon* summon = ToTempSummon())
         summon->UnSummon(timeToDespawn.count());
     else
@@ -3856,8 +3854,6 @@ uint32 Creature::GetModelID() const
 
 void Creature::UpdateMapPartition(Map* forcedMap)
 {
-    
-    //TC_LOG_DEBUG("partitions", "Creature::UpdateMapPartition called");
     // When creatures are in a vehicle or on transport these entities are responsible for updating partition
     if ((m_vehicle || m_transport) && !forcedMap)
         return;

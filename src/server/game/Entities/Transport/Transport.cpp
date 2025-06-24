@@ -751,23 +751,21 @@ void Transport::UpdateMapPartition()
 
     Map* newMap = sMapMgr->CreateMap(currentMap->GetId(), GetPosition());
     // Sanity checks
-    if (!newMap)
+    if (!newMap || newMap == currentMap)
         return;
 
-    // Update transport map first immediately
-    if (newMap != currentMap)
-    {
-        UnloadStaticPassengers();
-        currentMap->RemoveFromMap<Transport>(this, false);
-        SetMap(newMap);
-        newMap->AddToMap<Transport>(this);
-        LoadStaticPassengers();
-    }
+    // Update transport first
+    UnloadStaticPassengers();
+    currentMap->RemoveFromMap<Transport>(this, false);
+    SetMap(newMap);
+    newMap->AddToMap<Transport>(this);
+    LoadStaticPassengers();
 
     // Check passenger maps since they cannot update themselves
     for (PassengerSet::iterator itr = _passengers.begin(); itr != _passengers.end(); ++itr)
     {
         WorldObject* passenger = *itr;
+        // Passenger sanity check
         if (!passenger->IsInWorld() || passenger->GetMap() == newMap)
             continue;
 
@@ -783,7 +781,8 @@ void Transport::UpdateMapPartition()
                 passenger->ToCreature()->UpdateMapPartition(newMap);
                 break;
             case TYPEID_PLAYER:
-                // we need to wait for teleport to finish before updating partitions
+                // if player is teleporting we need to wait for it to finish before updating partitions
+                // this will be handled in HandleMoveTeleportAck in that case
                 if (!passenger->ToPlayer()->IsBeingTeleported())
                     passenger->ToPlayer()->UpdateMapPartition(newMap);
                 break;

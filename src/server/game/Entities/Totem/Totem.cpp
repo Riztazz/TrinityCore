@@ -30,7 +30,6 @@
 
 Totem::Totem(SummonPropertiesEntry const* properties, Unit* owner) : Minion(properties, owner, false)
 {
-    TC_LOG_DEBUG("partitions", "Totem::Totem called for owner {} map {} partition {}", owner->GetGUID().GetCounter(), owner->GetMap()->GetId(), owner->GetMap()->GetPartitionId());
     m_unitTypeMask |= UNIT_MASK_TOTEM;
     m_duration = 0;
     m_type = TOTEM_PASSIVE;
@@ -41,7 +40,6 @@ void Totem::Update(uint32 time)
     Unit* owner = GetOwner();
     if (!owner || !owner->IsAlive() || !IsAlive() || m_duration <= time)
     {
-        TC_LOG_DEBUG("partitions", "Totem::Update Unsummon called for {} map {} partition {}", GetGUID().GetCounter(), GetMap()->GetId(), GetMap()->GetPartitionId());
         UnSummon();                                         // remove self
         return;
     }
@@ -50,9 +48,8 @@ void Totem::Update(uint32 time)
     Creature::Update(time);
 }
 
-void Totem::InitStats(uint32 duration)
+void Totem::InitStats(uint32 duration, uint8 levelOverride)
 {
-    TC_LOG_DEBUG("partitions", "Totem::InitStats called setting duration {} ", duration);
     // client requires SMSG_TOTEM_CREATED to be sent before adding to world and before removing old totem
     if (Player* owner = GetOwner()->ToPlayer())
     {
@@ -75,7 +72,7 @@ void Totem::InitStats(uint32 duration)
                          GetEntry(), owner->GetGUID().ToString(), owner->GetLevel(), EnumUtils::ToTitle(Races(owner->GetRace())), EnumUtils::ToTitle(Classes(owner->GetClass())), slot, GetUInt32Value(UNIT_CREATED_BY_SPELL));
     }
 
-    Minion::InitStats(duration);
+    Minion::InitStats(duration, levelOverride);
 
     // Get spell cast by totem
     if (SpellInfo const* totemSpell = sSpellMgr->GetSpellInfo(GetSpell()))
@@ -85,7 +82,6 @@ void Totem::InitStats(uint32 duration)
     if (GetEntry() == SENTRY_TOTEM_ENTRY)
         SetReactState(REACT_AGGRESSIVE);
 
-    TC_LOG_DEBUG("partitions", "Totem::InitStats finished setting duration {}", duration);
     m_duration = duration;
 
     SetLevel(GetOwner()->GetLevel());
@@ -105,7 +101,6 @@ void Totem::InitSummon()
 
 void Totem::UnSummon(uint32 msTime)
 {
-    TC_LOG_DEBUG("partitions", "Totem::UnSummon called for {} map {} partition {}", GetGUID().GetCounter(), GetMap()->GetId(), GetMap()->GetPartitionId());
     if (msTime)
     {
         m_Events.AddEvent(new ForcedUnsummonDelayEvent(*this), m_Events.CalculateTime(Milliseconds(msTime)));

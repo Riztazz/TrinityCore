@@ -2053,10 +2053,8 @@ TempSummon* Map::SummonCreature(uint32 entry, Position const& pos, SummonPropert
             break;
     }
 
-    TC_LOG_DEBUG("partitions", "Map::SummonCreature: Summoning {} map {} partition {}", entry, GetId(), GetPartitionId());
     if (!summon->Create(GenerateLowGuid<HighGuid::Unit>(), this, phase, entry, pos, nullptr, vehId, true))
     {
-        TC_LOG_DEBUG("partitions", "Map::SummonCreature: cant create deleting {} map {} partition {}", entry, GetId(), GetPartitionId());
         delete summon;
         return nullptr;
     }
@@ -2069,7 +2067,6 @@ TempSummon* Map::SummonCreature(uint32 entry, Position const& pos, SummonPropert
 
     summon->SetVisibleBySummonerOnly(visibleBySummonerOnly);
 
-    TC_LOG_DEBUG("partitions", "Map::SummonCreature: adding {} to map {} partition {}", entry, GetId(), GetPartitionId());
     AddToMap(summon->ToCreature());
 
     summon->InitSummon();
@@ -2078,7 +2075,6 @@ TempSummon* Map::SummonCreature(uint32 entry, Position const& pos, SummonPropert
     Trinity::AIRelocationNotifier notifier(*summon);
     Cell::VisitAllObjects(summon, notifier, GetVisibilityRange());
 
-    TC_LOG_DEBUG("partitions", "Map::SummonCreature: finish visit {} map {} partition {}", entry, GetId(), GetPartitionId());
     return summon;
 }
 

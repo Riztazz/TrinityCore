@@ -21281,7 +21281,6 @@ void Player::RemovePetAura(PetAura const* petSpell)
 
 void Player::StopCastingCharm()
 {
-    TC_LOG_DEBUG("partitions", "Player::StopCastingCharm called for {} map {} partition {}", GetGUID().GetCounter(), GetMap()->GetId(), GetMap()->GetPartitionId());
     if (IsGhouled())
     {
         RemoveGhoul();

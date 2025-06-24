@@ -2301,7 +2301,6 @@ void Spell::EffectSummonType()
                     if (!unitCaster)
                         return;
 
-                    TC_LOG_DEBUG("partitions", "EffectSummonType: Summoning totem {} into map {} partition {} duration {}", entry, unitCaster->GetMap()->GetId(), unitCaster->GetMap()->GetPartitionId(), duration);
                     summon = unitCaster->GetMap()->SummonCreature(entry, *destTarget, properties, duration, unitCaster, m_spellInfo->Id, 0, personalSpawn);
                     if (!summon || !summon->IsTotem())
                         return;

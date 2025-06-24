@@ -83,7 +83,6 @@ void TempSummon::Update(uint32 diff)
         {
             if (m_timer <= diff)
             {
-                TC_LOG_DEBUG("partitions", "TempSummon::Update Unsummon called for {} map {} partition {}", GetGUID().GetCounter(), GetMap()->GetId(), GetMap()->GetPartitionId());
                 UnSummon();
                 return;
             }
@@ -327,7 +326,6 @@ void TempSummon::UnSummon(uint32 msTime)
 
 bool ForcedUnsummonDelayEvent::Execute(uint64 /*e_time*/, uint32 /*p_time*/)
 {
-    TC_LOG_DEBUG("partitions", "ForcedUnsummonDelayEvent::Execute called");
     m_owner.UnSummon();
     return true;
 }
