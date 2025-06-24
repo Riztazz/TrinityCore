@@ -30,6 +30,7 @@
 
 Totem::Totem(SummonPropertiesEntry const* properties, Unit* owner) : Minion(properties, owner, false)
 {
+    TC_LOG_DEBUG("partitions", "Totem::Totem called for owner {} map {} partition {}", owner->GetGUID().GetCounter(), owner->GetMap()->GetId(), owner->GetMap()->GetPartitionId());
     m_unitTypeMask |= UNIT_MASK_TOTEM;
     m_duration = 0;
     m_type = TOTEM_PASSIVE;
@@ -83,6 +84,7 @@ void Totem::InitStats(uint32 duration)
     if (GetEntry() == SENTRY_TOTEM_ENTRY)
         SetReactState(REACT_AGGRESSIVE);
 
+    TC_LOG_DEBUG("partitions", "Totem::InitStats called setting duration {}", duration);
     m_duration = duration;
 
     SetLevel(GetOwner()->GetLevel());
