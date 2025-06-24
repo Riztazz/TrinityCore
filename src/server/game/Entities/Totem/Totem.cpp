@@ -40,6 +40,7 @@ void Totem::Update(uint32 time)
     Unit* owner = GetOwner();
     if (!owner || !owner->IsAlive() || !IsAlive() || m_duration <= time)
     {
+        TC_LOG_DEBUG("partitions", "Totem::Update Unsummon called for {} map {} partition {}", GetGUID().GetCounter(), GetMap()->GetId(), GetMap()->GetPartitionId());
         UnSummon();                                         // remove self
         return;
     }

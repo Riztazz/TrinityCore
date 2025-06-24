@@ -333,6 +333,7 @@ void CreatureAI::EngagementOver()
 
 bool CreatureAI::_EnterEvadeMode(EvadeReason /*why*/)
 {
+    TC_LOG_DEBUG("partitions", "_EnterEvadeMode called");
     if (me->IsInEvadeMode())
         return false;
 

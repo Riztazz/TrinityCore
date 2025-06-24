@@ -327,6 +327,7 @@ void TempSummon::UnSummon(uint32 msTime)
 
 bool ForcedUnsummonDelayEvent::Execute(uint64 /*e_time*/, uint32 /*p_time*/)
 {
+    TC_LOG_DEBUG("partitions", "ForcedUnsummonDelayEvent::Execute called");
     m_owner.UnSummon();
     return true;
 }

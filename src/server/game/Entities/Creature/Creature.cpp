@@ -593,6 +593,7 @@ void Creature::RemoveCorpse(bool setSpawnTime, bool destroyForNearbyPlayers)
             SaveRespawnTime();
         }
 
+        TC_LOG_DEBUG("partitions", "RemoveCorpse called");
         if (TempSummon* summon = ToTempSummon())
             summon->UnSummon();
         else
@@ -2467,8 +2468,7 @@ void Creature::ForcedDespawn(uint32 timeMSToDespawn, Seconds forceRespawnTimer)
 
 void Creature::DespawnOrUnsummon(Milliseconds timeToDespawn /*= 0s*/, Seconds forceRespawnTimer /*= 0s*/)
 {
-    if (GetMap())
-        TC_LOG_DEBUG("partitions", "DespawnOrUnsummon called for {} map {} partition {}", GetGUID().GetCounter(), GetMap()->GetId(), GetMap()->GetPartitionId());
+    TC_LOG_DEBUG("partitions", "DespawnOrUnsummon called");
     if (TempSummon* summon = ToTempSummon())
         summon->UnSummon(timeToDespawn.count());
     else

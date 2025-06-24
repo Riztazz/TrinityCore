@@ -638,6 +638,7 @@ void WorldSession::HandleCancelChanneling(WorldPackets::Spells::CancelChannellin
 
 void WorldSession::HandleTotemDestroyed(WorldPackets::Totem::TotemDestroyed& totemDestroyed)
 {
+    TC_LOG_DEBUG("partitions", "WorldSession::HandleTotemDestroyed called");
     // ignore for remote control state
     if (_player->IsCharmed())
         return;
