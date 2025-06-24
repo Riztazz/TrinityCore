@@ -2179,7 +2179,7 @@ void Player::UpdateMapPartition(Map* forcedMap)
     //ResummonPetTemporaryUnSummonedIfAny();
     // move all controlled units except vehicles (vehicles will move their own passengers)
     // not sure vehicles will be in this list but doesnt hurt to exclude
-    for (ControlList::iterator = m_Controlled.begin(); itr != m_Controlled.end(); ++itr)
+    for (ControlList::iterator itr = m_Controlled.begin(); itr != m_Controlled.end(); ++itr)
         if (!(*itr)->IsVehicle())
             (*itr)->UpdateMapPartition(newMap);
 
