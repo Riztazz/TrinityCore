@@ -362,7 +362,6 @@ void Creature::RemoveFromWorld()
 
 void Creature::AddToPartition()
 {
-    TC_LOG_DEBUG("partitions", "Creature::AddToPartition called");
     if (IsInWorld())
         return;
 
@@ -392,12 +391,10 @@ void Creature::AddToPartition()
 
     //if (GetZoneScript())
     //    GetZoneScript()->OnCreatureCreate(this);
-    TC_LOG_DEBUG("partitions", "Creature::AddToPartition done");
 }
 
 void Creature::RemoveFromPartition()
 {
-    TC_LOG_DEBUG("partitions", "Creature::RemoveFromPartition called");
     if (!IsInWorld())
         return;
 
@@ -416,9 +413,7 @@ void Creature::RemoveFromPartition()
     if (m_spawnId)
         Trinity::Containers::MultimapErasePair(GetMap()->GetCreatureBySpawnIdStore(), m_spawnId, this);
 
-    //TC_LOG_DEBUG("entities.unit", "Removing creature {} with DBGUID {} to world in map {}", GetGUID().ToString(), m_spawnId, GetMap()->GetId());
     GetMap()->GetObjectsStore().Remove<Creature>(GetGUID());
-    TC_LOG_DEBUG("partitions", "Creature::RemoveFromPartition done");
 }
 
 void Creature::SetOutfit(std::shared_ptr<CreatureOutfit> const & outfit)
@@ -2472,6 +2467,8 @@ void Creature::ForcedDespawn(uint32 timeMSToDespawn, Seconds forceRespawnTimer)
 
 void Creature::DespawnOrUnsummon(Milliseconds timeToDespawn /*= 0s*/, Seconds forceRespawnTimer /*= 0s*/)
 {
+    if (GetMap())
+        TC_LOG_DEBUG("partitions", "DespawnOrUnsummon called for {} map {} partition {}", GetGUID().GetCounter(), GetMap()->GetId(), GetMap()->GetPartitionId());
     if (TempSummon* summon = ToTempSummon())
         summon->UnSummon(timeToDespawn.count());
     else

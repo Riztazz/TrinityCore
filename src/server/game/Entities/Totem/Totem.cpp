@@ -101,6 +101,7 @@ void Totem::InitSummon()
 
 void Totem::UnSummon(uint32 msTime)
 {
+    TC_LOG_DEBUG("partitions", "Totem::UnSummon called for {} map {} partition {}", GetGUID().GetCounter(), GetMap()->GetId(), GetMap()->GetPartitionId());
     if (msTime)
     {
         m_Events.AddEvent(new ForcedUnsummonDelayEvent(*this), m_Events.CalculateTime(Milliseconds(msTime)));

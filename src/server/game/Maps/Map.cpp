@@ -510,7 +510,7 @@ bool Map::AddPlayerToMap(Player* player)
 bool Map::AddPlayerToPartition(Player* player)
 {
     ZoneScopedN("Map::AddPlayerToPartition");
-    TC_LOG_DEBUG("partitions", "Map::AddPlayerToPartition called");
+    TC_LOG_DEBUG("partitions", "Map::AddPlayerToPartition called for {} map {} partition {}", player->GetGUID().GetCounter(), GetId(), GetPartitionId());
 
     CellCoord cellCoord = Trinity::ComputeCellCoord(player->GetPositionX(), player->GetPositionY());
     if (!cellCoord.IsCoordValid())
@@ -542,7 +542,7 @@ bool Map::AddPlayerToPartition(Player* player)
     //FIRE_ID(GetId(),Map,OnPlayerEnter,TSMap(this),TSPlayer(player));
     // @tswow-end
     //sScriptMgr->OnPlayerEnterMap(this, player);
-    TC_LOG_DEBUG("partitions", "Map::AddPlayerToPartition done");
+    TC_LOG_DEBUG("partitions", "Map::AddPlayerToPartition done for {} map {} partition {}", player->GetGUID().GetCounter(), GetId(), GetPartitionId());
     return true;
 }
 
@@ -631,7 +631,7 @@ template<class T>
 bool Map::AddToPartition(T* obj)
 {
     ZoneScopedN("Map::AddToPartition");
-    TC_LOG_DEBUG("partitions", "Map::AddToPartition called");
+    TC_LOG_DEBUG("partitions", "Map::AddToPartition called for {} map {} partition {}", obj->GetGUID().GetCounter(), GetId(), GetPartitionId());
 
     /// @todo Needs clean up. An object should not be added to map twice.
     if (obj->IsInWorld())
@@ -670,7 +670,7 @@ bool Map::AddToPartition(T* obj)
     obj->SetIsNewObject(true);
     obj->UpdateObjectVisibilityOnCreate();
     obj->SetIsNewObject(false);
-    TC_LOG_DEBUG("partitions", "Map::AddToPartition done");
+    TC_LOG_DEBUG("partitions", "Map::AddToPartition done for {} map {} partition {}", obj->GetGUID().GetCounter(), GetId(), GetPartitionId());
     return true;
 }
 
@@ -1110,7 +1110,7 @@ void Map::RemovePlayerFromMap(Player* player, bool remove)
 void Map::RemovePlayerFromPartition(Player* player)
 {
     ZoneScopedN("Map::RemovePlayerFromPartition");
-    TC_LOG_DEBUG("partitions", "Map::RemovePlayerFromPartition called");
+    TC_LOG_DEBUG("partitions", "Map::RemovePlayerFromPartition called for {} map {} partition {}", player->GetGUID().GetCounter(), GetId(), GetPartitionId());
 
     // Before leaving partition, update zone/area for stats
     player->UpdateZone(MAP_INVALID_ZONE, 0);
@@ -1133,12 +1133,13 @@ void Map::RemovePlayerFromPartition(Player* player)
     if (player->IsInGrid())
         player->RemoveFromGrid();
 
-    TC_LOG_DEBUG("partitions", "Map::RemovePlayerFromPartition done");
+    TC_LOG_DEBUG("partitions", "Map::RemovePlayerFromPartition done for {} map {} partition {}", player->GetGUID().GetCounter(), GetId(), GetPartitionId());
 }
 
 template<class T>
 void Map::RemoveFromMap(T *obj, bool remove)
 {
+    ZoneScopedN("Map::RemoveFromMap");
     bool const inWorld = obj->IsInWorld() && obj->GetTypeId() >= TYPEID_UNIT && obj->GetTypeId() <= TYPEID_GAMEOBJECT;
     obj->RemoveFromWorld();
 
@@ -1201,24 +1202,24 @@ template<class T>
 void Map::RemoveFromPartition(T *obj)
 {
     ZoneScopedN("Map::RemoveFromPartition");
-    TC_LOG_DEBUG("partitions", "Map::RemoveFromPartition called");
-
-    //bool const inWorld = obj->IsInWorld() && obj->GetTypeId() >= TYPEID_UNIT && obj->GetTypeId() <= TYPEID_GAMEOBJECT;
+    TC_LOG_DEBUG("partitions", "Map::RemoveFromPartition called  for {} map {} partition {}", obj->GetGUID().GetCounter(), GetId(), GetPartitionId());
+    bool const inWorld = obj->IsInWorld() && obj->GetTypeId() >= TYPEID_UNIT && obj->GetTypeId() <= TYPEID_GAMEOBJECT;
     obj->RemoveFromPartition();
 
     if (obj->isActiveObject())
         RemoveFromActive(obj);
+
     if (obj->IsCreature() && obj->ToCreature()->GetWaypointPath() != 0)
         RemoveFromWaypointCreatures(obj->ToCreature());
 
     // note: RemoveFromWorld does this for inWorld objects
-    //if (!inWorld) // if was in world, RemoveFromWorld() called DestroyForNearbyPlayers()
-    //    obj->DestroyForNearbyPlayers(); // previous obj->UpdateObjectVisibility(true)
+    if (!inWorld) // if was in world, RemoveFromWorld() called DestroyForNearbyPlayers()
+        obj->DestroyForNearbyPlayers(); // previous obj->UpdateObjectVisibility(true)
 
-    obj->RemoveFromGrid();
+    obj->RemoveFromGrid();  
 
     obj->ResetMap();
-    TC_LOG_DEBUG("partitions", "Map::RemoveFromPartition done");
+    TC_LOG_DEBUG("partitions", "Map::RemoveFromPartition done for {} map {} partition {}", obj->GetGUID().GetCounter(), GetId(), GetPartitionId());
 }
 
 void Map::PlayerRelocation(Player* player, float x, float y, float z, float orientation)

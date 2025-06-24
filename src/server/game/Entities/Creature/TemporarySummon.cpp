@@ -83,6 +83,7 @@ void TempSummon::Update(uint32 diff)
         {
             if (m_timer <= diff)
             {
+                TC_LOG_DEBUG("partitions", "TempSummon::Update Unsummon called for {} map {} partition {}", GetGUID().GetCounter(), GetMap()->GetId(), GetMap()->GetPartitionId());
                 UnSummon();
                 return;
             }

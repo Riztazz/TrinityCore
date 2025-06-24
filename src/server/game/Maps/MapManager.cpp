@@ -136,9 +136,11 @@ Map* MapManager::CreateBaseMap(uint32 id)
 
             MapPartitioned* mapPartitioned = map->ToMapPartitioned();
 
+            TC_LOG_DEBUG("partitions", "MapManager::CreateBaseMap: creating base map {}", id);
             // Create all partitions for this map before loading respawns and corpses
             for (auto& partitionEntry : mapPartitioned->GetPartitionEntries())
             {
+                TC_LOG_DEBUG("partitions", "MapManager::CreateBaseMap: creating partition {} for map {}", partitionEntry.partitionId, id);
                 mapPartitioned->CreatePartition(id, partitionEntry.partitionId);
             }
 
