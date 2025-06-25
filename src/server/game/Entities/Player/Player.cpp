@@ -2040,7 +2040,6 @@ void Player::RemoveFromWorld()
 
 void Player::AddToPartition()
 {
-    TC_LOG_DEBUG("partitions", "Player::AddToPartition called");
     if (IsInWorld())
         return;
 
@@ -2052,12 +2051,10 @@ void Player::AddToPartition()
     for (uint8 i = PLAYER_SLOT_START; i < PLAYER_SLOT_END; ++i)
         if (m_items[i])
             m_items[i]->AddToWorld();
-    TC_LOG_DEBUG("partitions", "Player::AddToPartition done");
 }
 
 void Player::RemoveFromPartition()
 {
-    TC_LOG_DEBUG("partitions", "Player::RemoveFromPartition called");
     if (!IsInWorld())
         return;
 
@@ -2100,12 +2097,13 @@ void Player::RemoveFromPartition()
     //         SetViewpoint(viewpoint, false);
     //     }
     // }
-    TC_LOG_DEBUG("partitions", "Player::RemoveFromPartition done");
 }
 
 // Only call from Map Delayed Update (map thread safety)
 void Player::UpdateMapPartition(Map* forcedMap)
 {
+    ZoneScopedN("Player::UpdateMapPartition");
+
     // When players are in a vehicle or on transport these entities are responsible for updating partition
     if ((m_vehicle || m_transport) && !forcedMap)
         return;
@@ -2201,8 +2199,6 @@ void Player::UpdateMapPartition(Map* forcedMap)
     //         }
     //     }
     // }
-
-    TC_LOG_DEBUG("partitions", "Player::UpdateMapPartition done");
 }
 
 void Player::SetObjectScale(float scale)

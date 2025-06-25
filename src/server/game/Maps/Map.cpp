@@ -26,7 +26,6 @@
 #include "GameObjectModel.h"
 #include "GameTime.h"
 #include "GridNotifiers.h"
-#include "GridNotifiersImpl.h"
 #include "Group.h"
 #include "InstanceScript.h"
 #include "Log.h"
@@ -50,8 +49,6 @@
 #include "WeatherMgr.h"
 #include "World.h"
 #include <boost/heap/fibonacci_heap.hpp>
-#include <unordered_set>
-#include <vector>
 // @tswow-begin
 #include "TSProfile.h"
 #include "TSEvents.h"
@@ -509,7 +506,6 @@ bool Map::AddPlayerToMap(Player* player)
 bool Map::AddPlayerToPartition(Player* player)
 {
     ZoneScopedN("Map::AddPlayerToPartition");
-    TC_LOG_DEBUG("partitions", "Map::AddPlayerToPartition called for {} map {} partition {}", player->GetGUID().GetCounter(), GetId(), GetPartitionId());
 
     CellCoord cellCoord = Trinity::ComputeCellCoord(player->GetPositionX(), player->GetPositionY());
     if (!cellCoord.IsCoordValid())
@@ -541,7 +537,6 @@ bool Map::AddPlayerToPartition(Player* player)
     //FIRE_ID(GetId(),Map,OnPlayerEnter,TSMap(this),TSPlayer(player));
     // @tswow-end
     //sScriptMgr->OnPlayerEnterMap(this, player);
-    TC_LOG_DEBUG("partitions", "Map::AddPlayerToPartition done for {} map {} partition {}", player->GetGUID().GetCounter(), GetId(), GetPartitionId());
     return true;
 }
 
@@ -630,7 +625,6 @@ template<class T>
 bool Map::AddToPartition(T* obj)
 {
     ZoneScopedN("Map::AddToPartition");
-    TC_LOG_DEBUG("partitions", "Map::AddToPartition called for {} map {} partition {}", obj->GetGUID().GetCounter(), GetId(), GetPartitionId());
 
     /// @todo Needs clean up. An object should not be added to map twice.
     if (obj->IsInWorld())
@@ -669,7 +663,6 @@ bool Map::AddToPartition(T* obj)
     obj->SetIsNewObject(true);
     obj->UpdateObjectVisibilityOnCreate();
     obj->SetIsNewObject(false);
-    TC_LOG_DEBUG("partitions", "Map::AddToPartition done for {} map {} partition {}", obj->GetGUID().GetCounter(), GetId(), GetPartitionId());
     return true;
 }
 
@@ -727,6 +720,7 @@ void Map::UpdatePlayerZoneStats(uint32 oldZone, uint32 newZone)
 void Map::Update(uint32 t_diff)
 {
     ZoneScopedC(MAP_UPDATE_COLOR)
+
     // @tswow-begin tswow-events
     m_tsWorldEntity.tick(TSMap(this));
     FIRE_ID(
@@ -779,7 +773,6 @@ void Map::Update(uint32 t_diff)
     /// process any due respawns
     if (_respawnCheckTimer <= t_diff)
     {
-        ZoneScopedNC("ProcessRespawns", MAP_UPDATE_COLOR)
         ProcessRespawns();
         _respawnCheckTimer = sWorld->getIntConfig(CONFIG_RESPAWN_MINCHECKINTERVALMS);
     }
@@ -929,10 +922,7 @@ void Map::Update(uint32 t_diff)
         }
     }
 
-    {
-        ZoneScopedNC("Map::SendObjectUpdates", MAP_UPDATE_COLOR)
-        SendObjectUpdates();
-    }
+    SendObjectUpdates();
 
     ///- Process necessary scripts
     if (!m_scriptSchedule.empty())
@@ -972,11 +962,12 @@ void Map::Update(uint32 t_diff)
 // updates the weather and partitions will get their weather from the base map
 void Map::UpdateWeather(uint32 t_diff)
 {
+    ZoneScopedNC("Update Weather", MAP_UPDATE_COLOR)
+
     _weatherUpdateTimer.Update(t_diff);
     if (!_weatherUpdateTimer.Passed())
         return;
 
-    ZoneScopedNC("Update Weather", MAP_UPDATE_COLOR)
     for (auto&& zoneInfo : _zoneDynamicInfo)
         if (zoneInfo.second.DefaultWeather && !zoneInfo.second.DefaultWeather->Update(_weatherUpdateTimer.GetInterval()))
             zoneInfo.second.DefaultWeather.reset();
@@ -1109,7 +1100,6 @@ void Map::RemovePlayerFromMap(Player* player, bool remove)
 void Map::RemovePlayerFromPartition(Player* player)
 {
     ZoneScopedN("Map::RemovePlayerFromPartition");
-    TC_LOG_DEBUG("partitions", "Map::RemovePlayerFromPartition called for {} map {} partition {}", player->GetGUID().GetCounter(), GetId(), GetPartitionId());
 
     // Before leaving partition, update zone/area for stats
     player->UpdateZone(MAP_INVALID_ZONE, 0);
@@ -1119,7 +1109,7 @@ void Map::RemovePlayerFromPartition(Player* player)
     // @tswow-end
     //sScriptMgr->OnPlayerLeaveMap(this, player);
 
-    //player->CombatStop(); This is already done in update
+    player->CombatStop();
 
     //bool const inWorld = player->IsInWorld();
     player->RemoveFromPartition();
@@ -1131,14 +1121,13 @@ void Map::RemovePlayerFromPartition(Player* player)
 
     if (player->IsInGrid())
         player->RemoveFromGrid();
-
-    TC_LOG_DEBUG("partitions", "Map::RemovePlayerFromPartition done for {} map {} partition {}", player->GetGUID().GetCounter(), GetId(), GetPartitionId());
 }
 
 template<class T>
 void Map::RemoveFromMap(T *obj, bool remove)
 {
     ZoneScopedN("Map::RemoveFromMap");
+
     bool const inWorld = obj->IsInWorld() && obj->GetTypeId() >= TYPEID_UNIT && obj->GetTypeId() <= TYPEID_GAMEOBJECT;
     obj->RemoveFromWorld();
 
@@ -1201,7 +1190,7 @@ template<class T>
 void Map::RemoveFromPartition(T *obj)
 {
     ZoneScopedN("Map::RemoveFromPartition");
-    TC_LOG_DEBUG("partitions", "Map::RemoveFromPartition called  for {} map {} partition {}", obj->GetGUID().GetCounter(), GetId(), GetPartitionId());
+
     bool const inWorld = obj->IsInWorld() && obj->GetTypeId() >= TYPEID_UNIT && obj->GetTypeId() <= TYPEID_GAMEOBJECT;
     obj->RemoveFromPartition();
 
@@ -1218,7 +1207,6 @@ void Map::RemoveFromPartition(T *obj)
     obj->RemoveFromGrid();  
 
     obj->ResetMap();
-    TC_LOG_DEBUG("partitions", "Map::RemoveFromPartition done for {} map {} partition {}", obj->GetGUID().GetCounter(), GetId(), GetPartitionId());
 }
 
 void Map::PlayerRelocation(Player* player, float x, float y, float z, float orientation)
@@ -1249,8 +1237,10 @@ void Map::PlayerRelocation(Player* player, float x, float y, float z, float orie
     player->UpdatePositionData();
     player->UpdateObjectVisibility(false);
 
-    // Any time a player is relocated add them to the update list to be checked
-    _updateMapPartitionPlayers.insert(player);
+    // Any time the player is moved we check if they are in the correct partition
+    uint32 partitionId = sMapMgr->CalculatePartitionId(GetId(), player->GetPosition());
+    if (partitionId != GetPartitionId())
+        _updateMapPartitionPlayers.insert(player);
 }
 
 void Map::CreatureRelocation(Creature* creature, float x, float y, float z, float orientation)
@@ -1281,8 +1271,10 @@ void Map::CreatureRelocation(Creature* creature, float x, float y, float z, floa
     creature->UpdatePositionData();
     creature->UpdateObjectVisibility(false);
 
-    // Any time a creature is relocated add them to the update list to be checked
-    _updateMapPartitionCreatures.insert(creature);
+    // Any time a creature is moved we check if they are in the correct partition
+    uint32 partitionId = sMapMgr->CalculatePartitionId(GetId(), creature->GetPosition());
+    if (partitionId != GetPartitionId())
+        _updateMapPartitionCreatures.insert(creature);
 }
 
 void Map::GameObjectRelocation(GameObject* go, float x, float y, float z, float orientation)
@@ -2598,6 +2590,7 @@ char const* Map::GetMapName() const
 void Map::SendInitSelf(Player* player)
 {
     ZoneScopedN("Map::SendInitSelf");
+
     TC_LOG_DEBUG("maps", "Creating player data for himself {}", player->GetGUID().ToString());
 
     WorldPacket packet;
@@ -2806,6 +2799,8 @@ void Map::Respawn(RespawnInfo* info, CharacterDatabaseTransaction dbTrans)
 
 size_t Map::DespawnAll(SpawnObjectType type, ObjectGuid::LowType spawnId)
 {
+    ZoneScopedN("Map::DespawnAll");
+
     std::vector<WorldObject*> toUnload;
     switch (type)
     {
@@ -2891,6 +2886,7 @@ RespawnInfo* Map::GetRespawnInfo(SpawnObjectType type, ObjectGuid::LowType spawn
 void Map::UnloadAllRespawnInfos() // delete everything from memory
 {
     ZoneScopedN("Map::UnloadAllRespawnInfos");
+
     for (RespawnInfo* info : *_respawnTimes)
         delete info;
     _respawnTimes->clear();
@@ -2965,6 +2961,8 @@ void Map::DoRespawn(SpawnObjectType type, ObjectGuid::LowType spawnId, uint32 gr
 
 void Map::ProcessRespawns()
 {
+    ZoneScopedNC("Map::ProcessRespawns", MAP_UPDATE_COLOR)
+
     time_t now = GameTime::GetGameTime();
     while (!_respawnTimes->empty())
     {
@@ -3222,6 +3220,8 @@ SpawnGroupTemplateData const* Map::GetSpawnGroupData(uint32 groupId) const
 
 bool Map::SpawnGroupSpawn(uint32 groupId, bool ignoreRespawn, bool force, std::vector<WorldObject*>* spawnedObjects)
 {
+    ZoneScopedN("Map::SpawnGroupSpawn");
+
     SpawnGroupTemplateData const* groupData = GetSpawnGroupData(groupId);
     if (!groupData || groupData->flags & SPAWNGROUP_FLAG_SYSTEM)
     {
@@ -3301,6 +3301,8 @@ bool Map::SpawnGroupSpawn(uint32 groupId, bool ignoreRespawn, bool force, std::v
 
 bool Map::SpawnGroupDespawn(uint32 groupId, bool deleteRespawnTimes, size_t* count)
 {
+    ZoneScopedN("Map::SpawnGroupDespawn");
+
     SpawnGroupTemplateData const* groupData = GetSpawnGroupData(groupId);
     if (!groupData || groupData->flags & SPAWNGROUP_FLAG_SYSTEM)
     {
@@ -3366,6 +3368,8 @@ void Map::AddFarSpellCallback(FarSpellCallback&& callback)
 
 void DoDelayedUpdate(TSWorldObject obj)
 {
+    ZoneScopedN("DoDelayedUpdate");
+
     if (!obj.IsNull())
     {
         for (auto callback : obj->obj->m_delayedCallbacks)
@@ -3384,6 +3388,7 @@ void DoDelayedUpdate(TSWorldObject obj)
 
 void Map::DelayedUpdate(uint32 t_diff)
 {
+    ZoneScopedNC("Map::DelayedUpdate", MAP_UPDATE_COLOR);
     // @tswow-begin
     FIRE_ID(
           GetId()
@@ -3392,27 +3397,40 @@ void Map::DelayedUpdate(uint32 t_diff)
         , t_diff
         , TSMainThreadContext()
     );
-    for (auto const& callback : m_delayCallbacks)
     {
-        callback(TSMap(this), TSMainThreadContext());
+        ZoneScopedN("Map::DelayedUpdate::callbacks");
+
+        for (auto const& callback : m_delayCallbacks)
+        {
+            callback(TSMap(this), TSMainThreadContext());
+        }
+        m_delayCallbacks.clear();
     }
 
-    for (sol::protected_function callback : m_delayLuaCallbacks)
     {
-        TSLua::handle_error(callback(TSMap(this), TSMainThreadContext()));
-    }
-    m_delayCallbacks.clear();
-    m_delayLuaCallbacks.clear();
+        ZoneScopedN("Map::DelayedUpdate::luaCallbacks");
 
-    for (ObjectGuid guid : m_delayedGuids)
-    {
-        if (guid.IsPlayer()) DoDelayedUpdate(TSWorldObject(GetPlayer(guid)));
-        if (guid.IsCreature()) DoDelayedUpdate(TSWorldObject(GetCreature(guid)));
-        if (guid.IsPet()) DoDelayedUpdate(TSWorldObject(GetPet(guid)));
-        if (guid.IsGameObject()) DoDelayedUpdate(TSWorldObject(GetGameObject(guid)));
+        for (sol::protected_function callback : m_delayLuaCallbacks)
+        {
+            TSLua::handle_error(callback(TSMap(this), TSMainThreadContext()));
+        }
+        m_delayLuaCallbacks.clear();
     }
-    m_delayedGuids.clear();
+
+    {
+        ZoneScopedN("Map::DelayedUpdate::guids");
+
+        for (ObjectGuid guid : m_delayedGuids)
+        {
+            if (guid.IsPlayer()) DoDelayedUpdate(TSWorldObject(GetPlayer(guid)));
+            if (guid.IsCreature()) DoDelayedUpdate(TSWorldObject(GetCreature(guid)));
+            if (guid.IsPet()) DoDelayedUpdate(TSWorldObject(GetPet(guid)));
+            if (guid.IsGameObject()) DoDelayedUpdate(TSWorldObject(GetGameObject(guid)));
+        }
+        m_delayedGuids.clear();
+    }
     // @tswow-end
+
     {
         FarSpellCallback* callback;
         while (_farSpellCallbacks.Dequeue(callback))
@@ -3422,20 +3440,23 @@ void Map::DelayedUpdate(uint32 t_diff)
         }
     }
 
-    for (_transportsUpdateIter = _transports.begin(); _transportsUpdateIter != _transports.end();)
     {
-        Transport* transport = *_transportsUpdateIter;
-        ++_transportsUpdateIter;
+        ZoneScopedN("Map::DelayedUpdate::transports");
 
-        if (!transport->IsInWorld())
-            continue;
+        for (_transportsUpdateIter = _transports.begin(); _transportsUpdateIter != _transports.end();)
+        {
+            Transport* transport = *_transportsUpdateIter;
+            ++_transportsUpdateIter;
 
-        transport->DelayedUpdate(t_diff);
+            if (!transport->IsInWorld())
+                continue;
+
+            transport->DelayedUpdate(t_diff);
+        }
     }
 
     RemoveAllObjectsInRemoveList();
 
-    // Process partition switching last
     UpdateMapPartitions();
 }
 
@@ -3467,6 +3488,8 @@ void Map::AddObjectToSwitchList(WorldObject* obj, bool on)
 
 void Map::RemoveAllObjectsInRemoveList()
 {
+    ZoneScopedN("Map::RemoveAllObjectsInRemoveList");
+
     while (!i_objectsToSwitch.empty())
     {
         std::map<WorldObject*, bool>::iterator itr = i_objectsToSwitch.begin();

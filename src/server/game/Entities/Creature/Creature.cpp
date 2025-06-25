@@ -301,7 +301,7 @@ Creature::Creature(bool isWorldObject): Unit(isWorldObject), m_groupLootTimer(0)
 
 void Creature::AddToWorld()
 {
-    // TODO should we add this check?
+    // TODO should we add this check? 
     //if (IsInWorld())
     //    return;
 
@@ -418,6 +418,8 @@ void Creature::RemoveFromPartition()
 
 void Creature::UpdateMapPartition(Map* forcedMap)
 {
+    ZoneScopedN("Creature::UpdateMapPartition");
+
     // if units are on vehicle or transport, or have an owner but are not a vehicle themselves, update partition from the vehicle or transport
     if (m_vehicle || m_transport || (GetCharmerOrOwner() && !IsVehicle()) && !forcedMap)
         return;
@@ -445,8 +447,6 @@ void Creature::UpdateMapPartition(Map* forcedMap)
     SetMap(newMap);
 
     newMap->AddToPartition(this);
-
-    TC_LOG_DEBUG("partitions", "Unit::UpdateMapPartition done");
 }
 
 void Creature::SetOutfit(std::shared_ptr<CreatureOutfit> const & outfit)
