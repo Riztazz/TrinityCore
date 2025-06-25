@@ -120,7 +120,7 @@ public:
                 player->RemoveAurasDueToSpell(SPELL_KODO_KOMBO_PLAYER_BUFF);
             }
 
-            TC_LOG_DEBUG("partitionsT", "npc_aged_dying_ancient_kodo::OnGossipHello: current map {} partition {}", player->GetMapId(), player->GetMap()->GetPartition());
+            TC_LOG_DEBUG("partitionsT", "npc_aged_dying_ancient_kodo::OnGossipHello: current map {} partition {}", player->GetMapId(), player->GetMap()->GetPartitionId());
 
             SendGossipMenuFor(player, player->GetGossipTextId(me), me->GetGUID());
             return true;
