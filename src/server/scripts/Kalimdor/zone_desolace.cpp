@@ -29,6 +29,7 @@ EndContentData */
 #include "ScriptMgr.h"
 #include "GameObject.h"
 #include "GameObjectAI.h"
+#include "Log.h"
 #include "MotionMaster.h"
 #include "Player.h"
 #include "ScriptedEscortAI.h"
@@ -118,6 +119,8 @@ public:
                 player->TalkedToCreature(me->GetEntry(), ObjectGuid::Empty);
                 player->RemoveAurasDueToSpell(SPELL_KODO_KOMBO_PLAYER_BUFF);
             }
+
+            TC_LOG_DEBUG("partitionsT", "npc_aged_dying_ancient_kodo::OnGossipHello: current map {} partition {}", player->GetMapId(), player->GetMap()->GetPartition());
 
             SendGossipMenuFor(player, player->GetGossipTextId(me), me->GetGUID());
             return true;
