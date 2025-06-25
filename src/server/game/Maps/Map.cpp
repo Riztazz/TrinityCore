@@ -26,6 +26,7 @@
 #include "GameObjectModel.h"
 #include "GameTime.h"
 #include "GridNotifiers.h"
+#include "GridNotifiersImpl.h"
 #include "Group.h"
 #include "InstanceScript.h"
 #include "Log.h"
@@ -49,6 +50,8 @@
 #include "WeatherMgr.h"
 #include "World.h"
 #include <boost/heap/fibonacci_heap.hpp>
+#include <unordered_set>
+#include <vector>
 // @tswow-begin
 #include "TSProfile.h"
 #include "TSEvents.h"
