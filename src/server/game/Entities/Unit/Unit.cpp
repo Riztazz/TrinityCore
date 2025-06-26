@@ -456,13 +456,13 @@ void Unit::Update(uint32 p_time)
 
     // @tswow-begin
     {
-        ZoneScopedN("TSUnit::Tick");
+        ZoneScopedNC("TSUnit::Tick", MAP_UPDATE_COLOR);
 
         m_tsWorldEntity.tick(TSWorldObject(this));
     }
     
     {
-        ZoneScopedN("TSUnit::CollisionsTick");
+        ZoneScopedNC("TSUnit::CollisionsTick", MAP_UPDATE_COLOR);
 
         m_tsCollisions.Tick(TSWorldObject(this));
     }
@@ -10218,7 +10218,7 @@ void Unit::AIUpdateTick(uint32 diff)
         {
             m_aiLocked = true;
             {
-                ZoneScopedN("TSOnCombatTick");
+                ZoneScopedNC("TSOnCombatTick", MAP_UPDATE_COLOR);
 
                 FIRE_ID(c->GetCreatureTemplate()->events.id,Creature,OnCombatTick,TSCreature(c),diff);
             }

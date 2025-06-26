@@ -735,13 +735,13 @@ void Map::Update(uint32 t_diff)
 
     // @tswow-begin tswow-events
     {
-        ZoneScopedN("TSMap::Tick")
+        ZoneScopedNC("TSMap::Tick", MAP_UPDATE_COLOR)
 
         m_tsWorldEntity.tick(TSMap(this));
     }
 
     {
-        ZoneScopedN("TSMap::OnUpdate")
+        ZoneScopedNC("TSMap::OnUpdate", MAP_UPDATE_COLOR)
 
         FIRE_ID(
             GetId()
@@ -3448,11 +3448,11 @@ void DoDelayedUpdate(TSWorldObject obj)
 
 void Map::DelayedUpdate(uint32 t_diff)
 {
-    ZoneScopedNC("Map::DelayedUpdate", MAP_UPDATE_COLOR)
+    ZoneScopedNC("Map::DelayedUpdate", WORLD_UPDATE_COLOR)
 
     // @tswow-begin
     {
-        ZoneScopedN("TSMap::OnUpdateDelayed")
+        ZoneScopedNC("TSMap::OnUpdateDelayed", MAP_UPDATE_COLOR)
 
         FIRE_ID(
             GetId()
@@ -3464,7 +3464,7 @@ void Map::DelayedUpdate(uint32 t_diff)
     }
 
     {
-        ZoneScopedN("TSMap::DelayedCallbacks")
+        ZoneScopedNC("TSMap::DelayedCallbacks", MAP_UPDATE_COLOR)
 
         for (auto const& callback : m_delayCallbacks)
         {
@@ -3474,7 +3474,7 @@ void Map::DelayedUpdate(uint32 t_diff)
     }
 
     {
-        ZoneScopedN("TSMap::DelayedLuaCallbacks")
+        ZoneScopedNC("TSMap::DelayedLuaCallbacks", MAP_UPDATE_COLOR)
 
         for (sol::protected_function callback : m_delayLuaCallbacks)
         {
@@ -3484,7 +3484,7 @@ void Map::DelayedUpdate(uint32 t_diff)
     }
 
     {
-        ZoneScopedN("TSMap::DelayedGuids")
+        ZoneScopedNC("TSMap::DelayedGuids", MAP_UPDATE_COLOR)
 
         for (ObjectGuid guid : m_delayedGuids)
         {

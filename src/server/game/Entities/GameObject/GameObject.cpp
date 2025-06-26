@@ -499,19 +499,19 @@ void GameObject::Update(uint32 diff)
 
     // @tswow-begin
     {
-        ZoneScopedN("TSGameObject::Tick")
+        ZoneScopedNC("TSGameObject::Tick", MAP_UPDATE_COLOR)
 
         m_tsWorldEntity.tick(TSWorldObject(this));
     }
     
     {
-        ZoneScopedN("TSGameObject::CollisionsTick")
+        ZoneScopedNC("TSGameObject::CollisionsTick", MAP_UPDATE_COLOR)
 
         m_tsCollisions.Tick(TSWorldObject(this));
     }
 
     {
-        ZoneScopedN("TSGameObject::OnUpdate")
+        ZoneScopedNC("TSGameObject::OnUpdate", MAP_UPDATE_COLOR)
 
         FIRE_ID(GetGOInfo()->events.id,GameObject,OnUpdate,TSGameObject(this),diff);
     }

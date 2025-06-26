@@ -172,11 +172,11 @@ Battleground::~Battleground()
 
 void Battleground::Update(uint32 diff)
 {
-    ZoneScopedNC("Battleground::Update", MAP_UPDATE_COLOR);
+    ZoneScopedNC("Battleground::Update", MAP_UPDATE_COLOR)
 
     // @tswow-begin
     {
-        ZoneScopedN("TSBattleground::OnUpdateEarly");
+        ZoneScopedNC("TSBattleground::OnUpdateEarly", MAP_UPDATE_COLOR)
 
         FIRE_ID(
             m_MapId
@@ -187,7 +187,7 @@ void Battleground::Update(uint32 diff)
     }
 
     {
-        ZoneScopedN("TSBattleground::Tick");
+        ZoneScopedNC("TSBattleground::Tick", MAP_UPDATE_COLOR)
 
         m_tsWorldEntity.tick(TSBattleground(m_Map,this));
     }
