@@ -110,6 +110,8 @@ void MapUpdater::update_finished()
 // @tswow-begin tracy thread name
 void MapUpdater::WorkerThread(int id)
 {
+    ZoneScopedNC("MapUpdater::WorkerThread", MAP_UPDATE_COLOR)
+
     std::string name = "Map Update " + std::to_string(id);
     tracy::SetThreadName(name.c_str());
 // @tswow-end tracy thread name
