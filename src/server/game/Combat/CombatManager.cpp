@@ -24,6 +24,7 @@
 // @tswow-begin
 #include "TSCreature.h"
 #include "TSEvents.h"
+#include "TSProfile.h"
 // @tswow-end
 
 /*static*/ bool CombatManager::CanBeginCombat(Unit const* a, Unit const* b)
@@ -144,6 +145,8 @@ CombatManager::~CombatManager()
 
 void CombatManager::Update(uint32 tdiff)
 {
+    ZoneScopedN("CombatManager::Update")
+
     auto it = _pvpRefs.begin(), end = _pvpRefs.end();
     while (it != end)
     {

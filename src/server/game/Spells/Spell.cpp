@@ -72,6 +72,7 @@
 #include "TSCorpse.h"
 #include "TSGameObject.h"
 #include "TSWorldObject.h"
+#include "TSProfile.h"
 // @tswow-end
 // @epoch-begin
 #include "AnticheatMgr.h"
@@ -1656,6 +1657,8 @@ float tangent(float x)
 
 void Spell::SelectImplicitTrajTargets(SpellEffectInfo const& spellEffectInfo, SpellImplicitTargetInfo const& targetType)
 {
+    ZoneScopedN("Spell::SelectImplicitTrajTargets")
+
     if (!m_targets.HasTraj())
         return;
 
@@ -1739,6 +1742,8 @@ void Spell::SelectImplicitTrajTargets(SpellEffectInfo const& spellEffectInfo, Sp
 
 void Spell::SelectEffectTypeImplicitTargets(SpellEffectInfo const& spellEffectInfo)
 {
+    ZoneScopedN("Spell::SelectEffectTypeImplicitTargets")
+
     // special case for SPELL_EFFECT_SUMMON_RAF_FRIEND and SPELL_EFFECT_SUMMON_PLAYER, queue them on map for later execution
     switch (spellEffectInfo.Effect)
     {
@@ -1875,6 +1880,8 @@ uint32 Spell::GetSearcherTypeMask(SpellTargetObjectTypes objType, ConditionConta
 template<class SEARCHER>
 void Spell::SearchTargets(SEARCHER& searcher, uint32 containerMask, WorldObject* referer, Position const* pos, float radius)
 {
+    ZoneScopedN("Spell::SearchTargets")
+
     if (!containerMask)
         return;
 
@@ -3104,6 +3111,8 @@ bool Spell::UpdateChanneledTargetList()
 
 SpellCastResult Spell::prepare(SpellCastTargets const& targets, AuraEffect const* triggeredByAura)
 {
+    ZoneScopedN("Spell::prepare")
+
     if (m_CastItem)
     {
         m_castItemGUID = m_CastItem->GetGUID();
@@ -3358,6 +3367,8 @@ void Spell::cancel(SpellCastResult result /*= SPELL_FAILED_INTERRUPTED*/, Option
 
 void Spell::cast(bool skipCheck)
 {
+    ZoneScopedN("Spell::cast")
+
     Player* modOwner = m_caster->GetSpellModOwner();
     Spell* lastSpellMod = nullptr;
     if (modOwner)
@@ -3936,6 +3947,8 @@ void Spell::SendSpellCooldown()
 
 void Spell::update(uint32 difftime)
 {
+    ZoneScopedN("Spell::update")
+
     // update pointers based at it's GUIDs
     if (!UpdatePointers())
     {
@@ -4339,6 +4352,8 @@ void Spell::SendMountResult(MountResult result)
 
 void Spell::SendSpellStart()
 {
+    ZoneScopedN("Spell::SendSpellStart")
+
     if (!IsNeedSendToClient())
         return;
 
@@ -4406,6 +4421,8 @@ void Spell::SendSpellStart()
 
 void Spell::SendSpellGo()
 {
+    ZoneScopedN("Spell::SendSpellGo")
+
     // not send invisible spell casting
     if (!IsNeedSendToClient())
         return;
@@ -4652,6 +4669,8 @@ void Spell::UpdateSpellCastDataTargets(WorldPackets::Spells::SpellCastData& data
 
 void Spell::SendLogExecute()
 {
+    ZoneScopedN("Spell::SendLogExecute")
+
     WorldPacket data(SMSG_SPELLLOGEXECUTE, (8+4+4+4+4+8));
 
     data << m_caster->GetPackGUID();
@@ -5199,6 +5218,8 @@ void Spell::TakeReagents()
 
 void Spell::HandleThreatSpells()
 {
+    ZoneScopedN("Spell::HandleThreatSpells")
+
     // wild GameObject spells don't cause threat
     Unit* unitCaster = (m_originalCaster ? m_originalCaster : m_caster->ToUnit());
     if (!unitCaster)
@@ -5257,6 +5278,8 @@ void Spell::HandleThreatSpells()
 
 void Spell::HandleEffects(Unit* pUnitTarget, Item* pItemTarget, GameObject* pGoTarget, Corpse* pCorpseTarget, SpellEffectInfo const& spellEffectInfo, SpellEffectHandleMode mode)
 {
+    ZoneScopedN("Spell::HandleEffects")
+
     effectHandleMode = mode;
     unitTarget = pUnitTarget;
     itemTarget = pItemTarget;
@@ -5295,6 +5318,8 @@ void Spell::HandleEffects(Unit* pUnitTarget, Item* pItemTarget, GameObject* pGoT
 
 SpellCastResult Spell::CheckCast(bool strict, uint32* param1 /*= nullptr*/, uint32* param2 /*= nullptr*/)
 {
+    ZoneScopedN("Spell::CheckCast")
+
     // check death state
     if (m_caster->ToUnit() && !m_caster->ToUnit()->IsAlive() && !m_spellInfo->IsPassive() && !(m_spellInfo->HasAttribute(SPELL_ATTR0_CASTABLE_WHILE_DEAD) || (IsTriggered() && !m_triggeredByAuraSpell)))
         return SPELL_FAILED_CASTER_DEAD;
@@ -7848,6 +7873,8 @@ bool Spell::IsValidDeadOrAliveTarget(Unit const* target) const
 
 void Spell::HandleLaunchPhase()
 {
+    ZoneScopedN("Spell::HandleLaunchPhase")
+
     // handle effects with SPELL_EFFECT_HANDLE_LAUNCH mode
     for (SpellEffectInfo const& spellEffectInfo : m_spellInfo->GetEffects())
     {
@@ -7899,6 +7926,8 @@ void Spell::HandleLaunchPhase()
 
 void Spell::PreprocessSpellLaunch(TargetInfo& targetInfo)
 {
+    ZoneScopedN("Spell::PreprocessSpellLaunch")
+
     Unit* targetUnit = m_caster->GetGUID() == targetInfo.TargetGUID ? m_caster->ToUnit() : ObjectAccessor::GetUnit(*m_caster, targetInfo.TargetGUID);
     if (!targetUnit)
         return;
@@ -7940,6 +7969,8 @@ void Spell::PreprocessSpellLaunch(TargetInfo& targetInfo)
 
 void Spell::DoEffectOnLaunchTarget(TargetInfo& targetInfo, float multiplier, SpellEffectInfo const& spellEffectInfo)
 {
+    ZoneScopedN("Spell::DoEffectOnLaunchTarget")
+
     Unit* unit = nullptr;
     // In case spell hit target, do all effect on that target
     if (targetInfo.MissCondition == SPELL_MISS_NONE || (targetInfo.MissCondition == SPELL_MISS_BLOCK && !m_spellInfo->HasAttribute(SPELL_ATTR3_COMPLETELY_BLOCKED)))
@@ -8131,6 +8162,8 @@ void Spell::AssertEffectExecuteData() const
 
 void Spell::LoadScripts()
 {
+    ZoneScopedN("Spell::LoadScripts")
+
     sScriptMgr->CreateSpellScripts(m_spellInfo->Id, m_loadedScripts, this);
     for (auto itr = m_loadedScripts.begin(); itr != m_loadedScripts.end(); ++itr)
     {
@@ -8141,6 +8174,8 @@ void Spell::LoadScripts()
 
 void Spell::CallScriptBeforeCastHandlers()
 {
+    ZoneScopedN("Spell::CallScriptBeforeCastHandlers")
+
     // @tswow-begin
     bool cancel = false;
     FIRE_ID(
@@ -8165,6 +8200,9 @@ void Spell::CallScriptBeforeCastHandlers()
 
 void Spell::CallScriptOnCastHandlers()
 {
+    ZoneScopedN("Spell::CallScriptOnCastHandlers")
+
+    // @tswow-begin
     FIRE_ID(m_spellInfo->events.id,Spell,OnCast,TSSpell(this)); // @tswow-line
     for (auto scritr = m_loadedScripts.begin(); scritr != m_loadedScripts.end(); ++scritr)
     {
@@ -8179,6 +8217,8 @@ void Spell::CallScriptOnCastHandlers()
 
 void Spell::CallScriptAfterCastHandlers()
 {
+    ZoneScopedN("Spell::CallScriptAfterCastHandlers")
+
     // @tswow-begin
     bool cancel = false;
     FIRE_ID(
@@ -8203,6 +8243,8 @@ void Spell::CallScriptAfterCastHandlers()
 
 SpellCastResult Spell::CallScriptCheckCastHandlers()
 {
+    ZoneScopedN("Spell::CallScriptCheckCastHandlers")
+
     SpellCastResult retVal = SPELL_CAST_OK;
     for (auto scritr = m_loadedScripts.begin(); scritr != m_loadedScripts.end(); ++scritr)
     {
@@ -8234,6 +8276,8 @@ SpellCastResult Spell::CallScriptCheckCastHandlers()
 
 bool Spell::CallScriptEffectHandlers(SpellEffIndex effIndex, SpellEffectHandleMode mode)
 {
+    ZoneScopedN("Spell::CallScriptEffectHandlers")
+
     // execute script effect handler hooks and check if effects was prevented
     bool preventDefault = false;
     for (auto scritr = m_loadedScripts.begin(); scritr != m_loadedScripts.end(); ++scritr)
@@ -8284,6 +8328,8 @@ bool Spell::CallScriptEffectHandlers(SpellEffIndex effIndex, SpellEffectHandleMo
 
 void Spell::CallScriptSuccessfulDispel(SpellEffIndex effIndex)
 {
+    ZoneScopedN("Spell::CallScriptSuccessfulDispel")
+
     FIRE_ID(m_spellInfo->events.id,Spell,OnSuccessfulDispel,TSSpell(this),(uint32)effIndex); // @tswow-line
     for (auto scritr = m_loadedScripts.begin(); scritr != m_loadedScripts.end(); ++scritr)
     {
@@ -8298,6 +8344,8 @@ void Spell::CallScriptSuccessfulDispel(SpellEffIndex effIndex)
 
 void Spell::CallScriptBeforeHitHandlers(SpellMissInfo missInfo)
 {
+    ZoneScopedN("Spell::CallScriptBeforeHitHandlers")
+
     // @tswow-begin
     bool cancel = false;
     FIRE_ID(
@@ -8324,6 +8372,9 @@ void Spell::CallScriptBeforeHitHandlers(SpellMissInfo missInfo)
 
 void Spell::CallScriptOnHitHandlers()
 {
+    ZoneScopedN("Spell::CallScriptOnHitHandlers")
+
+    // @tswow-begin
     FIRE_ID(m_spellInfo->events.id,Spell,OnHit,TSSpell(this)); // @tswow-line
     for (auto scritr = m_loadedScripts.begin(); scritr != m_loadedScripts.end(); ++scritr)
     {
@@ -8338,6 +8389,8 @@ void Spell::CallScriptOnHitHandlers()
 
 void Spell::CallScriptAfterHitHandlers()
 {
+    ZoneScopedN("Spell::CallScriptAfterHitHandlers")
+
     // @tswow-begin
     bool cancel = false;
     FIRE_ID(
@@ -8362,6 +8415,8 @@ void Spell::CallScriptAfterHitHandlers()
 
 void Spell::CallScriptObjectAreaTargetSelectHandlers(std::list<WorldObject*>& targets, SpellEffIndex effIndex, SpellImplicitTargetInfo const& targetType)
 {
+    ZoneScopedN("Spell::CallScriptObjectAreaTargetSelectHandlers")
+
     // @tswow-begin
     bool cancel = false;
     FIRE_ID(
@@ -8390,6 +8445,8 @@ void Spell::CallScriptObjectAreaTargetSelectHandlers(std::list<WorldObject*>& ta
 
 void Spell::CallScriptObjectTargetSelectHandlers(WorldObject*& target, SpellEffIndex effIndex, SpellImplicitTargetInfo const& targetType)
 {
+    ZoneScopedN("Spell::CallScriptObjectTargetSelectHandlers")
+
     // @tswow-begin
     bool cancel = false;
     FIRE_ID(
@@ -8418,6 +8475,8 @@ void Spell::CallScriptObjectTargetSelectHandlers(WorldObject*& target, SpellEffI
 
 void Spell::CallScriptDestinationTargetSelectHandlers(SpellDestination& target, SpellEffIndex effIndex, SpellImplicitTargetInfo const& targetType)
 {
+    ZoneScopedN("Spell::CallScriptDestinationTargetSelectHandlers")
+
     // @tswow-begin
     bool cancel = false;
     FIRE_ID(
@@ -8446,6 +8505,8 @@ void Spell::CallScriptDestinationTargetSelectHandlers(SpellDestination& target, 
 
 bool Spell::CheckScriptEffectImplicitTargets(uint32 effIndex, uint32 effIndexToCheck)
 {
+    ZoneScopedN("Spell::CheckScriptEffectImplicitTargets")
+
     // Skip if there are not any script
     if (m_loadedScripts.empty())
         return true;
@@ -8597,6 +8658,8 @@ Trinity::unique_weak_ptr<Spell> Spell::GetWeakPtr() const
 
 void Spell::CallScriptOnResistAbsorbCalculateHandlers(DamageInfo const& damageInfo, uint32& resistAmount, int32& absorbAmount)
 {
+    ZoneScopedN("Spell::CallScriptOnResistAbsorbCalculateHandlers")
+
     // @tswow-begin
     bool cancel = false;
     FIRE_ID(

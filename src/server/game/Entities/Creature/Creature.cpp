@@ -869,6 +869,8 @@ void Creature::SetPhaseMask(uint32 newPhaseMask, bool update, uint64 newPhaseId)
 
 void Creature::Update(uint32 diff)
 {
+    ZoneScopedN("Creature::Update")
+
     if (m_outfit && !_changesMask.GetBit(UNIT_FIELD_DISPLAYID) && Unit::GetDisplayId() == CreatureOutfit::invisible_model)
     {
         // has outfit, displayid is invisible and displayid update already sent to clients
@@ -878,6 +880,8 @@ void Creature::Update(uint32 diff)
 
     if (IsAIEnabled() && m_triggerJustAppeared && m_deathState != DEAD)
     {
+        ZoneScopedN("Creature::Update::JustAppeared")
+
         if (m_respawnCompatibilityMode && m_vehicleKit)
             m_vehicleKit->Reset();
         m_triggerJustAppeared = false;
@@ -888,6 +892,8 @@ void Creature::Update(uint32 diff)
     }
 
     UpdateMovementFlags();
+
+    ZoneScopedN("Creature::Update::StateBasedUpdate")
 
     switch (m_deathState)
     {

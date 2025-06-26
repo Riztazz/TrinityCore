@@ -452,7 +452,7 @@ Unit::~Unit()
 
 void Unit::Update(uint32 p_time)
 {
-    ZoneScopedNC("Unit::Update", MAP_UPDATE_COLOR);
+    ZoneScopedN("Unit::Update")
 
     // @tswow-begin
     {
@@ -471,7 +471,11 @@ void Unit::Update(uint32 p_time)
     // WARNING! Order of execution here is important, do not change.
     // Spells must be processed with event system BEFORE they go to _UpdateSpells.
     // Or else we may have some SPELL_STATE_FINISHED spells stalled in pointers, that is bad.
-    m_Events.Update(p_time);
+    {
+        ZoneScopedN("Unit::Update::EventsUpdate")
+
+        m_Events.Update(p_time);
+    }
 
     CheckPendingMovementAcks();
 
@@ -559,6 +563,8 @@ void Unit::MonsterMoveWithSpeed(float x, float y, float z, float speed, bool gen
 
 void Unit::UpdateSplineMovement(uint32 t_diff)
 {
+    ZoneScopedN("Unit::UpdateSplineMovement")
+
     if (movespline->Finalized())
         return;
 
@@ -3134,6 +3140,8 @@ void Unit::_DeleteRemovedAuras()
 
 void Unit::_UpdateSpells(uint32 time)
 {
+    ZoneScopedN("Unit::_UpdateSpells")
+
     if (m_currentSpells[CURRENT_AUTOREPEAT_SPELL])
         _UpdateAutoRepeatSpell();
 
@@ -10201,7 +10209,7 @@ uint32 Unit::GetCreatePowerValue(Powers power) const
 
 void Unit::AIUpdateTick(uint32 diff)
 {
-    ZoneScopedNC("Unit::AIUpdateTick", MAP_UPDATE_COLOR);
+    ZoneScopedN("Unit::AIUpdateTick")
 
     // @tswow-begin
     if(Creature* c = ToCreature())
@@ -10499,6 +10507,8 @@ void Unit::CleanupsBeforeDelete(bool finalCleanup)
 
 void Unit::UpdateCharmAI()
 {
+    ZoneScopedN("Unit::UpdateCharmAI")
+
     if (IsCharmed())
     {
         UnitAI* newAI = nullptr;
@@ -11378,6 +11388,8 @@ void Unit::ClearAllReactives()
 
 void Unit::UpdateReactives(uint32 p_time)
 {
+    ZoneScopedN("Unit::UpdateReactives")
+
     for (uint8 i = 0; i < MAX_REACTIVE; ++i)
     {
         ReactiveType reactive = ReactiveType(i);
@@ -13988,6 +14000,8 @@ bool Unit::HasPendingMovementChange(MovementChangeType changeType) const
 
 void Unit::CheckPendingMovementAcks()
 {
+    ZoneScopedN("Unit::CheckPendingMovementAcks")
+
     if (sWorld->getIntConfig(CONFIG_PENDING_MOVE_CHANGES_TIMEOUT) == 0)
         return;
 
