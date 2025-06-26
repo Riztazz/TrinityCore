@@ -897,6 +897,7 @@ class TC_GAME_API Unit : public WorldObject
         void AddToPartition() override;
         void RemoveFromPartition() override;
         virtual void UpdateMapPartition(Map* forcedMap = nullptr) { };
+        bool ShouldUpdateMapPartition();
 
         void CleanupBeforeRemoveFromMap(bool finalCleanup);
         void CleanupsBeforeDelete(bool finalCleanup = true) override;                        // used in ~Creature/~Player (or before mass creature delete to remove cross-references to already deleted units)
@@ -2098,6 +2099,7 @@ class TC_GAME_API Unit : public WorldObject
         SpellHistory* _spellHistory;
 
         PositionUpdateInfo _positionUpdateInfo;
+        Position _lastCheckedPartitionPosition;
 
         bool _isCombatDisallowed;
 

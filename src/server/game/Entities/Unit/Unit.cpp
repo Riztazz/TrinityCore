@@ -10303,6 +10303,8 @@ void Unit::AddToWorld()
 
     WorldObject::AddToWorld();
     i_motionMaster->AddToWorld();
+
+    _lastCheckedPartitionPosition = GetPosition();
 }
 
 void Unit::RemoveFromWorld()
@@ -10310,48 +10312,48 @@ void Unit::RemoveFromWorld()
     // cleanup
     ASSERT(GetGUID());
 
-    if (IsInWorld())
+    if (!IsInWorld())
+        return;
+
+    m_duringRemoveFromWorld = true;
+    if (UnitAI* ai = GetAI())
+        ai->OnDespawn();
+
+    if (IsVehicle())
+        RemoveVehicleKit();
+
+    RemoveCharmAuras();
+    RemoveBindSightAuras();
+    RemoveNotOwnSingleTargetAuras();
+
+    RemoveAllGameObjects();
+    RemoveAllDynObjects();
+
+    ExitVehicle();  // Remove applied auras with SPELL_AURA_CONTROL_VEHICLE
+    UnsummonAllTotems();
+    RemoveAllControlled();
+
+    RemoveAreaAurasDueToLeaveWorld();
+
+    RemoveAllFollowers();
+
+    if (IsCharmed())
+        RemoveCharmedBy(nullptr);
+
+    ASSERT(!GetCharmedGUID(), "Unit %u has charmed guid when removed from world", GetEntry());
+    ASSERT(!GetCharmerGUID(), "Unit %u has charmer guid when removed from world", GetEntry());
+
+    if (Unit* owner = GetOwner())
     {
-        m_duringRemoveFromWorld = true;
-        if (UnitAI* ai = GetAI())
-            ai->OnDespawn();
-
-        if (IsVehicle())
-            RemoveVehicleKit();
-
-        RemoveCharmAuras();
-        RemoveBindSightAuras();
-        RemoveNotOwnSingleTargetAuras();
-
-        RemoveAllGameObjects();
-        RemoveAllDynObjects();
-
-        ExitVehicle();  // Remove applied auras with SPELL_AURA_CONTROL_VEHICLE
-        UnsummonAllTotems();
-        RemoveAllControlled();
-
-        RemoveAreaAurasDueToLeaveWorld();
-
-        RemoveAllFollowers();
-
-        if (IsCharmed())
-            RemoveCharmedBy(nullptr);
-
-        ASSERT(!GetCharmedGUID(), "Unit %u has charmed guid when removed from world", GetEntry());
-        ASSERT(!GetCharmerGUID(), "Unit %u has charmer guid when removed from world", GetEntry());
-
-        if (Unit* owner = GetOwner())
+        if (owner->m_Controlled.find(this) != owner->m_Controlled.end())
         {
-            if (owner->m_Controlled.find(this) != owner->m_Controlled.end())
-            {
-                TC_LOG_FATAL("entities.unit", "Unit {} is in controlled list of {} when removed from world", GetEntry(), owner->GetEntry());
-                ABORT();
-            }
+            TC_LOG_FATAL("entities.unit", "Unit {} is in controlled list of {} when removed from world", GetEntry(), owner->GetEntry());
+            ABORT();
         }
-
-        WorldObject::RemoveFromWorld();
-        m_duringRemoveFromWorld = false;
     }
+
+    WorldObject::RemoveFromWorld();
+    m_duringRemoveFromWorld = false;
 }
 
 void Unit::AddToPartition()
@@ -10361,6 +10363,8 @@ void Unit::AddToPartition()
 
     WorldObject::AddToPartition();
     //i_motionMaster->AddToWorld();
+
+    _lastCheckedPartitionPosition = GetPosition();
 }
 
 void Unit::RemoveFromPartition()
@@ -10428,6 +10432,20 @@ void Unit::RemoveFromPartition()
     WorldObject::RemoveFromPartition();
 
     m_duringRemoveFromWorld = false;
+}
+
+// Calculating the partition id is expensive, so we mitigate this by:
+// 1. we only check on relocation
+// 2. we only check when relocation is consequential
+// 3. we guard against multiple checks on the same tick by updating the last checked position
+bool Unit::ShouldUpdateMapPartition()
+{
+    // Partition calculation is expensive, so only check again if we have moved a consequential amount
+    if (GetPosition().GetExactDist(_lastCheckedPartitionPosition) < 1.0f)
+        return false;
+
+    _lastCheckedPartitionPosition = GetPosition();
+    return sMapMgr->CalculatePartitionId(GetMap()->GetId(), GetPosition()) != GetMap()->GetPartitionId();
 }
 
 void Unit::CleanupBeforeRemoveFromMap(bool finalCleanup)

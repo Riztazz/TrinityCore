@@ -1250,10 +1250,16 @@ void Map::PlayerRelocation(Player* player, float x, float y, float z, float orie
     player->UpdatePositionData();
     player->UpdateObjectVisibility(false);
 
-    // Any time the player is moved we check if they are in the correct partition
-    uint32 partitionId = sMapMgr->CalculatePartitionId(GetId(), player->GetPosition());
-    if (partitionId != GetPartitionId())
-        _updateMapPartitionPlayers.insert(player);
+    {
+        ZoneScopedN("Player ShouldUpdateMapPartition");
+
+        // its possible for multiple relocations to be processed per frame, so here
+        // we use a set AND we re-check the partition on the main thread context before updating
+        // the priority here is to avoid as many checks on the main thread as possible, and the
+        // second priority is to prevent as many checks on the map thread as possible.
+        if (player->ShouldUpdateMapPartition())
+            _updateMapPartitionPlayers.insert(player);
+    }
 }
 
 void Map::CreatureRelocation(Creature* creature, float x, float y, float z, float orientation)
@@ -1284,10 +1290,12 @@ void Map::CreatureRelocation(Creature* creature, float x, float y, float z, floa
     creature->UpdatePositionData();
     creature->UpdateObjectVisibility(false);
 
-    // Any time a creature is moved we check if they are in the correct partition
-    uint32 partitionId = sMapMgr->CalculatePartitionId(GetId(), creature->GetPosition());
-    if (partitionId != GetPartitionId())
-        _updateMapPartitionCreatures.insert(creature);
+    {
+        ZoneScopedN("Creature ShouldUpdateMapPartition");
+
+        if (creature->ShouldUpdateMapPartition())
+            _updateMapPartitionCreatures.insert(creature);
+    }
 }
 
 void Map::GameObjectRelocation(GameObject* go, float x, float y, float z, float orientation)
