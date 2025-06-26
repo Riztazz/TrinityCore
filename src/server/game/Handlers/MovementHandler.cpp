@@ -55,6 +55,8 @@ void WorldSession::HandleMoveWorldportAckOpcode(WorldPacket & /*recvData*/)
 
 void WorldSession::HandleMoveWorldportAck()
 {
+    ZoneScopedN("WorldSession::HandleMoveWorldportAck")
+
     Player* player = GetPlayer();
     // ignore unexpected far teleports
     if (!player->IsBeingTeleportedFar())
@@ -225,6 +227,8 @@ void WorldSession::HandleMoveWorldportAck()
 
 void WorldSession::HandleMoveTeleportAck(WorldPacket& recvData)
 {
+    ZoneScopedN("WorldSession::HandleMoveTeleportAck")
+
     TC_LOG_DEBUG("network", "MSG_MOVE_TELEPORT_ACK");
     ObjectGuid guid;
 
