@@ -354,9 +354,7 @@ void MapManager::Update(uint32 diff)
             m_updater.schedule_update(*mapPtr, uint32(i_timer.GetCurrent()));
         else
             mapPtr->Update(uint32(i_timer.GetCurrent()));
-
-        // MapPartitioned does not overide Update, so we need to call Update on each partition
-        // (I prefer not to tie up another thread as a scheduler, thats what this is for)
+        
         if (MapPartitioned* mapPartitioned = mapPtr->ToMapPartitioned())
         {
             for (auto& [_, partitionPtr] : mapPartitioned->GetPartitions())
@@ -365,6 +363,28 @@ void MapManager::Update(uint32 diff)
                     m_updater.schedule_update(*partitionPtr, uint32(i_timer.GetCurrent()));
                 else
                     partitionPtr->Update(uint32(i_timer.GetCurrent()));
+            }
+        }
+
+        // (Previously this was done in MapInstanced::Update, but I prefer not to tie up another thread as a scheduler, thats what this is for)
+        if (MapInstanced* mapInstanced = mapPtr->ToMapInstanced();)
+        {
+            auto instances = mapInstanced->GetInstances();
+            auto i = instances.begin();
+            while (i != instances.end())
+            {
+                if (i->second->CanUnload(t))
+                {
+                    mapInstanced->DestroyInstance(i); // iterator incremented
+                }
+                else
+                {
+                    if (m_updater.activated())
+                        m_updater.schedule_update(*i->second, uint32(i_timer.GetCurrent()));
+                    else
+                        i->second->Update(uint32(i_timer.GetCurrent()));
+                    ++i;
+                }
             }
         }
     }
@@ -382,6 +402,11 @@ void MapManager::Update(uint32 diff)
         {
             for (auto& [_, partitionPtr] : mapPartitioned->GetPartitions())
                 partitionPtr->DelayedUpdate(uint32(i_timer.GetCurrent()));
+        }
+        if (MapInstanced* mapInstanced = mapPtr->ToMapInstanced())
+        {
+            for (auto& [_, instancePtr] : mapInstanced->GetInstances())
+                instancePtr->DelayedUpdate(uint32(i_timer.GetCurrent()));
         }
     }
 

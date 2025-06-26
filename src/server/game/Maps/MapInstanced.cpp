@@ -43,32 +43,14 @@ void MapInstanced::InitVisibilityDistance()
 
 void MapInstanced::Update(uint32 t)
 {
-    // update the instances
-    auto i = _instances.begin();
-    while (i != _instances.end())
-    {
-        if (i->second->CanUnload(t))
-        {
-            DestroyInstance(i); // iterator incremented
-        }
-        else
-        {
-            // update only here, because it may schedule some bad things before delete
-            if (sMapMgr->GetMapUpdater()->activated())
-                sMapMgr->GetMapUpdater()->schedule_update(*i->second, t);
-            else
-                i->second->Update(t);
-            ++i;
-        }
-    }
+    ZoneScopedNC("MapInstanced::Update", WORLD_UPDATE_COLOR)
 
     Map::Update(t);
 }
 
 void MapInstanced::DelayedUpdate(uint32 diff)
 {
-    for (auto& [id, instancePtr] : _instances)
-        instancePtr->DelayedUpdate(diff);
+    ZoneScopedNC("MapInstanced::DelayedUpdate", WORLD_UPDATE_COLOR)
 
     Map::DelayedUpdate(diff);
 }
