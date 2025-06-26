@@ -495,11 +495,28 @@ bool GameObject::Create(ObjectGuid::LowType guidlow, uint32 name_id, Map* map, u
 
 void GameObject::Update(uint32 diff)
 {
+    ZoneScopedNC("GameObject::Update", MAP_UPDATE_COLOR);
+
     // @tswow-begin
-    m_tsWorldEntity.tick(TSWorldObject(this));
-    m_tsCollisions.Tick(TSWorldObject(this));
-    FIRE_ID(GetGOInfo()->events.id,GameObject,OnUpdate,TSGameObject(this),diff);
+    {
+        ZoneScopedN("TSGameObject::Tick");
+
+        m_tsWorldEntity.tick(TSWorldObject(this));
+    }
+    
+    {
+        ZoneScopedN("TSGameObject::CollisionsTick");
+
+        m_tsCollisions.Tick(TSWorldObject(this));
+    }
+
+    {
+        ZoneScopedN("TSGameObject::OnUpdate");
+
+        FIRE_ID(GetGOInfo()->events.id,GameObject,OnUpdate,TSGameObject(this),diff);
+    }
     // @tswow-end
+
     m_Events.Update(diff);
 
     if (AI())

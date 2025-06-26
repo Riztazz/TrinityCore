@@ -722,17 +722,27 @@ void Map::UpdatePlayerZoneStats(uint32 oldZone, uint32 newZone)
 // @tswow-begin tracy
 void Map::Update(uint32 t_diff)
 {
-    ZoneScopedC(MAP_UPDATE_COLOR)
+    ZoneScopedNC("Map::Update", MAP_UPDATE_COLOR)
 
     // @tswow-begin tswow-events
-    m_tsWorldEntity.tick(TSMap(this));
-    FIRE_ID(
-          GetId()
-        , Map,OnUpdate
-        , TSMap(this)
-        , t_diff
-        );
+    {
+        ZoneScopedN("TSMap::Tick");
+
+        m_tsWorldEntity.tick(TSMap(this));
+    }
+
+    {
+        ZoneScopedN("TSMap::OnUpdate");
+
+        FIRE_ID(
+            GetId()
+          , Map,OnUpdate
+          , TSMap(this)
+          , t_diff
+          );
+    }
     // @tswow-end tswow-events
+
     _dynamicTree.update(t_diff);
 
     {

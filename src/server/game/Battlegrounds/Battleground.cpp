@@ -171,14 +171,25 @@ Battleground::~Battleground()
 
 void Battleground::Update(uint32 diff)
 {
+    ZoneScopedNC("Battleground::Update", MAP_UPDATE_COLOR);
+
     // @tswow-begin
-    FIRE_ID(
-          m_MapId
-        , Battleground,OnUpdateEarly
-        , TSBattleground(m_Map,this)
-        , diff
-    );
-    m_tsWorldEntity.tick(TSBattleground(m_Map,this));
+    {
+        ZoneScopedN("TSBattleground::OnUpdateEarly");
+
+        FIRE_ID(
+            m_MapId
+            , Battleground,OnUpdateEarly
+            , TSBattleground(m_Map,this)
+            , diff
+        );
+    }
+
+    {
+        ZoneScopedN("TSBattleground::Tick");
+
+        m_tsWorldEntity.tick(TSBattleground(m_Map,this));
+    }
     // @tswow-end
 
     if (!PreUpdateImpl(diff))
@@ -242,13 +253,18 @@ void Battleground::Update(uint32 diff)
     m_ResetStatTimer += diff;
 
     PostUpdateImpl(diff);
+
     // @tswow-begin
-    FIRE_ID(
-          m_MapId
-        , Battleground,OnUpdateLate
-        , TSBattleground(m_Map,this)
-        , diff
-    );
+    {
+        ZoneScopedN("TSBattleground::OnUpdateLate");
+
+        FIRE_ID(
+            m_MapId
+            , Battleground,OnUpdateLate
+            , TSBattleground(m_Map,this)
+            , diff
+        );
+    }
     // @tswow-end
 }
 
