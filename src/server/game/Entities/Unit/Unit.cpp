@@ -10453,7 +10453,7 @@ bool Unit::ShouldRelocateUpdateMapPartition()
         return false;
 
     // Partition calculation is expensive, so only check again if we have moved a consequential amount
-    if (GetPosition().GetExactDist(_lastCheckedPartitionPosition) < 1.0f)
+    if (GetPosition().GetExactDist(_lastCheckedPartitionPosition) < 0.25f)
         return false;
 
     _lastCheckedPartitionPosition = GetPosition();
