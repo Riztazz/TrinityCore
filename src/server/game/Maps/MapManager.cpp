@@ -373,7 +373,7 @@ void MapManager::Update(uint32 diff)
             auto i = instances.begin();
             while (i != instances.end())
             {
-                if (i->second->CanUnload(t))
+                if (i->second->CanUnload(uint32(i_timer.GetCurrent())))
                 {
                     mapInstanced->DestroyInstance(i); // iterator incremented
                 }
