@@ -873,6 +873,8 @@ void Creature::Update(uint32 diff)
 
     if (m_outfit && !_changesMask.GetBit(UNIT_FIELD_DISPLAYID) && Unit::GetDisplayId() == CreatureOutfit::invisible_model)
     {
+        ZoneScopedN("Creature::Update::SetDisplayId")
+
         // has outfit, displayid is invisible and displayid update already sent to clients
         // set outfit display
         SetDisplayId(m_outfit->GetDisplayId());
@@ -2290,6 +2292,8 @@ float Creature::GetAttackDistance(Unit const* target) const
 
 void Creature::setDeathState(DeathState s)
 {
+    ZoneScopedN("Creature::setDeathState")
+
     Unit::setDeathState(s);
 
     if (s == JUST_DIED)
@@ -2989,6 +2993,8 @@ void Creature::InitializeMovementFlags()
 
 void Creature::UpdateMovementFlags()
 {
+    ZoneScopedN("Creature::UpdateMovementFlags")
+
     // Do not update movement flags if creature is controlled by a player (charm/vehicle)
     if (IsMovedByClient())
         return;
