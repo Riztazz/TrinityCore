@@ -43,6 +43,8 @@ class TC_GAME_API MapPartitioned : public Map
 
         // functions overwrite Map versions
         virtual void InitVisibilityDistance() override;
+        void Update(uint32 diff) override;
+        void DelayedUpdate(uint32 diff) override;
         void UnloadAll() override;
 
         uint32 CalculatePartitionId(Position const& pos) const;

@@ -105,6 +105,20 @@ void MapPartitioned::InitVisibilityDistance()
     Map::InitVisibilityDistance();
 }
 
+void MapPartitioned::Update(uint32 t)
+{
+    ZoneScopedNC("MapPartitioned::Update", WORLD_UPDATE_COLOR)
+
+    Map::Update(t);
+}
+
+void MapPartitioned::DelayedUpdate(uint32 diff)
+{
+    ZoneScopedNC("MapPartitioned::DelayedUpdate", WORLD_UPDATE_COLOR)
+
+    Map::DelayedUpdate(diff);
+}
+
 void MapPartitioned::UnloadAll()
 {
     // Clear child maps
