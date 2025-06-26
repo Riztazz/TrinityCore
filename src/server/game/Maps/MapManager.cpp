@@ -367,7 +367,7 @@ void MapManager::Update(uint32 diff)
         }
 
         // (Previously this was done in MapInstanced::Update, but I prefer not to tie up another thread as a scheduler, thats what this is for)
-        if (MapInstanced* mapInstanced = mapPtr->ToMapInstanced();)
+        if (MapInstanced* mapInstanced = mapPtr->ToMapInstanced())
         {
             auto instances = mapInstanced->GetInstances();
             auto i = instances.begin();
