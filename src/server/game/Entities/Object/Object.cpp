@@ -57,6 +57,7 @@
 #include "TSSpellInfo.h"
 #include "TSMutable.h"
 #include "TSWorldObject.h"
+#include "TSProfile.h"
 // @tswow-end
 #include <G3D/Vector3.h>
 
@@ -1059,6 +1060,8 @@ void WorldObject::_Create(ObjectGuid::LowType guidlow, HighGuid guidhigh, uint32
 
 void WorldObject::UpdatePositionData()
 {
+    ZoneScopedN("WorldObject::UpdatePositionData");
+
     PositionFullTerrainStatus data;
     GetMap()->GetFullTerrainStatusForPosition(GetPhaseMask(), GetPositionX(), GetPositionY(), GetPositionZ(), data, {}, GetCollisionHeight());
     ProcessPositionDataChanged(data);
@@ -1075,6 +1078,8 @@ void WorldObject::ProcessPositionDataChanged(PositionFullTerrainStatus const& da
     bool data_outdoors = data.outdoors;
     if (m_outdoors != data.outdoors && (isType(TYPEMASK_UNIT | TYPEMASK_PLAYER)))
     {
+        ZoneScopedN("TSWorldObject::OnOutdoorsChanged");
+
         FIRE(Unit, OnOutdoorsChanged, TSUnit(static_cast<Unit*>(this)), TSMutable<bool, bool>(&data_outdoors));
     }
     m_outdoors = data_outdoors;
@@ -1085,6 +1090,8 @@ void WorldObject::ProcessPositionDataChanged(PositionFullTerrainStatus const& da
     uint32 data_liquidStatus = static_cast<uint32>(data.liquidStatus);
     if (data_liquidStatus != m_liquidStatus && isType(TYPEMASK_UNIT | TYPEMASK_PLAYER))
     {
+        ZoneScopedN("TSWorldObject::OnLiquidStatusChanged");
+
         FIRE(Unit, OnLiquidStatusChanged, TSUnit(static_cast<Unit*>(this)), TSMutableNumber<uint32>(&data_liquidStatus));
     }
     m_liquidStatus = static_cast<ZLiquidStatus>(data_liquidStatus);

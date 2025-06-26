@@ -23281,6 +23281,8 @@ template void Player::UpdateVisibilityOf(DynamicObject* target, UpdateData& data
 
 void Player::UpdateObjectVisibility(bool forced)
 {
+    ZoneScopedN("Player::UpdateObjectVisibility");
+
     // Prevent updating visibility if player is not in world (example: LoadFromDB sets drunkstate which updates invisibility while player is not in map)
     if (!IsInWorld())
         return;

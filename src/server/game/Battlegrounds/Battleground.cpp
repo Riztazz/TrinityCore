@@ -24,10 +24,7 @@
 #include "TSBattleground.h"
 #include "TSWorldObject.h"
 #include "TSGameObject.h"
-//#include "TSLibLoader.h"
-//#include "TSLua.h"
 #include "TSProfile.h"
-//#include "TSScriptMgrEvents.h"
 // @tswow-end
 #include "Battleground.h"
 #include "ArenaScore.h"
