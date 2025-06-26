@@ -105,14 +105,6 @@ void MapPartitioned::InitVisibilityDistance()
     Map::InitVisibilityDistance();
 }
 
-void MapPartitioned::DelayedUpdate(uint32 diff)
-{
-    for (auto& [_, partitionPtr] : _partitions)
-        partitionPtr->DelayedUpdate(diff);
-
-    Map::DelayedUpdate(diff);
-}
-
 void MapPartitioned::UnloadAll()
 {
     // Clear child maps

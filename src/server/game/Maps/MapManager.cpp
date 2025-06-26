@@ -347,6 +347,7 @@ void MapManager::Update(uint32 diff)
     if (!i_timer.Passed())
         return;
 
+    // map updates can be scheduled to be run in parallel if the updater is activated
     for (auto& [id, mapPtr] : _baseMaps)
     {
         if (m_updater.activated())
@@ -356,7 +357,7 @@ void MapManager::Update(uint32 diff)
 
         // MapPartitioned does not overide Update, so we need to call Update on each partition
         // (I prefer not to tie up another thread as a scheduler, thats what this is for)
-        if (MapPartitioned* mapPartitioned = mapPtr->Get()->ToMapPartitioned())
+        if (MapPartitioned* mapPartitioned = mapPtr->ToMapPartitioned())
         {
             for (auto& [_, partitionPtr] : mapPartitioned->GetPartitions())
             {
@@ -367,11 +368,22 @@ void MapManager::Update(uint32 diff)
             }
         }
     }
+
     if (m_updater.activated())
         m_updater.wait();
 
+    // delayed map updates must be run synchronously
     for (auto& [id, mapPtr] : _baseMaps)
+    {
         mapPtr->DelayedUpdate(uint32(i_timer.GetCurrent()));
+
+        // For consistency with Update, we need to call DelayedUpdate on each partition
+        if (MapPartitioned* mapPartitioned = mapPtr->ToMapPartitioned())
+        {
+            for (auto& [_, partitionPtr] : mapPartitioned->GetPartitions())
+                partitionPtr->DelayedUpdate(uint32(i_timer.GetCurrent()));
+        }
+    }
 
     i_timer.SetCurrent(0);
 }
