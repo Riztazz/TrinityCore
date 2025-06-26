@@ -10438,8 +10438,20 @@ void Unit::RemoveFromPartition()
 // 1. we only check on relocation
 // 2. we only check when relocation is consequential
 // 3. we guard against multiple checks on the same tick by updating the last checked position
-bool Unit::ShouldUpdateMapPartition()
+bool Unit::ShouldRelocateUpdateMapPartition()
 {
+    // Sanity checks
+    if (!IsInWorld())
+        return false;
+
+    if (!GetMap()->IsWorldMap())
+        return false;
+
+    // if units are on vehicle or transport, or have an owner but are not a vehicle themselves
+    // we do not change partitions from relocation
+    if (m_vehicle || m_transport || (GetCharmerOrOwner() && !IsVehicle()))
+        return false;
+
     // Partition calculation is expensive, so only check again if we have moved a consequential amount
     if (GetPosition().GetExactDist(_lastCheckedPartitionPosition) < 1.0f)
         return false;

@@ -1251,13 +1251,13 @@ void Map::PlayerRelocation(Player* player, float x, float y, float z, float orie
     player->UpdateObjectVisibility(false);
 
     {
-        ZoneScopedN("Player ShouldUpdateMapPartition");
+        ZoneScopedN("Player ShouldRelocateUpdateMapPartition");
 
         // its possible for multiple relocations to be processed per frame, so here
         // we use a set AND we re-check the partition on the main thread context before updating
         // the priority here is to avoid as many checks on the main thread as possible, and the
         // second priority is to prevent as many checks on the map thread as possible.
-        if (player->ShouldUpdateMapPartition())
+        if (player->ShouldRelocateUpdateMapPartition())
             _updateMapPartitionPlayers.insert(player);
     }
 }
@@ -1291,9 +1291,9 @@ void Map::CreatureRelocation(Creature* creature, float x, float y, float z, floa
     creature->UpdateObjectVisibility(false);
 
     {
-        ZoneScopedN("Creature ShouldUpdateMapPartition");
+        ZoneScopedN("Creature ShouldRelocateUpdateMapPartition");
 
-        if (creature->ShouldUpdateMapPartition())
+        if (creature->ShouldRelocateUpdateMapPartition())
             _updateMapPartitionCreatures.insert(creature);
     }
 }
