@@ -369,21 +369,20 @@ void MapManager::Update(uint32 diff)
         // (Previously this was done in MapInstanced::Update, but I prefer not to tie up another thread as a scheduler, thats what this is for)
         if (MapInstanced* mapInstanced = mapPtr->ToMapInstanced())
         {
-            auto instances = mapInstanced->GetInstances();
-            auto i = instances.begin();
-            while (i != instances.end())
+            auto& instances = mapInstanced->GetInstances();
+            for (auto it = instances.begin(); it != instances.end(); /* no increment here */)
             {
-                if (i->second->CanUnload(uint32(i_timer.GetCurrent())))
+                if (it->second->CanUnload(uint32(i_timer.GetCurrent())))
                 {
-                    mapInstanced->DestroyInstance(i); // iterator incremented
+                    mapInstanced->DestroyInstance(it); // iterator incremented
                 }
                 else
                 {
                     if (m_updater.activated())
-                        m_updater.schedule_update(*i->second, uint32(i_timer.GetCurrent()));
+                        m_updater.schedule_update(*it->second, uint32(i_timer.GetCurrent()));
                     else
-                        i->second->Update(uint32(i_timer.GetCurrent()));
-                    ++i;
+                        it->second->Update(uint32(i_timer.GetCurrent()));
+                    ++it;
                 }
             }
         }
