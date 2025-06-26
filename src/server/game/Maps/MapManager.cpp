@@ -109,7 +109,7 @@ ChainedRange<Map::PlayerList> MapManager::GetContinentPlayers(uint32 mapId)
 // create the base maps needed to query for instances or partitions.
 Map* MapManager::CreateBaseMap(uint32 id)
 {
-    ZoneScopedNC("Map* MapManager::CreateBaseMap", WORLD_UPDATE_COLOR)
+    ZoneScopedN("MapManager::CreateBaseMap")
 
     // BaseMaps are maps that manage other maps.
     // MapInstanced manages its instances, and MapPartitioned manages its partitions.

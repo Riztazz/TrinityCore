@@ -514,13 +514,13 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
         void ScriptsStart(std::map<uint32, std::multimap<uint32, ScriptInfo>> const& scripts, uint32 id, Object* source, Object* target);
         void ScriptCommandStart(ScriptInfo const& script, uint32 delay, Object* source, Object* target);
 
-        // must called with AddToWorld
+        // must called with AddToWorld/AddToPartition
         void AddToActive(WorldObject* obj)
         {
             m_activeNonPlayers.insert(obj);
         }
 
-        // must called with RemoveFromWorld
+        // must called with RemoveFromWorld/RemoveFromPartition
         void RemoveFromActive(WorldObject* obj)
         {
             if (m_activeNonPlayersIter != m_activeNonPlayers.end())
@@ -536,13 +536,13 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
                 m_activeNonPlayers.erase(obj);
         }
 
-        // must called with AddToWorld
+        // must called with AddToWorld/AddToPartition
         void AddToWaypointCreatures(Creature* creature)
         {
             m_waypointCreatures.insert(creature);
         }
 
-        // must called with RemoveFromWorld
+        // must called with RemoveFromWorld/RemoveFromPartition
         void RemoveFromWaypointCreatures(Creature* creature)
         {
             if (m_waypointCreaturesIter != m_waypointCreatures.end())

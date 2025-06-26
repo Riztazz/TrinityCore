@@ -258,9 +258,10 @@ void CreatureGroup::AddMember(Creature* member)
         // Reset the temp leaders motion type (idle or random)
         _leader->SetDefaultMovementType(_tempLeaderDefaultMovementType);
         _leader->LoadPath(0);
+        // Unregister temp leader from waypoint creatures
+        _leader->GetMap()->RemoveFromWaypointCreatures(_leader);
         // Reset temp variable
         _tempLeaderDefaultMovementType = IDLE_MOTION_TYPE;
-        
         // If the temp leader is not engaged, initialize the default motion
         if (!_leader->IsEngaged())
             _leader->GetMotionMaster()->Initialize();
@@ -279,7 +280,7 @@ void CreatureGroup::RemoveMember(Creature* member)
 
     // If we remove the leader we need to find a new leader
     Creature* newLeader = _members.empty() ? nullptr : _members.begin()->first;
-    // No-one left mark group as unformormed
+    // No-one left mark group as unformed
     if (!newLeader)
     {
         _leader = nullptr;
@@ -298,6 +299,8 @@ void CreatureGroup::RemoveMember(Creature* member)
         // Override temp leaders movement
         newLeader->SetDefaultMovementType(WAYPOINT_MOTION_TYPE);
         newLeader->LoadPath(_leaderPathId);
+        // Register the temp leader as a waypoint creature (always ticked)
+        newLeader->GetMap()->AddToWaypointCreatures(newLeader);
         // Re-initialize the motion if not engaged
         if (!newLeader->IsEngaged())
             newLeader->GetMotionMaster()->Initialize();
