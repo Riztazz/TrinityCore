@@ -105,19 +105,6 @@ void MapPartitioned::InitVisibilityDistance()
     Map::InitVisibilityDistance();
 }
 
-void MapPartitioned::Update(uint32 t)
-{
-    for (auto& [_, partitionPtr] : _partitions)
-    {
-        if (sMapMgr->GetMapUpdater()->activated())
-            sMapMgr->GetMapUpdater()->schedule_update(*partitionPtr, t);
-        else
-            partitionPtr->Update(t);
-    }
-
-    Map::Update(t);
-}
-
 void MapPartitioned::DelayedUpdate(uint32 diff)
 {
     for (auto& [_, partitionPtr] : _partitions)

@@ -353,6 +353,19 @@ void MapManager::Update(uint32 diff)
             m_updater.schedule_update(*mapPtr, uint32(i_timer.GetCurrent()));
         else
             mapPtr->Update(uint32(i_timer.GetCurrent()));
+
+        // MapPartitioned does not overide Update, so we need to call Update on each partition
+        // (I prefer not to tie up another thread as a scheduler, thats what this is for)
+        if (MapPartitioned* mapPartitioned = mapPtr->Get()->ToMapPartitioned())
+        {
+            for (auto& [_, partitionPtr] : mapPartitioned->GetPartitions())
+            {
+                if (m_updater.activated())
+                    m_updater.schedule_update(*partitionPtr, uint32(i_timer.GetCurrent()));
+                else
+                    partitionPtr->Update(uint32(i_timer.GetCurrent()));
+            }
+        }
     }
     if (m_updater.activated())
         m_updater.wait();
