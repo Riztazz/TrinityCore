@@ -2781,7 +2781,6 @@ void Creature::SaveRespawnTime(uint32 forceDelay)
     if (IsSummon() || !m_spawnId || (m_creatureData && !m_creatureData->dbData))
         return;
 
-    TC_LOG_DEBUG("partitions", "Creature::SaveRespawnTime {}", GetGUID().ToString());
     if (m_respawnCompatibilityMode)
     {
         RespawnInfo ri;

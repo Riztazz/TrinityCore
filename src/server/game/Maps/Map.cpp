@@ -1179,8 +1179,6 @@ void Map::RemoveFromMap(T *obj, bool remove)
 {
     ZoneScopedN("Map::RemoveFromMap")
 
-    TC_LOG_DEBUG("partitions", "Map::RemoveFromMap {}", obj->GetGUID().ToString());
-
     bool const inWorld = obj->IsInWorld() && obj->GetTypeId() >= TYPEID_UNIT && obj->GetTypeId() <= TYPEID_GAMEOBJECT;
     obj->RemoveFromWorld();
 
@@ -2779,7 +2777,6 @@ void Map::UpdateMapPartitions()
 //  -) set info->respawnTime to a new respawn time, which must be strictly GREATER than the current time (GameTime::GetGameTime())
 bool Map::CheckRespawn(RespawnInfo* info)
 {
-    TC_LOG_DEBUG("partitions", "Check Respawn {}", info->spawnId);
     ZoneScopedN("Map::CheckRespawn")
 
     SpawnData const* data = sObjectMgr->GetSpawnData(info->type, info->spawnId);
@@ -2826,7 +2823,6 @@ bool Map::CheckRespawn(RespawnInfo* info)
     }
     if (alreadyExists)
     {
-        TC_LOG_DEBUG("partitions", "Already exists {}", info->spawnId);
         info->respawnTime = 0;
         return false;
     }
@@ -2835,7 +2831,6 @@ bool Map::CheckRespawn(RespawnInfo* info)
     ObjectGuid thisGUID = ObjectGuid((info->type == SPAWN_TYPE_GAMEOBJECT) ? HighGuid::GameObject : HighGuid::Unit, info->entry, info->spawnId);
     if (time_t linkedTime = GetLinkedRespawnTime(thisGUID))
     {
-        TC_LOG_DEBUG("partitions", "Linked time {}", linkedTime);
         time_t now = GameTime::GetGameTime();
         time_t respawnTime;
         if (linkedTime == std::numeric_limits<time_t>::max())
@@ -2847,7 +2842,6 @@ bool Map::CheckRespawn(RespawnInfo* info)
         info->respawnTime = respawnTime;
         return false;
     }
-    TC_LOG_DEBUG("partitions", "Everything ok, let's spawn");
     // everything ok, let's spawn
     return true;
 }
@@ -2890,7 +2884,6 @@ size_t Map::DespawnAll(SpawnObjectType type, ObjectGuid::LowType spawnId)
 
 bool Map::AddRespawnInfo(RespawnInfo const& info)
 {
-    TC_LOG_DEBUG("partitions", "Map::AddRespawnInfo {}", info.spawnId);
     ZoneScopedN("Map::AddRespawnInfo")
 
     if (!info.spawnId)
@@ -2921,7 +2914,6 @@ bool Map::AddRespawnInfo(RespawnInfo const& info)
     RespawnInfoWithHandle* ri = new RespawnInfoWithHandle(info);
     ri->handle = _respawnTimes->push(ri);
     bySpawnIdMap.emplace(ri->spawnId, ri);
-    TC_LOG_DEBUG("partitions", "Map::AddRespawnInfo added to bySpawnIdMap {}", info.spawnId);
     return true;
 }
 
@@ -3000,7 +2992,6 @@ void Map::DeleteRespawnInfoFromDB(SpawnObjectType type, ObjectGuid::LowType spaw
 
 void Map::DoRespawn(SpawnObjectType type, ObjectGuid::LowType spawnId, uint32 gridId)
 {
-    TC_LOG_DEBUG("partitions", "DoRespawn {} grid id {}", spawnId, gridId);
     if (!IsGridLoaded(gridId)) // if grid isn't loaded, this will be processed in grid load handler
         return;
 
@@ -3009,7 +3000,6 @@ void Map::DoRespawn(SpawnObjectType type, ObjectGuid::LowType spawnId, uint32 gr
         case SPAWN_TYPE_CREATURE:
         {
             Creature* obj = new Creature();
-            TC_LOG_DEBUG("partitions", "DoRespawn {} grid id {}", spawnId, gridId);
             // Respawns are allowed on any partition, they will move to the correct partition on their own
             if (!obj->LoadFromDB(spawnId, this, true, true, true))
                 delete obj;
@@ -3545,7 +3535,6 @@ void Map::AddObjectToRemoveList(WorldObject* obj)
 
     obj->CleanupsBeforeDelete(false);                            // remove or simplify at least cross referenced links
 
-    TC_LOG_DEBUG("partitions", "Map::AddObjectToRemoveList {}", obj->GetGUID().ToString());
     i_objectsToRemove.insert(obj);
 }
 
@@ -4438,7 +4427,6 @@ void Map::UpdateIteratorBack(Player* player)
 
 void Map::SaveRespawnTime(SpawnObjectType type, ObjectGuid::LowType spawnId, uint32 entry, time_t respawnTime, uint32 gridId, CharacterDatabaseTransaction dbTrans, bool startup)
 {
-    TC_LOG_DEBUG("partitions", "Map::SaveRespawnTime {}", spawnId);
     SpawnMetadata const* data = sObjectMgr->GetSpawnMetadata(type, spawnId);
     if (!data)
     {

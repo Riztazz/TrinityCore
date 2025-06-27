@@ -1782,12 +1782,9 @@ bool Player::TeleportTo(uint32 mapid, float x, float y, float z, float orientati
             return true;
         }
 
-        TC_LOG_DEBUG("partitionsA", "Player has pet {} and is within 50 yards of dest {}", pet ? pet->GetGUID().ToString() : "none", GetGUID().ToString(), mapid);
         //same map, only remove pet if out of range for new position
-        if (pet && !pet->IsWithinDist3d(x, y, z, 50.0f)) {
-            TC_LOG_DEBUG("partitionsA", "Player::TeleportTo UnsummonPetTemporaryIfAny called");
+        if (pet && !pet->IsWithinDist3d(x, y, z, 50.0f))
             UnsummonPetTemporaryIfAny();
-        }
 
         if (!IsAlive() && options & TELE_REVIVE_AT_TELEPORT)
             ResurrectPlayer(0.5f);
