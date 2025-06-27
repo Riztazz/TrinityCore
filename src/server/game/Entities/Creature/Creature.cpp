@@ -422,7 +422,7 @@ void Creature::UpdateMapPartition(Map* forcedMap)
 
     TC_LOG_DEBUG("partitions", "Creature::UpdateMapPartition A: {}", GetGUID().ToString());
     // if units are on vehicle or transport, or have an owner but are not a vehicle themselves, update partition from the vehicle or transport
-    if (m_vehicle || m_transport || (GetCharmerOrOwner() && !IsVehicle()) && !forcedMap)
+    if ((m_vehicle || m_transport || (GetCharmerOrOwner() && !IsVehicle())) && !forcedMap)
         return;
 
     TC_LOG_DEBUG("partitions", "Creature::UpdateMapPartition B: {}", GetGUID().ToString());
@@ -439,7 +439,7 @@ void Creature::UpdateMapPartition(Map* forcedMap)
     if (!newMap || newMap == currentMap)
         return;
 
-    TC_LOG_DEBUG("partitions", "Unit::UpdateMapPartition {} Moving From Partition {} To Partition {} ", GetGUID(), currentMap->GetPartitionId(), newMap->GetPartitionId());
+    TC_LOG_DEBUG("partitions", "Creature::UpdateMapPartition {} Moving From Partition {} To Partition {} ", GetGUID(), currentMap->GetPartitionId(), newMap->GetPartitionId());
 
     // If this unit is a vehicle force update its passengers
     Vehicle* vehicle = GetVehicleKit();
@@ -453,7 +453,7 @@ void Creature::UpdateMapPartition(Map* forcedMap)
 
     newMap->AddToPartition(this);
 
-    TC_LOG_DEBUG("partitions", "Unit::UpdateMapPartition {} Moving From Partition {} To Partition {} DONE", GetGUID(), currentMap->GetPartitionId(), newMap->GetPartitionId());
+    TC_LOG_DEBUG("partitions", "Creature::UpdateMapPartition {} Moving From Partition {} To Partition {} DONE", GetGUID(), currentMap->GetPartitionId(), newMap->GetPartitionId());
 }
 
 void Creature::SetOutfit(std::shared_ptr<CreatureOutfit> const & outfit)
