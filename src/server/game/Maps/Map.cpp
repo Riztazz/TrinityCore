@@ -1179,6 +1179,8 @@ void Map::RemoveFromMap(T *obj, bool remove)
 {
     ZoneScopedN("Map::RemoveFromMap")
 
+    TC_LOG_DEBUG("partitions", "Map::RemoveFromMap {}", obj->GetGUID().ToString());
+
     bool const inWorld = obj->IsInWorld() && obj->GetTypeId() >= TYPEID_UNIT && obj->GetTypeId() <= TYPEID_GAMEOBJECT;
     obj->RemoveFromWorld();
 
@@ -2884,6 +2886,7 @@ size_t Map::DespawnAll(SpawnObjectType type, ObjectGuid::LowType spawnId)
 
 bool Map::AddRespawnInfo(RespawnInfo const& info)
 {
+    TC_LOG_DEBUG("partitions", "Map::AddRespawnInfo {}", info.spawnId);
     ZoneScopedN("Map::AddRespawnInfo")
 
     if (!info.spawnId)
@@ -2914,6 +2917,7 @@ bool Map::AddRespawnInfo(RespawnInfo const& info)
     RespawnInfoWithHandle* ri = new RespawnInfoWithHandle(info);
     ri->handle = _respawnTimes->push(ri);
     bySpawnIdMap.emplace(ri->spawnId, ri);
+    TC_LOG_DEBUG("partitions", "Map::AddRespawnInfo added to bySpawnIdMap {}", info.spawnId);
     return true;
 }
 
@@ -3530,10 +3534,11 @@ void Map::DelayedUpdate(uint32 t_diff)
 
 void Map::AddObjectToRemoveList(WorldObject* obj)
 {
-    ASSERT(obj->GetMapId() == GetId() && obj->GetInstanceId() == GetInstanceId());
+    ASSERT(obj->GetMapId() == GetId() && obj->GetPartitionId() == GetPartitionId() && obj->GetInstanceId() == GetInstanceId());
 
     obj->CleanupsBeforeDelete(false);                            // remove or simplify at least cross referenced links
 
+    TC_LOG_DEBUG("partitions", "Map::AddObjectToRemoveList {}", obj->GetGUID().ToString());
     i_objectsToRemove.insert(obj);
 }
 
@@ -4426,6 +4431,7 @@ void Map::UpdateIteratorBack(Player* player)
 
 void Map::SaveRespawnTime(SpawnObjectType type, ObjectGuid::LowType spawnId, uint32 entry, time_t respawnTime, uint32 gridId, CharacterDatabaseTransaction dbTrans, bool startup)
 {
+    TC_LOG_DEBUG("partitions", "Map::SaveRespawnTime {}", spawnId);
     SpawnMetadata const* data = sObjectMgr->GetSpawnMetadata(type, spawnId);
     if (!data)
     {
