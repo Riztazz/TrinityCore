@@ -420,14 +420,19 @@ void Creature::UpdateMapPartition(Map* forcedMap)
 {
     ZoneScopedN("Creature::UpdateMapPartition");
 
+    TC_LOG_DEBUG("partitions", "Creature::UpdateMapPartition A: {}", GetGUID().ToString());
     // if units are on vehicle or transport, or have an owner but are not a vehicle themselves, update partition from the vehicle or transport
     if (m_vehicle || m_transport || (GetCharmerOrOwner() && !IsVehicle()) && !forcedMap)
         return;
+
+    TC_LOG_DEBUG("partitions", "Creature::UpdateMapPartition B: {}", GetGUID().ToString());
 
     Map* currentMap = IsInWorld() ? GetMap() : nullptr;
     // We only ever change partitions if we are currently in a world map
     if (!currentMap || !currentMap->IsWorldMap())
         return;
+
+    TC_LOG_DEBUG("partitions", "Creature::UpdateMapPartition C: {}", GetGUID().ToString());
 
     Map* newMap = forcedMap ? forcedMap : sMapMgr->CreateMap(currentMap->GetId(), GetPosition());
     // We don't change partitions if already in the correct partition
@@ -447,6 +452,8 @@ void Creature::UpdateMapPartition(Map* forcedMap)
     SetMap(newMap);
 
     newMap->AddToPartition(this);
+
+    TC_LOG_DEBUG("partitions", "Unit::UpdateMapPartition {} Moving From Partition {} To Partition {} DONE", GetGUID(), currentMap->GetPartitionId(), newMap->GetPartitionId());
 }
 
 void Creature::SetOutfit(std::shared_ptr<CreatureOutfit> const & outfit)
