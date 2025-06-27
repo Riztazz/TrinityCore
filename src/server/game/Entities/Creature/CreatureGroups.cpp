@@ -313,6 +313,17 @@ void CreatureGroup::RemoveMember(Creature* member)
     
 }
 
+void CreatureGroup::UpdateMemberMapPartition(Map* map)
+{
+    std::vector<Creature*> membersToUpdate;
+    for (auto const& [member, _] : _members)
+        if (member && member != _leader) // Leader calls UpdateMapPartition, so don't create a loop
+            membersToUpdate.push_back(member);
+
+    for (Creature* member : membersToUpdate)
+        member->UpdateMapPartition(map);
+}
+
 void CreatureGroup::MemberEngagingTarget(Creature* member, Unit* target)
 {
     // used to prevent recursive calls

@@ -420,17 +420,14 @@ void Creature::UpdateMapPartition(Map* forcedMap)
 {
     ZoneScopedN("Creature::UpdateMapPartition");
 
-    // if units are on vehicle or transport, or have an owner but are not a vehicle themselves, update partition from the vehicle or transport
-    if ((m_vehicle || m_transport || (GetCharmerOrOwner() && !IsVehicle())) && !forcedMap)
+    if ((m_vehicle || m_transport || (m_formation && !m_formation->IsLeader(this)) || (GetCharmerOrOwner() && !IsVehicle())) && !forcedMap)
         return;
 
     Map* currentMap = IsInWorld() ? GetMap() : nullptr;
-    // We only ever change partitions if we are currently in a world map
     if (!currentMap || !currentMap->IsWorldMap())
         return;
 
     Map* newMap = forcedMap ? forcedMap : sMapMgr->CreateMap(currentMap->GetId(), GetPosition());
-    // We don't change partitions if already in the correct partition
     if (!newMap || newMap == currentMap)
         return;
 
@@ -440,6 +437,10 @@ void Creature::UpdateMapPartition(Map* forcedMap)
     Vehicle* vehicle = GetVehicleKit();
     if (vehicle)
         vehicle->UpdatePassengersMapPartition(newMap);
+
+    // If leader of a formation force update its members
+    if (m_formation && m_formation->IsLeader(this))
+        m_formation->UpdateMemberMapPartition(newMap);
 
     currentMap->RemoveFromPartition(this);
 
