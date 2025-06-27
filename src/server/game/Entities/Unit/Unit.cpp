@@ -13942,6 +13942,7 @@ bool Unit::UpdatePosition(float x, float y, float z, float orientation, bool tel
         if (turn)
             UpdateOrientation(orientation);
 
+        // TODO test not calling this if not relocated and not turn
         UpdatePositionData();
     }
 
