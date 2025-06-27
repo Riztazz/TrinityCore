@@ -630,7 +630,6 @@ void Vehicle::UpdatePassengersMapPartition(Map* map)
     std::vector<Creature*> creatures;
     for (SeatMap::const_iterator itr = Seats.begin(); itr != Seats.end(); ++itr)
     {
-        TC_LOG_DEBUG("partitions", "Vehicle::UpdatePassengersMapPartition: Passenger {}", itr->second.Passenger.Guid);
         if (Unit* passenger = ObjectAccessor::GetUnit(*GetBase(), itr->second.Passenger.Guid))
         {
             if (passenger->IsPlayer())
