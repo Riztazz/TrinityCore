@@ -69,6 +69,7 @@ class TC_GAME_API Creature : public Unit, public GridObject<Creature>
         void RemoveFromWorld() override;
         void AddToPartition() override;
         void RemoveFromPartition() override;
+        bool ShouldRelocateUpdateMapPartition() override;
         void UpdateMapPartition(Map* forcedMap = nullptr) override;
 
         float GetNativeObjectScale() const override;

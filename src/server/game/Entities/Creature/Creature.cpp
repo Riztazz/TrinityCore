@@ -416,6 +416,15 @@ void Creature::RemoveFromPartition()
     GetMap()->GetObjectsStore().Remove<Creature>(GetGUID());
 }
 
+// Creature specific relocation checks - we can add further restrictions for certain creatures here
+bool Creature::ShouldRelocateUpdateMapPartition()
+{
+   if (m_formation && !m_formation->IsLeader(this))
+      return false;
+
+   return Unit::ShouldRelocateUpdateMapPartition();
+}
+
 void Creature::UpdateMapPartition(Map* forcedMap)
 {
     ZoneScopedN("Creature::UpdateMapPartition");
