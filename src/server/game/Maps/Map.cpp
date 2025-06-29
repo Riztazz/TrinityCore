@@ -885,14 +885,17 @@ void Map::Update(uint32 t_diff)
             // TODO should objects be removed during update? I thought they get put in move list
             for (m_activeNonPlayersIter = m_activeNonPlayers.begin(); m_activeNonPlayersIter != m_activeNonPlayers.end();)
             {
-                ZoneScopedN("Map::Update::Entities::ActiveObjects::ActiveNonPlayer")
                 WorldObject* obj = *m_activeNonPlayersIter;
                 ++m_activeNonPlayersIter;
 
                 if (!obj || !obj->IsInWorld())
                     continue;
 
-                VisitNearbyCellsOf(obj, grid_object_update, world_object_update);
+                {
+                    ZoneScopedN("Map::Update::Entities::ActiveObjects::ActiveNonPlayer")
+
+                    VisitNearbyCellsOf(obj, grid_object_update, world_object_update);
+                }
             }
         }
 
@@ -905,7 +908,6 @@ void Map::Update(uint32 t_diff)
             // TODO should objects be removed during update? I thought they get put in move list
             for (m_waypointCreaturesIter = m_waypointCreatures.begin(); m_waypointCreaturesIter != m_waypointCreatures.end();)
             {
-                ZoneScopedN("Map::Update::Entities::WaypointCreatures::WaypointCreature")
                 Creature* creature = *m_waypointCreaturesIter;
                 ++m_waypointCreaturesIter;
 
@@ -917,34 +919,38 @@ void Map::Update(uint32 t_diff)
                 if (isCellMarked(cellCoord.GetId()))
                     continue;
 
-                // Formation leaders tick their members
-                auto formation = creature->GetFormation();
-                if (formation && creature->IsFormationLeader())
                 {
-                    // Members can remove themselves and others from the formation during the tick,
-                    // so we need to copy the members to handle both cases
-                    std::vector<Creature*> members;
-                    for (auto itr = formation->GetMembersBegin(); itr != formation->GetMembersEnd(); ++itr)
-                    {
-                        if (itr->first)
-                            members.push_back(itr->first);
-                    }
+                    ZoneScopedN("Map::Update::Entities::WaypointCreatures::WaypointCreature")
 
-                    // Tick all members even if removed, but not if they have already ticked
-                    // (edge condition where members are on diff grid than leader)
-                    for (Creature* member : members)
+                    // Formation leaders tick their members
+                    auto formation = creature->GetFormation();
+                    if (formation && creature->IsFormationLeader())
                     {
-                        CellCoord memberCellCoord = Trinity::ComputeCellCoord(member->GetPositionX(), member->GetPositionY());
-                        if (isCellMarked(memberCellCoord.GetId()))
-                            continue;
+                        // Members can remove themselves and others from the formation during the tick,
+                        // so we need to copy the members to handle both cases
+                        std::vector<Creature*> members;
+                        for (auto itr = formation->GetMembersBegin(); itr != formation->GetMembersEnd(); ++itr)
+                        {
+                            if (itr->first)
+                                members.push_back(itr->first);
+                        }
 
-                        member->Update(t_diff);
+                        // Tick all members even if removed, but not if they have already ticked
+                        // (edge condition where members are on diff grid than leader)
+                        for (Creature* member : members)
+                        {
+                            CellCoord memberCellCoord = Trinity::ComputeCellCoord(member->GetPositionX(), member->GetPositionY());
+                            if (isCellMarked(memberCellCoord.GetId()))
+                                continue;
+
+                            member->Update(t_diff);
+                        }
                     }
-                }
-                // Update the creature if it is not in a formation
-                else if (!formation)
-                {
-                    creature->Update(t_diff);
+                    // Update the creature if it is not in a formation
+                    else if (!formation)
+                    {
+                        creature->Update(t_diff);
+                    }
                 }
             }
         }
@@ -1042,7 +1048,6 @@ void Map::ProcessRelocationNotifies(const uint32 diff)
 
         for (GridRefManager<NGridType>::iterator i = GridRefManager<NGridType>::begin(); i != GridRefManager<NGridType>::end(); ++i)
         {
-            ZoneScopedN("Map::ProcessRelocationNotifies::DelayedUnitRelocation::Grid")
             NGridType *grid = i->GetSource();
 
             // We only process important visibility changes on update and batch send visibility changes
@@ -1053,30 +1058,34 @@ void Map::ProcessRelocationNotifies(const uint32 diff)
             if (!grid->getRelocationTimer().TPassed())
                 continue;
 
-            uint32 gx = grid->getX(), gy = grid->getY();
-
-            CellCoord cell_min(gx*MAX_NUMBER_OF_CELLS, gy*MAX_NUMBER_OF_CELLS);
-            CellCoord cell_max(cell_min.x_coord + MAX_NUMBER_OF_CELLS, cell_min.y_coord+MAX_NUMBER_OF_CELLS);
-
-            for (uint32 x = cell_min.x_coord; x < cell_max.x_coord; ++x)
             {
-                for (uint32 y = cell_min.y_coord; y < cell_max.y_coord; ++y)
+                ZoneScopedN("Map::ProcessRelocationNotifies::DelayedUnitRelocation::Grid")
+
+                uint32 gx = grid->getX(), gy = grid->getY();
+
+                CellCoord cell_min(gx*MAX_NUMBER_OF_CELLS, gy*MAX_NUMBER_OF_CELLS);
+                CellCoord cell_max(cell_min.x_coord + MAX_NUMBER_OF_CELLS, cell_min.y_coord+MAX_NUMBER_OF_CELLS);
+    
+                for (uint32 x = cell_min.x_coord; x < cell_max.x_coord; ++x)
                 {
-                    uint32 cell_id = (y * TOTAL_NUMBER_OF_CELLS_PER_MAP) + x;
-                    if (!isCellMarked(cell_id))
-                        continue;
-
-                    CellCoord pair(x, y);
-                    Cell cell(pair);
-                    cell.SetNoCreate();
-
-                    /** @epoch-start */
-                    Trinity::DelayedUnitRelocation cell_relocation(cell, pair, *this, 100);
-                    /** @epoch-end */
-                    TypeContainerVisitor<Trinity::DelayedUnitRelocation, GridTypeMapContainer  > grid_object_relocation(cell_relocation);
-                    TypeContainerVisitor<Trinity::DelayedUnitRelocation, WorldTypeMapContainer > world_object_relocation(cell_relocation);
-                    Visit(cell, grid_object_relocation);
-                    Visit(cell, world_object_relocation);
+                    for (uint32 y = cell_min.y_coord; y < cell_max.y_coord; ++y)
+                    {
+                        uint32 cell_id = (y * TOTAL_NUMBER_OF_CELLS_PER_MAP) + x;
+                        if (!isCellMarked(cell_id))
+                            continue;
+    
+                        CellCoord pair(x, y);
+                        Cell cell(pair);
+                        cell.SetNoCreate();
+    
+                        /** @epoch-start */
+                        Trinity::DelayedUnitRelocation cell_relocation(cell, pair, *this, 100);
+                        /** @epoch-end */
+                        TypeContainerVisitor<Trinity::DelayedUnitRelocation, GridTypeMapContainer  > grid_object_relocation(cell_relocation);
+                        TypeContainerVisitor<Trinity::DelayedUnitRelocation, WorldTypeMapContainer > world_object_relocation(cell_relocation);
+                        Visit(cell, grid_object_relocation);
+                        Visit(cell, world_object_relocation);
+                    }
                 }
             }
         }
@@ -1090,32 +1099,35 @@ void Map::ProcessRelocationNotifies(const uint32 diff)
         TypeContainerVisitor<ResetNotifier, WorldTypeMapContainer > world_notifier(reset);
         for (GridRefManager<NGridType>::iterator i = GridRefManager<NGridType>::begin(); i != GridRefManager<NGridType>::end(); ++i)
         {
-            ZoneScopedN("Map::ProcessRelocationNotifies::ResetNotifier::Grid")
             NGridType *grid = i->GetSource();
 
             if (!grid->getRelocationTimer().TPassed())
                 continue;
 
-            grid->getRelocationTimer().TReset(diff, m_VisibilityNotifyPeriod);
-
-            uint32 gx = grid->getX(), gy = grid->getY();
-
-            CellCoord cell_min(gx*MAX_NUMBER_OF_CELLS, gy*MAX_NUMBER_OF_CELLS);
-            CellCoord cell_max(cell_min.x_coord + MAX_NUMBER_OF_CELLS, cell_min.y_coord+MAX_NUMBER_OF_CELLS);
-
-            for (uint32 x = cell_min.x_coord; x < cell_max.x_coord; ++x)
             {
-                for (uint32 y = cell_min.y_coord; y < cell_max.y_coord; ++y)
-                {
-                    uint32 cell_id = (y * TOTAL_NUMBER_OF_CELLS_PER_MAP) + x;
-                    if (!isCellMarked(cell_id))
-                        continue;
+                ZoneScopedN("Map::ProcessRelocationNotifies::ResetNotifier::Grid")
 
-                    CellCoord pair(x, y);
-                    Cell cell(pair);
-                    cell.SetNoCreate();
-                    Visit(cell, grid_notifier);
-                    Visit(cell, world_notifier);
+                grid->getRelocationTimer().TReset(diff, m_VisibilityNotifyPeriod);
+
+                uint32 gx = grid->getX(), gy = grid->getY();
+
+                CellCoord cell_min(gx*MAX_NUMBER_OF_CELLS, gy*MAX_NUMBER_OF_CELLS);
+                CellCoord cell_max(cell_min.x_coord + MAX_NUMBER_OF_CELLS, cell_min.y_coord+MAX_NUMBER_OF_CELLS);
+
+                for (uint32 x = cell_min.x_coord; x < cell_max.x_coord; ++x)
+                {
+                    for (uint32 y = cell_min.y_coord; y < cell_max.y_coord; ++y)
+                    {
+                        uint32 cell_id = (y * TOTAL_NUMBER_OF_CELLS_PER_MAP) + x;
+                        if (!isCellMarked(cell_id))
+                            continue;
+
+                        CellCoord pair(x, y);
+                        Cell cell(pair);
+                        cell.SetNoCreate();
+                        Visit(cell, grid_notifier);
+                        Visit(cell, world_notifier);
+                    }
                 }
             }
         }

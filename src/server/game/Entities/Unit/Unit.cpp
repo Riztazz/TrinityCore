@@ -493,6 +493,8 @@ void Unit::Update(uint32 p_time)
     _lastDamagedTargetGuid = ObjectGuid::Empty;
     if (_lastExtraAttackSpell)
     {
+        ZoneScopedN("Unit::Update::ExtraAttacks")
+
         while (!extraAttacksTargets.empty())
         {
             auto itr = extraAttacksTargets.begin();
@@ -519,6 +521,8 @@ void Unit::Update(uint32 p_time)
 
     if (IsAlive())
     {
+        ZoneScopedN("Unit::Update::AuraStates")
+
         ModifyAuraState(AURA_STATE_HEALTHLESS_20_PERCENT, HealthBelowPct(20));
         ModifyAuraState(AURA_STATE_HEALTHLESS_35_PERCENT, HealthBelowPct(35));
         ModifyAuraState(AURA_STATE_HEALTH_ABOVE_75_PERCENT, HealthAbovePct(75));
