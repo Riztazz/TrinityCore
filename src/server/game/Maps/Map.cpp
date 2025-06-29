@@ -823,6 +823,7 @@ void Map::Update(uint32 t_diff)
             // to make sure calls to Map::Remove don't invalidate it
             for (m_mapRefIter = m_mapRefManager.begin(); m_mapRefIter != m_mapRefManager.end(); ++m_mapRefIter)
             {
+                ZoneScopedN("Map::Update::Entities::Players::Player")
                 Player* player = m_mapRefIter->GetSource();
 
                 if (!player || !player->IsInWorld())
@@ -884,6 +885,7 @@ void Map::Update(uint32 t_diff)
             // TODO should objects be removed during update? I thought they get put in move list
             for (m_activeNonPlayersIter = m_activeNonPlayers.begin(); m_activeNonPlayersIter != m_activeNonPlayers.end();)
             {
+                ZoneScopedN("Map::Update::Entities::ActiveObjects::ActiveNonPlayer")
                 WorldObject* obj = *m_activeNonPlayersIter;
                 ++m_activeNonPlayersIter;
 
@@ -903,6 +905,7 @@ void Map::Update(uint32 t_diff)
             // TODO should objects be removed during update? I thought they get put in move list
             for (m_waypointCreaturesIter = m_waypointCreatures.begin(); m_waypointCreaturesIter != m_waypointCreatures.end();)
             {
+                ZoneScopedN("Map::Update::Entities::WaypointCreatures::WaypointCreature")
                 Creature* creature = *m_waypointCreaturesIter;
                 ++m_waypointCreaturesIter;
 
@@ -1039,6 +1042,7 @@ void Map::ProcessRelocationNotifies(const uint32 diff)
 
         for (GridRefManager<NGridType>::iterator i = GridRefManager<NGridType>::begin(); i != GridRefManager<NGridType>::end(); ++i)
         {
+            ZoneScopedN("Map::ProcessRelocationNotifies::DelayedUnitRelocation::Grid")
             NGridType *grid = i->GetSource();
 
             // We only process important visibility changes on update and batch send visibility changes
@@ -1086,6 +1090,7 @@ void Map::ProcessRelocationNotifies(const uint32 diff)
         TypeContainerVisitor<ResetNotifier, WorldTypeMapContainer > world_notifier(reset);
         for (GridRefManager<NGridType>::iterator i = GridRefManager<NGridType>::begin(); i != GridRefManager<NGridType>::end(); ++i)
         {
+            ZoneScopedN("Map::ProcessRelocationNotifies::ResetNotifier::Grid")
             NGridType *grid = i->GetSource();
 
             if (!grid->getRelocationTimer().TPassed())
