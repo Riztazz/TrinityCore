@@ -488,6 +488,10 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
         void AddObjectToSwitchList(WorldObject* obj, bool on);
         virtual void DelayedUpdate(uint32 diff);
 
+        void resetMarkedGrids() { marked_grids.reset(); }
+        bool isGridMarked(uint32 pGridId) { return marked_grids.test(pGridId); }
+        void markGrid(uint32 pGridId) { marked_grids.set(pGridId); }
+
         void resetMarkedCells() { marked_cells.reset(); }
         bool isCellMarked(uint32 pCellId) { return marked_cells.test(pCellId); }
         void markCell(uint32 pCellId) { marked_cells.set(pCellId); }
@@ -802,6 +806,7 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
 
         NGridType* i_grids[MAX_NUMBER_OF_GRIDS][MAX_NUMBER_OF_GRIDS];
         GridMap* GridMaps[MAX_NUMBER_OF_GRIDS][MAX_NUMBER_OF_GRIDS];
+        std::bitset<MAX_NUMBER_OF_GRIDS*MAX_NUMBER_OF_GRIDS> marked_grids;
         std::bitset<TOTAL_NUMBER_OF_CELLS_PER_MAP*TOTAL_NUMBER_OF_CELLS_PER_MAP> marked_cells;
 
         //these functions used to process player/mob aggro reactions and

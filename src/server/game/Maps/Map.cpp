@@ -704,6 +704,13 @@ void Map::VisitNearbyCellsOf(WorldObject* obj, TypeContainerVisitor<Trinity::Obj
                 continue;
 
             markCell(cell_id);
+
+            // mark the grid as well to avoid processing notifies for inactive grids
+            uint32 gx = x / MAX_NUMBER_OF_CELLS;
+            uint32 gy = y / MAX_NUMBER_OF_CELLS;
+            uint32 grid_id = gy * MAX_NUMBER_OF_GRIDS + gx;
+            markGrid(grid_id);
+
             CellCoord pair(x, y);
             Cell cell(pair);
             cell.SetNoCreate();
@@ -805,6 +812,7 @@ void Map::Update(uint32 t_diff)
         _respawnCheckTimer -= t_diff;
 
     /// update active cells around players and active objects
+    resetMarkedGrids();
     resetMarkedCells();
 
     Trinity::ObjectUpdater updater(t_diff);
@@ -985,10 +993,7 @@ void Map::Update(uint32 t_diff)
 
     UpdateWeather(t_diff);
 
-    if (!m_mapRefManager.isEmpty() || !m_activeNonPlayers.empty())
-    {
-        ProcessRelocationNotifies(t_diff);
-    }
+    ProcessRelocationNotifies(t_diff);
 
     {
         ZoneScopedN("Map::Update::ScriptMgr")
@@ -1043,17 +1048,20 @@ void Map::ProcessRelocationNotifies(const uint32 diff)
 {
     ZoneScopedN("Map::ProcessRelocationNotifies")
 
+    if (m_mapRefManager.isEmpty() && m_activeNonPlayers.empty())
+        return;
+
     {
         ZoneScopedN("Map::ProcessRelocationNotifies::DelayedUnitRelocation")
 
         for (GridRefManager<NGridType>::iterator i = GridRefManager<NGridType>::begin(); i != GridRefManager<NGridType>::end(); ++i)
         {
             NGridType *grid = i->GetSource();
+            uint32 gx = grid->getX(), gy = grid->getY();
+            uint32 grid_id = gy * MAX_NUMBER_OF_GRIDS + gx;
+            if (!isGridMarked(grid_id))
+                continue;
 
-            // We only process important visibility changes on update and batch send visibility changes
-            // on a per grid basis on a slower tick to reduce the amount of network traffic
-            // The grid timers are randomized to further spread the processing, though I would argue we
-            // should probably initialize with an equal distribution over the timer period
             grid->getRelocationTimer().TUpdate(diff);
             if (!grid->getRelocationTimer().TPassed())
                 continue;
@@ -1061,11 +1069,8 @@ void Map::ProcessRelocationNotifies(const uint32 diff)
             {
                 ZoneScopedN("Map::ProcessRelocationNotifies::DelayedUnitRelocation::Grid")
 
-                uint32 gx = grid->getX(), gy = grid->getY();
-
                 CellCoord cell_min(gx*MAX_NUMBER_OF_CELLS, gy*MAX_NUMBER_OF_CELLS);
                 CellCoord cell_max(cell_min.x_coord + MAX_NUMBER_OF_CELLS, cell_min.y_coord+MAX_NUMBER_OF_CELLS);
-    
                 for (uint32 x = cell_min.x_coord; x < cell_max.x_coord; ++x)
                 {
                     for (uint32 y = cell_min.y_coord; y < cell_max.y_coord; ++y)
@@ -1100,6 +1105,10 @@ void Map::ProcessRelocationNotifies(const uint32 diff)
         for (GridRefManager<NGridType>::iterator i = GridRefManager<NGridType>::begin(); i != GridRefManager<NGridType>::end(); ++i)
         {
             NGridType *grid = i->GetSource();
+            uint32 gx = grid->getX(), gy = grid->getY();
+            uint32 grid_id = gy * MAX_NUMBER_OF_GRIDS + gx;
+            if (!isGridMarked(grid_id))
+                continue;
 
             if (!grid->getRelocationTimer().TPassed())
                 continue;
@@ -1109,11 +1118,8 @@ void Map::ProcessRelocationNotifies(const uint32 diff)
 
                 grid->getRelocationTimer().TReset(diff, m_VisibilityNotifyPeriod);
 
-                uint32 gx = grid->getX(), gy = grid->getY();
-
                 CellCoord cell_min(gx*MAX_NUMBER_OF_CELLS, gy*MAX_NUMBER_OF_CELLS);
                 CellCoord cell_max(cell_min.x_coord + MAX_NUMBER_OF_CELLS, cell_min.y_coord+MAX_NUMBER_OF_CELLS);
-
                 for (uint32 x = cell_min.x_coord; x < cell_max.x_coord; ++x)
                 {
                     for (uint32 y = cell_min.y_coord; y < cell_max.y_coord; ++y)
