@@ -871,8 +871,6 @@ bool Player::IsMirrorTimerActive(MirrorTimerType type) const
 
 void Player::HandleDrowning(uint32 time_diff)
 {
-    ZoneScopedN("Player::HandleDrowning")
-
     if (!m_MirrorTimerFlags)
         return;
 
@@ -1075,8 +1073,6 @@ void Player::Update(uint32 p_time)
     _cinematicMgr->m_cinematicDiff += p_time;
     if (_cinematicMgr->m_cinematicCamera && _cinematicMgr->m_activeCinematicCameraId && GetMSTimeDiffToNow(_cinematicMgr->m_lastCinematicCheck) > CINEMATIC_UPDATEDIFF)
     {
-        ZoneScopedN("Player::Update::UpdateCinematicLocation");
-
         _cinematicMgr->m_lastCinematicCheck = GameTime::GetGameTimeMS();
         _cinematicMgr->UpdateCinematicLocation(p_time);
     }
@@ -1111,8 +1107,6 @@ void Player::Update(uint32 p_time)
     // If mute expired, remove it from the DB
     if (GetSession()->m_muteTime && GetSession()->m_muteTime < now)
     {
-        ZoneScopedN("Player::Update::LOGIN_UPD_MUTE_TIME")
-
         GetSession()->m_muteTime = 0;
         LoginDatabasePreparedStatement* stmt = LoginDatabase.GetPreparedStatement(LOGIN_UPD_MUTE_TIME);
         stmt->setInt64(0, 0); // Set the mute time to 0
@@ -1124,8 +1118,6 @@ void Player::Update(uint32 p_time)
 
     if (!m_timedquests.empty())
     {
-        ZoneScopedN("Player::Update::TimeQuests")
-
         QuestSet::iterator iter = m_timedquests.begin();
         while (iter != m_timedquests.end())
         {
@@ -1149,8 +1141,6 @@ void Player::Update(uint32 p_time)
 
     if (HasUnitState(UNIT_STATE_MELEE_ATTACKING) && !HasUnitState(UNIT_STATE_CASTING | UNIT_STATE_CHARGING))
     {
-        ZoneScopedN("Player::Update::MeleeAttacking")
-
         if (Unit* victim = GetVictim())
         {
             // default combat reach 10
@@ -1222,8 +1212,6 @@ void Player::Update(uint32 p_time)
 
     if (HasFlag(PLAYER_FLAGS, PLAYER_FLAGS_RESTING))
     {
-        ZoneScopedN("Player::Update::Resting")
-
         if (roll_chance_i(3) && _restTime > 0)      // freeze update
         {
             time_t currTime = GameTime::GetGameTime();
@@ -1252,8 +1240,6 @@ void Player::Update(uint32 p_time)
 
     if (m_zoneUpdateTimer > 0)
     {
-        ZoneScopedN("Player::Update::ZoneAndArea")
-
         if (p_time >= m_zoneUpdateTimer)
         {
             // On zone update tick check if we are still in an inn if we are supposed to be in one
@@ -1284,11 +1270,7 @@ void Player::Update(uint32 p_time)
     }
 
     // @epoch-begin
-    {
-        ZoneScopedN("Player::Update::ScriptMgr")
-
-        sScriptMgr->OnPlayerUpdate(this, p_time);
-    }
+    sScriptMgr->OnPlayerUpdate(this, p_time);
     // @epoch-end
 
     if (IsAlive())
@@ -1425,8 +1407,6 @@ void Player::Update(uint32 p_time)
 
 void Player::setDeathState(DeathState s)
 {
-    ZoneScopedN("Player::setDeathState")
-
     uint32 ressSpellId = 0;
 
     bool cur = IsAlive();
@@ -1954,8 +1934,6 @@ bool Player::TeleportToBGEntryPoint()
 
 void Player::ProcessDelayedOperations()
 {
-    ZoneScopedN("Player::ProcessDelayedOperations")
-
     if (m_DelayedOperations == 0)
         return;
 
@@ -3210,8 +3188,6 @@ void Player::SendMailResult(uint32 mailId, MailResponseType mailAction, MailResp
 
 void Player::SendNewMail() const
 {
-    ZoneScopedN("Player::SendNewMail");
-
     // deliver undelivered mail
     WorldPackets::Mail::NotifyReceivedMail notify;
     notify.Delay = 0.0f;
@@ -14132,8 +14108,6 @@ void Player::UpdateItemDuration(uint32 time, bool realtimeonly)
 
 void Player::UpdateEnchantTime(uint32 time)
 {
-    ZoneScopedN("Player::UpdateEnchantTime")
-
     for (EnchantDurationList::iterator itr = m_enchantDuration.begin(), next; itr != m_enchantDuration.end(); itr = next)
     {
         ASSERT(itr->item);
@@ -22616,8 +22590,6 @@ uint32 Player::GetMaxPersonalArenaRatingRequirement(uint32 minarenaslot) const
 
 void Player::UpdateHomebindTime(uint32 time)
 {
-    ZoneScopedN("Player::UpdateHomebindTime")
-
     // GMs never get homebind timer online
     if (m_InstanceValid || IsGameMaster())
     {
@@ -23308,8 +23280,6 @@ template void Player::UpdateVisibilityOf(DynamicObject* target, UpdateData& data
 
 void Player::UpdateObjectVisibility(bool forced)
 {
-    ZoneScopedN("Player::UpdateObjectVisibility");
-
     // Prevent updating visibility if player is not in world (example: LoadFromDB sets drunkstate which updates invisibility while player is not in map)
     if (!IsInWorld())
         return;
@@ -23590,8 +23560,6 @@ void Player::SendInitialPacketsAfterAddToMap()
 
 void Player::SendUpdateToOutOfRangeGroupMembers()
 {
-    ZoneScopedN("Player::SendUpdateToOutOfRangeGroupMembers")
-
     if (m_groupUpdateMask == GROUP_UPDATE_FLAG_NONE)
         return;
     if (Group* group = GetGroup())
@@ -26067,8 +26035,6 @@ void Player::ResetAchievementCriteria(AchievementCriteriaCondition condition, ui
 
 void Player::UpdateAchievementCriteria(AchievementCriteriaTypes type, uint32 miscValue1 /*= 0*/, uint32 miscValue2 /*= 0*/, WorldObject* ref /*= nullptr*/)
 {
-    ZoneScopedNC("Player::UpdateAchievementCriteria", WORLD_UPDATE_COLOR)
-
     m_achievementMgr->UpdateAchievementCriteria(type, miscValue1, miscValue2, ref);
 }
 
@@ -28083,8 +28049,6 @@ bool Player::HasSameTickQueueBlock(uint32 category, bool ignore_time) const
 
 void Player::ExecuteSortedCastRequests()
 {
-    ZoneScopedN("Player::ExecuteSortedCastRequests")
-
     std::multimap<uint32, uint32> organized_list;
 
     if (m_pendingCasts.size())

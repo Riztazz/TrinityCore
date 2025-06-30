@@ -883,8 +883,6 @@ void Creature::Update(uint32 diff)
 
     if (m_outfit && !_changesMask.GetBit(UNIT_FIELD_DISPLAYID) && Unit::GetDisplayId() == CreatureOutfit::invisible_model)
     {
-        ZoneScopedN("Creature::Update::SetDisplayId")
-
         // has outfit, displayid is invisible and displayid update already sent to clients
         // set outfit display
         SetDisplayId(m_outfit->GetDisplayId());
@@ -892,8 +890,6 @@ void Creature::Update(uint32 diff)
 
     if (IsAIEnabled() && m_triggerJustAppeared && m_deathState != DEAD)
     {
-        ZoneScopedN("Creature::Update::JustAppeared")
-
         if (m_respawnCompatibilityMode && m_vehicleKit)
             m_vehicleKit->Reset();
         m_triggerJustAppeared = false;
@@ -905,217 +901,213 @@ void Creature::Update(uint32 diff)
 
     UpdateMovementFlags();
 
+    switch (m_deathState)
     {
-        ZoneScopedN("Creature::Update::StateBasedUpdate")
-
-        switch (m_deathState)
+        case JUST_RESPAWNED:
+            // Must not be called, see Creature::setDeathState JUST_RESPAWNED -> ALIVE promoting.
+            TC_LOG_ERROR("entities.unit", "Creature {} in wrong state: JUST_RESPAWNED (4)", GetGUID().ToString());
+            break;
+        case JUST_DIED:
+            // Must not be called, see Creature::setDeathState JUST_DIED -> CORPSE promoting.
+            TC_LOG_ERROR("entities.unit", "Creature {} in wrong state: JUST_DIED (1)", GetGUID().ToString());
+            break;
+        case DEAD:
         {
-            case JUST_RESPAWNED:
-                // Must not be called, see Creature::setDeathState JUST_RESPAWNED -> ALIVE promoting.
-                TC_LOG_ERROR("entities.unit", "Creature {} in wrong state: JUST_RESPAWNED (4)", GetGUID().ToString());
-                break;
-            case JUST_DIED:
-                // Must not be called, see Creature::setDeathState JUST_DIED -> CORPSE promoting.
-                TC_LOG_ERROR("entities.unit", "Creature {} in wrong state: JUST_DIED (1)", GetGUID().ToString());
-                break;
-            case DEAD:
+            if (!m_respawnCompatibilityMode)
             {
-                if (!m_respawnCompatibilityMode)
+                TC_LOG_ERROR("entities.unit", "Creature {} in wrong state: DEAD (3)", GetGUID().ToString());
+                break;
+            }
+            time_t now = GameTime::GetGameTime();
+            if (m_respawnTime <= now)
+            {
+                // Delay respawn if spawn group is not active
+                if (m_creatureData && !GetMap()->IsSpawnGroupActive(m_creatureData->spawnGroupData->groupId))
                 {
-                    TC_LOG_ERROR("entities.unit", "Creature {} in wrong state: DEAD (3)", GetGUID().ToString());
-                    break;
+                    m_respawnTime = now + urand(4,7);
+                    break; // Will be rechecked on next Update call after delay expires
                 }
-                time_t now = GameTime::GetGameTime();
-                if (m_respawnTime <= now)
+
+                ObjectGuid dbtableHighGuid(HighGuid::Unit, GetEntry(), m_spawnId);
+                time_t linkedRespawnTime = GetMap()->GetLinkedRespawnTime(dbtableHighGuid);
+                if (!linkedRespawnTime)             // Can respawn
+                    Respawn();
+                else                                // the master is dead
                 {
-                    // Delay respawn if spawn group is not active
-                    if (m_creatureData && !GetMap()->IsSpawnGroupActive(m_creatureData->spawnGroupData->groupId))
+                    ObjectGuid targetGuid = sObjectMgr->GetLinkedRespawnGuid(dbtableHighGuid);
+                    if (targetGuid == dbtableHighGuid) // if linking self, never respawn
+                        SetRespawnTime(WEEK);
+                    else
                     {
-                        m_respawnTime = now + urand(4,7);
-                        break; // Will be rechecked on next Update call after delay expires
-                    }
-    
-                    ObjectGuid dbtableHighGuid(HighGuid::Unit, GetEntry(), m_spawnId);
-                    time_t linkedRespawnTime = GetMap()->GetLinkedRespawnTime(dbtableHighGuid);
-                    if (!linkedRespawnTime)             // Can respawn
-                        Respawn();
-                    else                                // the master is dead
-                    {
-                        ObjectGuid targetGuid = sObjectMgr->GetLinkedRespawnGuid(dbtableHighGuid);
-                        if (targetGuid == dbtableHighGuid) // if linking self, never respawn
-                            SetRespawnTime(WEEK);
+                        // else copy time from master and add a little
+                        time_t baseRespawnTime = std::max(linkedRespawnTime, now);
+                        time_t const offset = urand(5, MINUTE);
+
+                        // linked guid can be a boss, uses std::numeric_limits<time_t>::max to never respawn in that instance
+                        // we shall inherit it instead of adding and causing an overflow
+                        if (baseRespawnTime <= std::numeric_limits<time_t>::max() - offset)
+                            m_respawnTime = baseRespawnTime + offset;
                         else
-                        {
-                            // else copy time from master and add a little
-                            time_t baseRespawnTime = std::max(linkedRespawnTime, now);
-                            time_t const offset = urand(5, MINUTE);
-    
-                            // linked guid can be a boss, uses std::numeric_limits<time_t>::max to never respawn in that instance
-                            // we shall inherit it instead of adding and causing an overflow
-                            if (baseRespawnTime <= std::numeric_limits<time_t>::max() - offset)
-                                m_respawnTime = baseRespawnTime + offset;
-                            else
-                                m_respawnTime = std::numeric_limits<time_t>::max();
-                        }
-                        SaveRespawnTime(); // also save to DB immediately
+                            m_respawnTime = std::numeric_limits<time_t>::max();
                     }
+                    SaveRespawnTime(); // also save to DB immediately
                 }
-                break;
             }
-            case CORPSE:
-            {
-                Unit::Update(diff);
-                // deathstate changed on spells update, prevent problems
-                if (m_deathState != CORPSE)
-                    break;
-    
-                if (IsEngaged())
-                    Unit::AIUpdateTick(diff);
-    
-                if (m_groupLootTimer && lootingGroupLowGUID)
-                {
-                    if (m_groupLootTimer <= diff)
-                    {
-                        Group* group = sGroupMgr->GetGroupByGUID(lootingGroupLowGUID);
-                        if (group)
-                            group->EndRoll(&loot, GetMap());
-                        m_groupLootTimer = 0;
-                        lootingGroupLowGUID = 0;
-                    }
-                    else m_groupLootTimer -= diff;
-                }
-                else if (m_corpseRemoveTime <= GameTime::GetGameTime())
-                {
-                    RemoveCorpse(false);
-                    TC_LOG_DEBUG("entities.unit", "Removing corpse... {} ", GetEntry());
-                }
-                break;
-            }
-            case ALIVE:
-            {
-                Unit::Update(diff);
-    
-                if (GetRespawnAggroDelay() <= diff)
-                    SetRespawnAggroDelay(0);
-                else
-                    SetRespawnAggroDelay(GetRespawnAggroDelay() - diff);
-    
-                // creature can be dead after Unit::Update call
-                // CORPSE/DEAD state will processed at next tick (in other case death timer will be updated unexpectedly)
-                if (!IsAlive())
-                    break;
-    
-                GetThreatManager().Update(diff);
-                if (_spellFocusInfo.Delay)
-                {
-                    if (_spellFocusInfo.Delay <= diff)
-                        ReacquireSpellFocusTarget();
-                    else
-                        _spellFocusInfo.Delay -= diff;
-                }
-    
-                // periodic check to see if the creature has passed an evade boundary
-                if (IsAIEnabled() && !IsInEvadeMode() && IsEngaged())
-                {
-                    if (diff >= m_boundaryCheckTime)
-                    {
-                        AI()->CheckInRoom();
-                        m_boundaryCheckTime = 2500;
-                    } else
-                        m_boundaryCheckTime -= diff;
-    
-                    if (diff >= m_backpedalTime)
-                    {
-                        AI()->Backpedal();
-                        m_backpedalTime = MOVE_BACKWARDS_CHECK_INTERVAL;
-                    } else
-                        m_backpedalTime -= diff;
-    
-                    if (diff >= m_encircleTime)
-                    {
-                        AI()->Encircle();
-                        m_encircleTime = urand(MOVE_CIRCLE_CHECK_INTERVAL, MOVE_CIRCLE_CHECK_INTERVAL * 2);
-                    } else
-                        m_encircleTime -= diff;
-    
-                    if (diff >= m_extendLeashTime)
-                    {
-                        if (!CanFreeMove())
-                            UpdateLeashExtensionTime();
-                        m_extendLeashTime = EXTEND_LEASH_CHECK_INTERVAL;
-                    } else
-                        m_extendLeashTime -= diff;
-                }
-    
-                // if periodic combat pulse is enabled and we are both in combat and in a dungeon, do this now
-                if (m_combatPulseDelay > 0 && IsEngaged() && GetMap()->IsDungeon())
-                {
-                    if (diff > m_combatPulseTime)
-                        m_combatPulseTime = 0;
-                    else
-                        m_combatPulseTime -= diff;
-    
-                    if (m_combatPulseTime == 0)
-                    {
-                        Map::PlayerList const& players = GetMap()->GetPlayers();
-                        if (!players.isEmpty())
-                            for (Map::PlayerList::const_iterator it = players.begin(); it != players.end(); ++it)
-                            {
-                                if (Player* player = it->GetSource())
-                                {
-                                    if (player->IsGameMaster())
-                                        continue;
-    
-                                    if (player->IsAlive() && IsHostileTo(player))
-                                        EngageWithTarget(player);
-                                }
-                            }
-    
-                        m_combatPulseTime = m_combatPulseDelay * IN_MILLISECONDS;
-                    }
-                }
-    
-                if (m_assistanceTimer)
-                {
-                    if (m_assistanceTimer <= diff)
-                    {
-                        if (CanPeriodicallyCallForAssistance())
-                        {
-                            SetNoCallAssistance(false);
-                            // If we are here, this means it's not the first CallForAssistance on initial aggro.
-                            SetInitialAggroCallAssistance(false);
-                            CallAssistance();
-                        }
-                        m_assistanceTimer = sWorld->getIntConfig(CONFIG_CREATURE_FAMILY_ASSISTANCE_PERIOD);
-                    }
-                    else
-                    {
-                        m_assistanceTimer -= diff;
-                    }
-                }
-    
-                Unit::AIUpdateTick(diff);
-    
-                // creature can be dead after UpdateAI call
-                // CORPSE/DEAD state will processed at next tick (in other case death timer will be updated unexpectedly)
-                if (!IsAlive())
-                    break;
-    
-                if (CanNotReachTarget() && !IsInEvadeMode() && !GetMap()->IsRaid())
-                {
-                    m_cannotReachTimer += diff;
-                    if (m_cannotReachTimer >= CREATURE_NOPATH_EVADE_TIME)
-                        if (CreatureAI* ai = AI())
-                            ai->EnterEvadeMode(CreatureAI::EVADE_REASON_NO_PATH);
-                }
-    
-                RegenerateAll(diff);
-    
-                break;
-            }
-            default:
-                break;
+            break;
         }
+        case CORPSE:
+        {
+            Unit::Update(diff);
+            // deathstate changed on spells update, prevent problems
+            if (m_deathState != CORPSE)
+                break;
+
+            if (IsEngaged())
+                Unit::AIUpdateTick(diff);
+
+            if (m_groupLootTimer && lootingGroupLowGUID)
+            {
+                if (m_groupLootTimer <= diff)
+                {
+                    Group* group = sGroupMgr->GetGroupByGUID(lootingGroupLowGUID);
+                    if (group)
+                        group->EndRoll(&loot, GetMap());
+                    m_groupLootTimer = 0;
+                    lootingGroupLowGUID = 0;
+                }
+                else m_groupLootTimer -= diff;
+            }
+            else if (m_corpseRemoveTime <= GameTime::GetGameTime())
+            {
+                RemoveCorpse(false);
+                TC_LOG_DEBUG("entities.unit", "Removing corpse... {} ", GetEntry());
+            }
+            break;
+        }
+        case ALIVE:
+        {
+            Unit::Update(diff);
+
+            if (GetRespawnAggroDelay() <= diff)
+                SetRespawnAggroDelay(0);
+            else
+                SetRespawnAggroDelay(GetRespawnAggroDelay() - diff);
+
+            // creature can be dead after Unit::Update call
+            // CORPSE/DEAD state will processed at next tick (in other case death timer will be updated unexpectedly)
+            if (!IsAlive())
+                break;
+
+            GetThreatManager().Update(diff);
+            if (_spellFocusInfo.Delay)
+            {
+                if (_spellFocusInfo.Delay <= diff)
+                    ReacquireSpellFocusTarget();
+                else
+                    _spellFocusInfo.Delay -= diff;
+            }
+
+            // periodic check to see if the creature has passed an evade boundary
+            if (IsAIEnabled() && !IsInEvadeMode() && IsEngaged())
+            {
+                if (diff >= m_boundaryCheckTime)
+                {
+                    AI()->CheckInRoom();
+                    m_boundaryCheckTime = 2500;
+                } else
+                    m_boundaryCheckTime -= diff;
+
+                if (diff >= m_backpedalTime)
+                {
+                    AI()->Backpedal();
+                    m_backpedalTime = MOVE_BACKWARDS_CHECK_INTERVAL;
+                } else
+                    m_backpedalTime -= diff;
+
+                if (diff >= m_encircleTime)
+                {
+                    AI()->Encircle();
+                    m_encircleTime = urand(MOVE_CIRCLE_CHECK_INTERVAL, MOVE_CIRCLE_CHECK_INTERVAL * 2);
+                } else
+                    m_encircleTime -= diff;
+
+                if (diff >= m_extendLeashTime)
+                {
+                    if (!CanFreeMove())
+                        UpdateLeashExtensionTime();
+                    m_extendLeashTime = EXTEND_LEASH_CHECK_INTERVAL;
+                } else
+                    m_extendLeashTime -= diff;
+            }
+
+            // if periodic combat pulse is enabled and we are both in combat and in a dungeon, do this now
+            if (m_combatPulseDelay > 0 && IsEngaged() && GetMap()->IsDungeon())
+            {
+                if (diff > m_combatPulseTime)
+                    m_combatPulseTime = 0;
+                else
+                    m_combatPulseTime -= diff;
+
+                if (m_combatPulseTime == 0)
+                {
+                    Map::PlayerList const& players = GetMap()->GetPlayers();
+                    if (!players.isEmpty())
+                        for (Map::PlayerList::const_iterator it = players.begin(); it != players.end(); ++it)
+                        {
+                            if (Player* player = it->GetSource())
+                            {
+                                if (player->IsGameMaster())
+                                    continue;
+
+                                if (player->IsAlive() && IsHostileTo(player))
+                                    EngageWithTarget(player);
+                            }
+                        }
+
+                    m_combatPulseTime = m_combatPulseDelay * IN_MILLISECONDS;
+                }
+            }
+
+            if (m_assistanceTimer)
+            {
+                if (m_assistanceTimer <= diff)
+                {
+                    if (CanPeriodicallyCallForAssistance())
+                    {
+                        SetNoCallAssistance(false);
+                        // If we are here, this means it's not the first CallForAssistance on initial aggro.
+                        SetInitialAggroCallAssistance(false);
+                        CallAssistance();
+                    }
+                    m_assistanceTimer = sWorld->getIntConfig(CONFIG_CREATURE_FAMILY_ASSISTANCE_PERIOD);
+                }
+                else
+                {
+                    m_assistanceTimer -= diff;
+                }
+            }
+
+            Unit::AIUpdateTick(diff);
+
+            // creature can be dead after UpdateAI call
+            // CORPSE/DEAD state will processed at next tick (in other case death timer will be updated unexpectedly)
+            if (!IsAlive())
+                break;
+
+            if (CanNotReachTarget() && !IsInEvadeMode() && !GetMap()->IsRaid())
+            {
+                m_cannotReachTimer += diff;
+                if (m_cannotReachTimer >= CREATURE_NOPATH_EVADE_TIME)
+                    if (CreatureAI* ai = AI())
+                        ai->EnterEvadeMode(CreatureAI::EVADE_REASON_NO_PATH);
+            }
+
+            RegenerateAll(diff);
+
+            break;
+        }
+        default:
+            break;
     }
 }
 
@@ -2302,8 +2294,6 @@ float Creature::GetAttackDistance(Unit const* target) const
 
 void Creature::setDeathState(DeathState s)
 {
-    ZoneScopedN("Creature::setDeathState")
-
     Unit::setDeathState(s);
 
     if (s == JUST_DIED)
@@ -3003,8 +2993,6 @@ void Creature::InitializeMovementFlags()
 
 void Creature::UpdateMovementFlags()
 {
-    ZoneScopedN("Creature::UpdateMovementFlags")
-
     // Do not update movement flags if creature is controlled by a player (charm/vehicle)
     if (IsMovedByClient())
         return;

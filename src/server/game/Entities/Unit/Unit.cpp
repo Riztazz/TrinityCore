@@ -463,112 +463,80 @@ Unit::~Unit()
 
 void Unit::Update(uint32 p_time)
 {
-    ZoneScopedN("Unit::Update")
+    // @tswow-begin
+    m_tsWorldEntity.tick(TSWorldObject(this));
+    m_tsCollisions.Tick(TSWorldObject(this));
+    // @tswow-end
 
+    // WARNING! Order of execution here is important, do not change.
+    // Spells must be processed with event system BEFORE they go to _UpdateSpells.
+    // Or else we may have some SPELL_STATE_FINISHED spells stalled in pointers, that is bad.
+    m_Events.Update(p_time);
+
+    CheckPendingMovementAcks();
+
+    if (!IsInWorld())
+        return;
+
+    _UpdateSpells(p_time);
+
+    // If this is set during update SetCantProc(false) call is missing somewhere in the code
+    // Having this would prevent spells from being proced, so let's crash
+    ASSERT(!m_procDeep);
+
+    m_combatManager.Update(p_time);
+
+    _lastDamagedTargetGuid = ObjectGuid::Empty;
+    if (_lastExtraAttackSpell)
     {
-        ZoneScopedN("Unit::Update::A")
-
-        // @tswow-begin
+        while (!extraAttacksTargets.empty())
         {
-            ZoneScopedNC("TSUnit::Tick", MAP_UPDATE_COLOR);
-
-            m_tsWorldEntity.tick(TSWorldObject(this));
+            auto itr = extraAttacksTargets.begin();
+            ObjectGuid targetGuid = itr->first;
+            uint32 count = itr->second;
+            extraAttacksTargets.erase(itr);
+            if (Unit* victim = ObjectAccessor::GetUnit(*this, targetGuid))
+                if (victim->IsWithinMeleeRange(this))
+                    HandleProcExtraAttackFor(victim, count);
         }
-        
-        {
-            ZoneScopedNC("TSUnit::CollisionsTick", MAP_UPDATE_COLOR);
-
-            m_tsCollisions.Tick(TSWorldObject(this));
-        }
-        // @tswow-end
-
-        // WARNING! Order of execution here is important, do not change.
-        // Spells must be processed with event system BEFORE they go to _UpdateSpells.
-        // Or else we may have some SPELL_STATE_FINISHED spells stalled in pointers, that is bad.
-        {
-            ZoneScopedN("Unit::Update::EventsUpdate")
-
-            m_Events.Update(p_time);
-        }
-
-        CheckPendingMovementAcks();
-
-        if (!IsInWorld())
-            return;
-
-        _UpdateSpells(p_time);
-
-        // If this is set during update SetCantProc(false) call is missing somewhere in the code
-        // Having this would prevent spells from being proced, so let's crash
-        ASSERT(!m_procDeep);
-
-        m_combatManager.Update(p_time);
-
-        _lastDamagedTargetGuid = ObjectGuid::Empty;
-        if (_lastExtraAttackSpell)
-        {
-            ZoneScopedN("Unit::Update::ExtraAttacks")
-
-            while (!extraAttacksTargets.empty())
-            {
-                auto itr = extraAttacksTargets.begin();
-                ObjectGuid targetGuid = itr->first;
-                uint32 count = itr->second;
-                extraAttacksTargets.erase(itr);
-                if (Unit* victim = ObjectAccessor::GetUnit(*this, targetGuid))
-                    if (victim->IsWithinMeleeRange(this))
-                        HandleProcExtraAttackFor(victim, count);
-            }
-            _lastExtraAttackSpell = 0;
-        }
-
-        // not implemented before 3.0.2
-        if (uint32 base_att = getAttackTimer(BASE_ATTACK))
-            setAttackTimer(BASE_ATTACK, (p_time >= base_att ? 0 : base_att - p_time));
-        if (uint32 ranged_att = getAttackTimer(RANGED_ATTACK))
-            setAttackTimer(RANGED_ATTACK, (p_time >= ranged_att ? 0 : ranged_att - p_time));
-        if (uint32 off_att = getAttackTimer(OFF_ATTACK))
-            setAttackTimer(OFF_ATTACK, (p_time >= off_att ? 0 : off_att - p_time));
-
-        // update abilities available only for fraction of time
-        UpdateReactives(p_time);
-
-        if (IsAlive())
-        {
-            ZoneScopedN("Unit::Update::AuraStates")
-
-            ModifyAuraState(AURA_STATE_HEALTHLESS_20_PERCENT, HealthBelowPct(20));
-            ModifyAuraState(AURA_STATE_HEALTHLESS_35_PERCENT, HealthBelowPct(35));
-            ModifyAuraState(AURA_STATE_HEALTH_ABOVE_75_PERCENT, HealthAbovePct(75));
-        }
+        _lastExtraAttackSpell = 0;
     }
 
+    // not implemented before 3.0.2
+    if (uint32 base_att = getAttackTimer(BASE_ATTACK))
+        setAttackTimer(BASE_ATTACK, (p_time >= base_att ? 0 : base_att - p_time));
+    if (uint32 ranged_att = getAttackTimer(RANGED_ATTACK))
+        setAttackTimer(RANGED_ATTACK, (p_time >= ranged_att ? 0 : ranged_att - p_time));
+    if (uint32 off_att = getAttackTimer(OFF_ATTACK))
+        setAttackTimer(OFF_ATTACK, (p_time >= off_att ? 0 : off_att - p_time));
+
+    // update abilities available only for fraction of time
+    UpdateReactives(p_time);
+
+    if (IsAlive())
     {
-        ZoneScopedN("Unit::Update::B")
-
-        UpdateSplineMovement(p_time);
-        i_motionMaster->Update(p_time);
+        ModifyAuraState(AURA_STATE_HEALTHLESS_20_PERCENT, HealthBelowPct(20));
+        ModifyAuraState(AURA_STATE_HEALTHLESS_35_PERCENT, HealthBelowPct(35));
+        ModifyAuraState(AURA_STATE_HEALTH_ABOVE_75_PERCENT, HealthAbovePct(75));
     }
-    
 
-    {
-        ZoneScopedN("Unit::Update::C")
+    UpdateSplineMovement(p_time);
+    i_motionMaster->Update(p_time);
 
-        // Wait with the aura interrupts until we have updated our movement generators and position
-        if (GetTypeId() == TYPEID_PLAYER)
-            InterruptMovementBasedAuras();
-        else if (!movespline->Finalized())
-            InterruptMovementBasedAuras();
+    // Wait with the aura interrupts until we have updated our movement generators and position
+    if (GetTypeId() == TYPEID_PLAYER)
+        InterruptMovementBasedAuras();
+    else if (!movespline->Finalized())
+        InterruptMovementBasedAuras();
 
-        // All position info based actions have been executed, reset info
-        _positionUpdateInfo.Reset();
+    // All position info based actions have been executed, reset info
+    _positionUpdateInfo.Reset();
 
-        if (HasScheduledAIChange() && (GetTypeId() != TYPEID_PLAYER || (IsCharmed() && GetCharmerGUID().IsCreature())))
-            UpdateCharmAI();
-        RefreshAI();
+    if (HasScheduledAIChange() && (GetTypeId() != TYPEID_PLAYER || (IsCharmed() && GetCharmerGUID().IsCreature())))
+        UpdateCharmAI();
+    RefreshAI();
 
-        InvalidateValuesUpdateCache();
-    }
+    InvalidateValuesUpdateCache();
 }
 
 bool Unit::haveOffhandWeapon() const
@@ -591,8 +559,6 @@ void Unit::MonsterMoveWithSpeed(float x, float y, float z, float speed, bool gen
 
 void Unit::UpdateSplineMovement(uint32 t_diff)
 {
-    ZoneScopedN("Unit::UpdateSplineMovement")
-
     if (movespline->Finalized())
         return;
 
@@ -3168,8 +3134,6 @@ void Unit::_DeleteRemovedAuras()
 
 void Unit::_UpdateSpells(uint32 time)
 {
-    ZoneScopedN("Unit::_UpdateSpells")
-
     if (m_currentSpells[CURRENT_AUTOREPEAT_SPELL])
         _UpdateAutoRepeatSpell();
 
@@ -10237,8 +10201,6 @@ uint32 Unit::GetCreatePowerValue(Powers power) const
 
 void Unit::AIUpdateTick(uint32 diff)
 {
-    ZoneScopedN("Unit::AIUpdateTick")
-
     // @tswow-begin
     if(Creature* c = ToCreature())
     {
@@ -10535,8 +10497,6 @@ void Unit::CleanupsBeforeDelete(bool finalCleanup)
 
 void Unit::UpdateCharmAI()
 {
-    ZoneScopedN("Unit::UpdateCharmAI")
-
     if (IsCharmed())
     {
         UnitAI* newAI = nullptr;
@@ -11416,8 +11376,6 @@ void Unit::ClearAllReactives()
 
 void Unit::UpdateReactives(uint32 p_time)
 {
-    ZoneScopedN("Unit::UpdateReactives")
-
     for (uint8 i = 0; i < MAX_REACTIVE; ++i)
     {
         ReactiveType reactive = ReactiveType(i);
@@ -13965,12 +13923,9 @@ bool Unit::UpdatePosition(float x, float y, float z, float orientation, bool tel
         else
             GetMap()->CreatureRelocation(ToCreature(), x, y, z, orientation);
     }
-    else
+    else if (turn)
     {
-        if (turn)
-            UpdateOrientation(orientation);
-
-        // TODO test not calling this if not relocated and not turn
+        UpdateOrientation(orientation);
         UpdatePositionData();
     }
 
@@ -14029,8 +13984,6 @@ bool Unit::HasPendingMovementChange(MovementChangeType changeType) const
 
 void Unit::CheckPendingMovementAcks()
 {
-    ZoneScopedN("Unit::CheckPendingMovementAcks")
-
     if (sWorld->getIntConfig(CONFIG_PENDING_MOVE_CHANGES_TIMEOUT) == 0)
         return;
 
