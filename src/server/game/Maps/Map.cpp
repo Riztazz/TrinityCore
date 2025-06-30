@@ -1170,7 +1170,7 @@ void Map::ProcessRelocationNotifies(const uint32 diff)
 
         for (GridRefManager<NGridType>::iterator i = GridRefManager<NGridType>::begin(); i != GridRefManager<NGridType>::end(); ++i)
         {
-            //NGridType *grid = i->GetSource();
+            NGridType *grid = i->GetSource();
             //uint32 gx = grid->getX(), gy = grid->getY();
             //uint32 grid_id = gy * MAX_NUMBER_OF_GRIDS + gx;
             //if (!isGridMarked(grid_id))
@@ -1219,7 +1219,7 @@ void Map::ProcessRelocationNotifies(const uint32 diff)
         TypeContainerVisitor<ResetNotifier, WorldTypeMapContainer > world_notifier(reset);
         for (GridRefManager<NGridType>::iterator i = GridRefManager<NGridType>::begin(); i != GridRefManager<NGridType>::end(); ++i)
         {
-            //NGridType *grid = i->GetSource();
+            NGridType *grid = i->GetSource();
             //uint32 gx = grid->getX(), gy = grid->getY();
             //uint32 grid_id = gy * MAX_NUMBER_OF_GRIDS + gx;
             //if (!isGridMarked(grid_id))
