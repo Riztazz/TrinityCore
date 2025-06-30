@@ -298,6 +298,39 @@ void Map::AddToGrid(T* obj, Cell const& cell)
 }
 
 template<>
+void Map::AddToGrid(Creature* obj, Cell const& cell)
+{
+    NGridType* grid = getNGrid(cell.GridX(), cell.GridY());
+    if (obj->IsStoredInWorldObjectGridContainer())
+        grid->GetGridType(cell.CellX(), cell.CellY()).AddWorldObject(obj);
+    else
+        grid->GetGridType(cell.CellX(), cell.CellY()).AddGridObject(obj);
+
+    obj->SetCell(cell);
+}
+
+template<>
+void Map::AddToGrid(GameObject* obj, Cell const& cell)
+{
+    NGridType* grid = getNGrid(cell.GridX(), cell.GridY());
+    grid->GetGridType(cell.CellX(), cell.CellY()).AddGridObject(obj);
+
+    obj->SetCell(cell);
+}
+
+template<>
+void Map::AddToGrid(DynamicObject* obj, Cell const& cell)
+{
+    NGridType* grid = getNGrid(cell.GridX(), cell.GridY());
+    if (obj->IsStoredInWorldObjectGridContainer())
+        grid->GetGridType(cell.CellX(), cell.CellY()).AddWorldObject(obj);
+    else
+        grid->GetGridType(cell.CellX(), cell.CellY()).AddGridObject(obj);
+
+    obj->SetCell(cell);
+}
+
+template<>
 void Map::AddToGrid(Corpse* obj, Cell const& cell)
 {
     NGridType* grid = getNGrid(cell.GridX(), cell.GridY());
@@ -922,7 +955,7 @@ void Map::Update(uint32 t_diff)
                 if (!creature || !creature->IsInWorld() || !creature->IsPositionValid())
                     continue;
 
-                CellCoord cellCoord = Trinity::ComputeCellCoord(creature->GetPositionX(), creature->GetPositionY());
+                CellCoord cellCoord = creature->GetCell()->GetCellCoord();
                 // The waypoint creature has already ticked its update from the above if the cell its in is marked
                 if (isCellMarked(cellCoord.GetId()))
                     continue;
@@ -947,7 +980,7 @@ void Map::Update(uint32 t_diff)
                         // (edge condition where members are on diff grid than leader)
                         for (Creature* member : members)
                         {
-                            CellCoord memberCellCoord = Trinity::ComputeCellCoord(member->GetPositionX(), member->GetPositionY());
+                            CellCoord memberCellCoord = member->GetCell()->GetCellCoord();
                             if (isCellMarked(memberCellCoord.GetId()))
                                 continue;
 
@@ -994,17 +1027,17 @@ void Map::Update(uint32 t_diff)
                     continue;
                 }
 
-                //Cell old_cell(creature->GetPositionX(), creature->GetPositionY());
+                Cell old_cell = creature->GetCell();
                 Cell new_cell(creature->GetPositionX(), creature->GetPositionY());
-                //if (old_cell.DiffCell(new_cell) || old_cell.DiffGrid(new_cell))
-                //{
+                if (old_cell.DiffCell(new_cell) || old_cell.DiffGrid(new_cell))
+                {
                     creature->RemoveFromGrid();
 
-                //    if (old_cell.DiffGrid(new_cell))
+                    if (old_cell.DiffGrid(new_cell))
                         EnsureGridLoaded(new_cell);
 
                     AddToGrid(creature, new_cell);
-                //}
+                }
                 creature->UpdatePositionData();
                 creature->UpdateObjectVisibility(false);
             }
@@ -1017,17 +1050,17 @@ void Map::Update(uint32 t_diff)
     
             for (GameObject* go : _relocatedGameObjects)
             {
-                //Cell old_cell(go->GetPositionX(), go->GetPositionY());
+                Cell old_cell = go->GetCell();
                 Cell new_cell(go->GetPositionX(), go->GetPositionY());
-                //if (old_cell.DiffCell(new_cell) || old_cell.DiffGrid(new_cell))
-                //{
+                if (old_cell.DiffCell(new_cell) || old_cell.DiffGrid(new_cell))
+                {
                     go->RemoveFromGrid();
 
-                //    if (old_cell.DiffGrid(new_cell))
+                    if (old_cell.DiffGrid(new_cell))
                         EnsureGridLoaded(new_cell);
 
                     AddToGrid(go, new_cell);
-                //}
+                }
                 go->UpdateModelPosition();
                 go->UpdatePositionData();
                 go->UpdateObjectVisibility(false);
@@ -1041,17 +1074,17 @@ void Map::Update(uint32 t_diff)
     
             for (DynamicObject* dynObj : _relocatedDynamicObjects)
             {
-                //Cell old_cell(dynObj->GetPositionX(), dynObj->GetPositionY());
+                Cell old_cell = dynObj->GetCell();
                 Cell new_cell(dynObj->GetPositionX(), dynObj->GetPositionY());
-                //if (old_cell.DiffCell(new_cell) || old_cell.DiffGrid(new_cell))
-                //{
+                if (old_cell.DiffCell(new_cell) || old_cell.DiffGrid(new_cell))
+                {
                     dynObj->RemoveFromGrid();
 
-                //    if (old_cell.DiffGrid(new_cell))
+                    if (old_cell.DiffGrid(new_cell))
                         EnsureGridLoaded(new_cell);
 
                     AddToGrid(dynObj, new_cell);
-                //}
+                }
                 dynObj->UpdatePositionData();
                 dynObj->UpdateObjectVisibility(false);
             }

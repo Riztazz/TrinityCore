@@ -21,9 +21,10 @@
 #include "Creature.h"
 #include "CreatureAI.h"
 #include "DynamicObject.h"
-#include "Log.h"
 #include "GameObject.h"
 #include "GameTime.h"
+#include "GridObject.h"
+#include "Log.h"
 #include "ObjectAccessor.h"
 #include "ObjectMgr.h"
 #include "ScriptMgr.h"
@@ -54,6 +55,7 @@ template <class T>
 void AddObjectHelper(CellCoord &cell, GridRefManager<T> &m, uint32 &count, Map* map, T *obj)
 {
     obj->AddToGrid(m);
+    obj->SetCell(cell);
     obj->AddToWorld();
     if (obj->isActiveObject())
         map->AddToActive(obj);
