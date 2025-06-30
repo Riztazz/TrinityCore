@@ -427,8 +427,6 @@ bool Creature::ShouldRelocateUpdateMapPartition()
 
 void Creature::UpdateMapPartition(Map* forcedMap)
 {
-    ZoneScopedN("Creature::UpdateMapPartition");
-
     if ((m_vehicle || m_transport || (m_formation && !m_formation->IsLeader(this)) || (GetCharmerOrOwner() && !IsVehicle())) && !forcedMap)
         return;
 
@@ -879,8 +877,6 @@ void Creature::SetPhaseMask(uint32 newPhaseMask, bool update, uint64 newPhaseId)
 
 void Creature::Update(uint32 diff)
 {
-    ZoneScopedN("Creature::Update")
-
     if (m_outfit && !_changesMask.GetBit(UNIT_FIELD_DISPLAYID) && Unit::GetDisplayId() == CreatureOutfit::invisible_model)
     {
         // has outfit, displayid is invisible and displayid update already sent to clients

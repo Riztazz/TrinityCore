@@ -1054,8 +1054,6 @@ void Player::UpdateInvisibilityDrunkDetect()
 
 void Player::Update(uint32 p_time)
 {
-    ZoneScopedN("Player::Update");
-
     if (!IsInWorld())
         return;
 
@@ -2099,8 +2097,6 @@ void Player::RemoveFromPartition()
 // Only call from Map Delayed Update (map thread safety)
 void Player::UpdateMapPartition(Map* forcedMap)
 {
-    ZoneScopedN("Player::UpdateMapPartition");
-
     // When players are in a vehicle or on transport these entities are responsible for updating partition
     if ((m_vehicle || m_transport) && !forcedMap)
         return;
