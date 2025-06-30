@@ -57,7 +57,6 @@
 #include "TSSpellInfo.h"
 #include "TSMutable.h"
 #include "TSWorldObject.h"
-#include "TSProfile.h"
 // @tswow-end
 #include <G3D/Vector3.h>
 
