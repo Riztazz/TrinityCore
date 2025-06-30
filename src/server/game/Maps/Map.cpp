@@ -1171,7 +1171,7 @@ void Map::ProcessRelocationNotifies(const uint32 diff)
         for (GridRefManager<NGridType>::iterator i = GridRefManager<NGridType>::begin(); i != GridRefManager<NGridType>::end(); ++i)
         {
             //NGridType *grid = i->GetSource();
-            ////uint32 gx = grid->getX(), gy = grid->getY();
+            //uint32 gx = grid->getX(), gy = grid->getY();
             //uint32 grid_id = gy * MAX_NUMBER_OF_GRIDS + gx;
             //if (!isGridMarked(grid_id))
                 continue;
@@ -1183,6 +1183,7 @@ void Map::ProcessRelocationNotifies(const uint32 diff)
             {
                 ZoneScopedN("Map::ProcessRelocationNotifies::DelayedUnitRelocation::Grid")
 
+                uint32 gx = grid->getX(), gy = grid->getY();
                 CellCoord cell_min(gx*MAX_NUMBER_OF_CELLS, gy*MAX_NUMBER_OF_CELLS);
                 CellCoord cell_max(cell_min.x_coord + MAX_NUMBER_OF_CELLS, cell_min.y_coord+MAX_NUMBER_OF_CELLS);
                 for (uint32 x = cell_min.x_coord; x < cell_max.x_coord; ++x)
@@ -1231,7 +1232,7 @@ void Map::ProcessRelocationNotifies(const uint32 diff)
                 ZoneScopedN("Map::ProcessRelocationNotifies::ResetNotifier::Grid")
 
                 grid->getRelocationTimer().TReset(diff, m_VisibilityNotifyPeriod);
-
+                uint32 gx = grid->getX(), gy = grid->getY();
                 CellCoord cell_min(gx*MAX_NUMBER_OF_CELLS, gy*MAX_NUMBER_OF_CELLS);
                 CellCoord cell_max(cell_min.x_coord + MAX_NUMBER_OF_CELLS, cell_min.y_coord+MAX_NUMBER_OF_CELLS);
                 for (uint32 x = cell_min.x_coord; x < cell_max.x_coord; ++x)
