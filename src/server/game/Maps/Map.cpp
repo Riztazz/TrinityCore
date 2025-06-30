@@ -962,20 +962,101 @@ void Map::Update(uint32 t_diff)
                 }
             }
         }
+
+        {
+            ZoneScopedN("Map::Update::Entities::Transports")
+    
+            for (_transportsUpdateIter = _transports.begin(); _transportsUpdateIter != _transports.end();)
+            {
+                WorldObject* obj = *_transportsUpdateIter;
+                ++_transportsUpdateIter;
+    
+                if (!obj->IsInWorld())
+                    continue;
+    
+                obj->Update(t_diff);
+            }
+        }
     }
 
     {
-        ZoneScopedN("Map::Update::Transports")
+        ZoneScopedN("Map::Update::GridRelocations")
 
-        for (_transportsUpdateIter = _transports.begin(); _transportsUpdateIter != _transports.end();)
+        // We must delay grid relocation until after entities are updated to avoid updating multiple times (by moving to an unmarked cell)
         {
-            WorldObject* obj = *_transportsUpdateIter;
-            ++_transportsUpdateIter;
+            ZoneScopedN("Map::Update::GridRelocations::Creatures")
+    
+            for (Creature* creature : _relocatedCreatures)
+            {
+                if (creature->ShouldRelocateUpdateMapPartition())
+                {
+                    _updateMapPartitionCreatures.insert(creature);
+                    continue;
+                }
 
-            if (!obj->IsInWorld())
-                continue;
+                //Cell old_cell(creature->GetPositionX(), creature->GetPositionY());
+                Cell new_cell(creature->GetPositionX(), creature->GetPositionY());
+                //if (old_cell.DiffCell(new_cell) || old_cell.DiffGrid(new_cell))
+                //{
+                    creature->RemoveFromGrid();
 
-            obj->Update(t_diff);
+                //    if (old_cell.DiffGrid(new_cell))
+                        EnsureGridLoaded(new_cell);
+
+                    AddToGrid(creature, new_cell);
+                //}
+                creature->UpdatePositionData();
+                creature->UpdateObjectVisibility(false);
+            }
+
+            _relocatedCreatures.clear();
+        }
+
+        {
+            ZoneScopedN("Map::Update::GridRelocations::GameObjects")
+    
+            for (GameObject* go : _relocatedGameObjects)
+            {
+                //Cell old_cell(go->GetPositionX(), go->GetPositionY());
+                Cell new_cell(go->GetPositionX(), go->GetPositionY());
+                //if (old_cell.DiffCell(new_cell) || old_cell.DiffGrid(new_cell))
+                //{
+                    go->RemoveFromGrid();
+
+                //    if (old_cell.DiffGrid(new_cell))
+                        EnsureGridLoaded(new_cell);
+
+                    AddToGrid(go, new_cell);
+                //}
+                go->UpdateModelPosition();
+                go->UpdatePositionData();
+                go->UpdateObjectVisibility(false);
+            }
+
+            _relocatedGameObjects.clear();
+        }
+
+        {
+            ZoneScopedN("Map::Update::GridRelocations::DynamicObjects")
+    
+            for (DynamicObject* dynObj : _relocatedDynamicObjects)
+            {
+                //Cell old_cell(dynObj->GetPositionX(), dynObj->GetPositionY());
+                Cell new_cell(dynObj->GetPositionX(), dynObj->GetPositionY());
+                //if (old_cell.DiffCell(new_cell) || old_cell.DiffGrid(new_cell))
+                //{
+                    dynObj->RemoveFromGrid();
+
+                //    if (old_cell.DiffGrid(new_cell))
+                        EnsureGridLoaded(new_cell);
+
+                    AddToGrid(dynObj, new_cell);
+                //}
+                dynObj->UpdatePositionData();
+                dynObj->UpdateObjectVisibility(false);
+            }
+
+            _relocatedDynamicObjects.clear();
         }
     }
 
@@ -1311,107 +1392,37 @@ void Map::PlayerRelocation(Player* player, float x, float y, float z, float orie
     player->UpdatePositionData();
     player->UpdateObjectVisibility(false);
 
-    {
-        ZoneScopedN("Player ShouldRelocateUpdateMapPartition")
-
-        // its possible for multiple relocations to be processed per frame, so here
-        // we use a set AND we re-check the partition on the main thread context before updating
-        // the priority here is to avoid as many checks on the main thread as possible, and the
-        // second priority is to prevent as many checks on the map thread as possible.
-        if (player->ShouldRelocateUpdateMapPartition())
-            _updateMapPartitionPlayers.insert(player);
-    }
+    if (player->ShouldRelocateUpdateMapPartition())
+        _updateMapPartitionPlayers.insert(player);
 }
 
 void Map::CreatureRelocation(Creature* creature, float x, float y, float z, float orientation)
 {
     ZoneScopedN("Map::CreatureRelocation")
 
-    ASSERT(creature);
-
-    Cell old_cell(creature->GetPositionX(), creature->GetPositionY());
-    Cell new_cell(x, y);
-
     creature->Relocate(x, y, z, orientation);
     if (creature->IsVehicle())
         creature->GetVehicleKit()->RelocatePassengers();
 
-    if (old_cell.DiffCell(new_cell) || old_cell.DiffGrid(new_cell))
-    {
-        TC_LOG_DEBUG("maps", "Creature {} relocation grid[{}, {}]cell[{}, {}]->grid[{}, {}]cell[{}, {}]", creature->GetName(), old_cell.GridX(), old_cell.GridY(), old_cell.CellX(), old_cell.CellY(), new_cell.GridX(), new_cell.GridY(), new_cell.CellX(), new_cell.CellY());
-
-        creature->RemoveFromGrid();
-
-        if (old_cell.DiffGrid(new_cell))
-            EnsureGridLoaded(new_cell);
-
-        AddToGrid(creature, new_cell);
-    }
-    
-    creature->UpdatePositionData();
-    creature->UpdateObjectVisibility(false);
-
-    {
-        ZoneScopedN("Creature ShouldRelocateUpdateMapPartition")
-
-        if (creature->ShouldRelocateUpdateMapPartition())
-            _updateMapPartitionCreatures.insert(creature);
-    }
+    _relocatedCreatures.insert(creature);
 }
 
 void Map::GameObjectRelocation(GameObject* go, float x, float y, float z, float orientation)
 {
     ZoneScopedN("Map::GameObjectRelocation")
 
-    ASSERT(go);
-
-    Cell old_cell(go->GetPositionX(), go->GetPositionY());
-    Cell new_cell(x, y);
-
     go->Relocate(x, y, z, orientation);
 
-    if (old_cell.DiffCell(new_cell) || old_cell.DiffGrid(new_cell))
-    {
-        TC_LOG_DEBUG("maps", "GameObject {} relocation grid[{}, {}]cell[{}, {}]->grid[{}, {}]cell[{}, {}]", go->GetName(), old_cell.GridX(), old_cell.GridY(), old_cell.CellX(), old_cell.CellY(), new_cell.GridX(), new_cell.GridY(), new_cell.CellX(), new_cell.CellY());
-
-        go->RemoveFromGrid();
-
-        if (old_cell.DiffGrid(new_cell))
-            EnsureGridLoaded(new_cell);
-
-        AddToGrid(go, new_cell);
-    }
-    
-    go->UpdateModelPosition();
-    go->UpdatePositionData();
-    go->UpdateObjectVisibility(false);
+    _relocatedGameObjects.insert(go);
 }
 
 void Map::DynamicObjectRelocation(DynamicObject* dynObj, float x, float y, float z, float orientation)
 {
     ZoneScopedN("Map::DynamicObjectRelocation")
 
-    ASSERT(dynObj);
-
-    Cell old_cell(dynObj->GetPositionX(), dynObj->GetPositionY());
-    Cell new_cell(x, y);
-
     dynObj->Relocate(x, y, z, orientation);
 
-    if (old_cell.DiffCell(new_cell) || old_cell.DiffGrid(new_cell))
-    {
-        TC_LOG_DEBUG("maps", "DynamicObject {} relocation grid[{}, {}]cell[{}, {}]->grid[{}, {}]cell[{}, {}]", dynObj->GetName(), old_cell.GridX(), old_cell.GridY(), old_cell.CellX(), old_cell.CellY(), new_cell.GridX(), new_cell.GridY(), new_cell.CellX(), new_cell.CellY());
-
-        dynObj->RemoveFromGrid();
-
-        if (old_cell.DiffGrid(new_cell))
-            EnsureGridLoaded(new_cell);
-
-        AddToGrid(dynObj, new_cell);
-    }
-    
-    dynObj->UpdatePositionData();
-    dynObj->UpdateObjectVisibility(false);
+    _relocatedDynamicObjects.insert(dynObj);
 }
 
 void Map::UnloadGrid(NGridType& ngrid)
@@ -2779,21 +2790,6 @@ void Map::SendObjectUpdates()
     }
 }
 
-void Map::UpdateMapPartitions()
-{
-    ZoneScopedN("Map::UpdateMapPartitions")
-
-    for (Player* player : _updateMapPartitionPlayers)
-        player->UpdateMapPartition();
-
-    _updateMapPartitionPlayers.clear();
-
-    for (Creature* creature : _updateMapPartitionCreatures)
-        creature->UpdateMapPartition();
-
-    _updateMapPartitionCreatures.clear();
-}
-
 // CheckRespawn MUST do one of the following:
 //  -) return true
 //  -) set info->respawnTime to zero, which indicates the respawn time should be deleted (and will never be processed again without outside intervention)
@@ -3549,7 +3545,23 @@ void Map::DelayedUpdate(uint32 t_diff)
 
     RemoveAllObjectsInRemoveList();
 
-    UpdateMapPartitions();
+    {
+        ZoneScopedN("Map::DelayedUpdate::UpdatePlayerPartitions")
+
+        for (Player* player : _updateMapPartitionPlayers)
+            player->UpdateMapPartition();
+
+        _updateMapPartitionPlayers.clear();
+    }
+
+    {
+        ZoneScopedN("Map::DelayedUpdate::UpdateCreaturePartitions")
+
+        for (Creature* creature : _updateMapPartitionCreatures)
+            creature->UpdateMapPartition();
+
+        _updateMapPartitionCreatures.clear();
+    }
 }
 
 void Map::AddObjectToRemoveList(WorldObject* obj)
