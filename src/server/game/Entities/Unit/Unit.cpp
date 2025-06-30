@@ -390,6 +390,7 @@ Unit::Unit(bool isWorldObject) :
     m_baseSpellCritChance = 5.0f;
 
     m_lastManaUse = 0;
+    m_lastUpdate = 0;
 
     for (uint8 i = 0; i < MAX_MOVE_TYPE; ++i)
         m_speed_rate[i] = 1.0f;
@@ -452,6 +453,10 @@ Unit::~Unit()
 
 void Unit::Update(uint32 p_time)
 {
+    uint32 updateMS = GameTime::GetGameTimeMS();
+    ASSERT(updateMS > m_lastUpdate);
+    m_lastUpdate = updateMS;
+
     ZoneScopedN("Unit::Update")
 
     // @tswow-begin
