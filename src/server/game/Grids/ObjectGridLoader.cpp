@@ -55,7 +55,7 @@ template <class T>
 void AddObjectHelper(CellCoord &cell, GridRefManager<T> &m, uint32 &count, Map* map, T *obj)
 {
     obj->AddToGrid(m);
-    obj->SetCell(cell);
+    obj->SetCell(Cell(cell));
     obj->AddToWorld();
     if (obj->isActiveObject())
         map->AddToActive(obj);
