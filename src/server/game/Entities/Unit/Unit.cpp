@@ -92,6 +92,17 @@
 #include "TSBossAI.h"
 // @tswow-end
 
+#include <boost/stacktrace.hpp>
+#include <iostream>
+#include <cstdlib>
+
+#define ASSERT_WITH_TRACE(expr) \
+    if (!(expr)) { \
+        std::cerr << "Assertion failed: " #expr "\n"; \
+        std::cerr << boost::stacktrace::stacktrace(); \
+        std::abort(); \
+    }
+
 float baseMoveSpeed[MAX_MOVE_TYPE] =
 {
     2.5f,                  // MOVE_WALK
@@ -454,7 +465,7 @@ Unit::~Unit()
 void Unit::Update(uint32 p_time)
 {
     uint32 updateMS = GameTime::GetGameTimeMS();
-    ASSERT(updateMS > m_lastUpdate);
+    ASSERT_WITH_TRACE(updateMS > m_lastUpdate);
     m_lastUpdate = updateMS;
 
     ZoneScopedN("Unit::Update")
