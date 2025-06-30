@@ -19920,8 +19920,6 @@ void Player::SaveToDB(bool create /*=false*/)
 
 void Player::SaveToDB(CharacterDatabaseTransaction trans, bool create /* = false */)
 {
-    ZoneScopedN("Player::SaveToDB")
-
     // delay auto save at any saves (manual, in code, or autosave)
     m_nextSave = sWorld->getIntConfig(CONFIG_INTERVAL_SAVE);
 
@@ -26031,6 +26029,8 @@ void Player::ResetAchievementCriteria(AchievementCriteriaCondition condition, ui
 
 void Player::UpdateAchievementCriteria(AchievementCriteriaTypes type, uint32 miscValue1 /*= 0*/, uint32 miscValue2 /*= 0*/, WorldObject* ref /*= nullptr*/)
 {
+    ZoneScopedNC("Player::UpdateAchievementCriteria", WORLD_UPDATE_COLOR)
+
     m_achievementMgr->UpdateAchievementCriteria(type, miscValue1, miscValue2, ref);
 }
 
