@@ -295,8 +295,6 @@ bool MotionMaster::HasMovementGenerator(std::function<bool(MovementGenerator con
 
 void MotionMaster::Update(uint32 diff)
 {
-    ZoneScopedN("MotionMaster::Update")
-
     if (!_owner)
         return;
 
