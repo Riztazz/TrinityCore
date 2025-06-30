@@ -31,11 +31,9 @@
 
 typedef enum
 {
-    GRID_STATE_INVALID = 0,
+    GRID_STATE_INACTIVE = 0,
     GRID_STATE_ACTIVE = 1,
-    GRID_STATE_IDLE = 2,
-    GRID_STATE_REMOVAL= 3,
-    MAX_GRID_STATE = 4
+    MAX_GRID_STATE = 2
 } grid_state_t;
 
 template
@@ -51,7 +49,7 @@ class NGrid
         typedef Grid<ACTIVE_OBJECT, WORLD_OBJECT_TYPES, GRID_OBJECT_TYPES> GridType;
         NGrid(uint32 id, int32 x, int32 y) :
             i_gridId(id), i_x(x), i_y(y),
-            i_cellstate(GRID_STATE_INVALID), i_GridObjectDataLoaded(false), vis_Update(0, irand(0, DEFAULT_VISIBILITY_NOTIFY_PERIOD))
+            i_cellstate(GRID_STATE_INACTIVE), i_GridObjectDataLoaded(false), vis_Update(0, irand(0, DEFAULT_VISIBILITY_NOTIFY_PERIOD))
         { }
 
         GridType& GetGridType(const uint32 x, const uint32 y)
