@@ -955,7 +955,7 @@ void Map::Update(uint32 t_diff)
                 if (!creature || !creature->IsInWorld() || !creature->IsPositionValid())
                     continue;
 
-                CellCoord cellCoord = creature->GetCell()->GetCellCoord();
+                CellCoord cellCoord = creature->GetCell().GetCellCoord();
                 // The waypoint creature has already ticked its update from the above if the cell its in is marked
                 if (isCellMarked(cellCoord.GetId()))
                     continue;
@@ -980,7 +980,7 @@ void Map::Update(uint32 t_diff)
                         // (edge condition where members are on diff grid than leader)
                         for (Creature* member : members)
                         {
-                            CellCoord memberCellCoord = member->GetCell()->GetCellCoord();
+                            CellCoord memberCellCoord = member->GetCell().GetCellCoord();
                             if (isCellMarked(memberCellCoord.GetId()))
                                 continue;
 
