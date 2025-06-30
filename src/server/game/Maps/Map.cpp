@@ -1437,7 +1437,7 @@ void Map::CreatureRelocation(Creature* creature, float x, float y, float z, floa
     if (creature->IsVehicle())
         creature->GetVehicleKit()->RelocatePassengers();
 
-    Cell old_cell = creature->GetCurrentCell();
+    Cell old_cell = creature->GetCell();
     Cell new_cell(x, y);
     if (old_cell.DiffCell(new_cell) || old_cell.DiffGrid(new_cell))
     {
@@ -1456,7 +1456,7 @@ void Map::GameObjectRelocation(GameObject* go, float x, float y, float z, float 
 
     go->Relocate(x, y, z, orientation);
 
-    Cell old_cell = go->GetCurrentCell();
+    Cell old_cell = go->GetCell();
     Cell new_cell(x, y);
     if (old_cell.DiffCell(new_cell) || old_cell.DiffGrid(new_cell))
     {
@@ -1476,7 +1476,7 @@ void Map::DynamicObjectRelocation(DynamicObject* dynObj, float x, float y, float
 
     dynObj->Relocate(x, y, z, orientation);
 
-    Cell old_cell = dynObj->GetCurrentCell();
+    Cell old_cell = dynObj->GetCell();
     Cell new_cell(x, y);
     if (old_cell.DiffCell(new_cell) || old_cell.DiffGrid(new_cell))
     {
