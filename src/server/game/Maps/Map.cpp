@@ -1437,7 +1437,17 @@ void Map::CreatureRelocation(Creature* creature, float x, float y, float z, floa
     if (creature->IsVehicle())
         creature->GetVehicleKit()->RelocatePassengers();
 
-    _relocatedCreatures.insert(creature);
+    Cell old_cell = creature->GetCurrentCell();
+    Cell new_cell(x, y);
+    if (old_cell.DiffCell(new_cell) || old_cell.DiffGrid(new_cell))
+    {
+        _relocatedCreatures.insert(creature);
+    }
+    else
+    {
+        creature->UpdatePositionData();
+        creature->UpdateObjectVisibility(false);
+    }
 }
 
 void Map::GameObjectRelocation(GameObject* go, float x, float y, float z, float orientation)
@@ -1446,7 +1456,18 @@ void Map::GameObjectRelocation(GameObject* go, float x, float y, float z, float 
 
     go->Relocate(x, y, z, orientation);
 
-    _relocatedGameObjects.insert(go);
+    Cell old_cell = go->GetCurrentCell();
+    Cell new_cell(x, y);
+    if (old_cell.DiffCell(new_cell) || old_cell.DiffGrid(new_cell))
+    {
+        _relocatedGameObjects.insert(go);
+    }
+    else
+    {
+        go->UpdateModelPosition();
+        go->UpdatePositionData();
+        go->UpdateObjectVisibility(false);
+    }
 }
 
 void Map::DynamicObjectRelocation(DynamicObject* dynObj, float x, float y, float z, float orientation)
@@ -1455,7 +1476,17 @@ void Map::DynamicObjectRelocation(DynamicObject* dynObj, float x, float y, float
 
     dynObj->Relocate(x, y, z, orientation);
 
-    _relocatedDynamicObjects.insert(dynObj);
+    Cell old_cell = dynObj->GetCurrentCell();
+    Cell new_cell(x, y);
+    if (old_cell.DiffCell(new_cell) || old_cell.DiffGrid(new_cell))
+    {
+        _relocatedDynamicObjects.insert(dynObj);
+    }
+    else
+    {
+        dynObj->UpdatePositionData();
+        dynObj->UpdateObjectVisibility(false);
+    }
 }
 
 void Map::UnloadGrid(NGridType& ngrid)
