@@ -488,10 +488,6 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
         void AddObjectToSwitchList(WorldObject* obj, bool on);
         virtual void DelayedUpdate(uint32 diff);
 
-        void resetMarkedGrids() { marked_grids.reset(); }
-        bool isGridMarked(uint32 pGridId) { return marked_grids.test(pGridId); }
-        void markGrid(uint32 pGridId) { marked_grids.set(pGridId); }
-
         void resetMarkedCells() { marked_cells.reset(); }
         bool isCellMarked(uint32 pCellId) { return marked_cells.test(pCellId); }
         void markCell(uint32 pCellId) { marked_cells.set(pCellId); }

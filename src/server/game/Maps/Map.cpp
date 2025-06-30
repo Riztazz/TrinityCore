@@ -738,17 +738,15 @@ void Map::VisitNearbyCellsOf(WorldObject* obj, TypeContainerVisitor<Trinity::Obj
 
             markCell(cell_id);
 
-            // mark the grid as well to avoid processing notifies for inactive grids
-            uint32 gx = x / MAX_NUMBER_OF_CELLS;
-            uint32 gy = y / MAX_NUMBER_OF_CELLS;
-            uint32 grid_id = gy * MAX_NUMBER_OF_GRIDS + gx;
-            markGrid(grid_id);
-
             CellCoord pair(x, y);
             Cell cell(pair);
             cell.SetNoCreate();
             Visit(cell, gridVisitor);
             Visit(cell, worldVisitor);
+
+            // mark the grid as well to avoid processing notifies for inactive grids
+            NGridType* grid = getNGrid(cell.GridX(), cell.GridY());
+            grid->SetGridState(GRID_STATE_ACTIVE);
         }
     }
 }
@@ -845,7 +843,6 @@ void Map::Update(uint32 t_diff)
         _respawnCheckTimer -= t_diff;
 
     /// update active cells around players and active objects
-    resetMarkedGrids();
     resetMarkedCells();
 
     Trinity::ObjectUpdater updater(t_diff);
@@ -1156,8 +1153,6 @@ struct ResetNotifier
     void Visit(PlayerMapType &m) { resetNotify<Player>(m);}
 };
 
-// TODO revisit this process, it seems like there could be a lot of overlap with the update process and possibly
-// we could notify and reset notifies in the same loop.
 void Map::ProcessRelocationNotifies(const uint32 diff)
 {
     ZoneScopedN("Map::ProcessRelocationNotifies")
@@ -1171,9 +1166,7 @@ void Map::ProcessRelocationNotifies(const uint32 diff)
         for (GridRefManager<NGridType>::iterator i = GridRefManager<NGridType>::begin(); i != GridRefManager<NGridType>::end(); ++i)
         {
             NGridType *grid = i->GetSource();
-            //uint32 gx = grid->getX(), gy = grid->getY();
-            //uint32 grid_id = gy * MAX_NUMBER_OF_GRIDS + gx;
-            //if (!isGridMarked(grid_id))
+            if (grid->GetGridState() != GRID_STATE_ACTIVE)
                 continue;
 
             grid->getRelocationTimer().TUpdate(diff);
@@ -1220,9 +1213,7 @@ void Map::ProcessRelocationNotifies(const uint32 diff)
         for (GridRefManager<NGridType>::iterator i = GridRefManager<NGridType>::begin(); i != GridRefManager<NGridType>::end(); ++i)
         {
             NGridType *grid = i->GetSource();
-            //uint32 gx = grid->getX(), gy = grid->getY();
-            //uint32 grid_id = gy * MAX_NUMBER_OF_GRIDS + gx;
-            //if (!isGridMarked(grid_id))
+            if (grid->GetGridState() != GRID_STATE_ACTIVE)
                 continue;
 
             if (!grid->getRelocationTimer().TPassed())
@@ -1231,6 +1222,8 @@ void Map::ProcessRelocationNotifies(const uint32 diff)
             {
                 ZoneScopedN("Map::ProcessRelocationNotifies::ResetNotifier::Grid")
 
+                // TODO experiment with resetting vis state inside the above loop
+                grid->SetGridState(GRID_STATE_INACTIVE);
                 grid->getRelocationTimer().TReset(diff, m_VisibilityNotifyPeriod);
                 uint32 gx = grid->getX(), gy = grid->getY();
                 CellCoord cell_min(gx*MAX_NUMBER_OF_CELLS, gy*MAX_NUMBER_OF_CELLS);
