@@ -744,7 +744,8 @@ void Map::VisitNearbyCellsOf(WorldObject* obj, TypeContainerVisitor<Trinity::Obj
 
             // mark the grid as well to avoid processing notifies for inactive grids
             NGridType* grid = getNGrid(cell.GridX(), cell.GridY());
-            grid->SetGridState(GRID_STATE_ACTIVE);
+            if (grid)
+                grid->SetGridState(GRID_STATE_ACTIVE);
         }
     }
 }
