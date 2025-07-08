@@ -65,8 +65,6 @@ class NGrid
         bool isGridObjectDataLoaded() const { return i_GridObjectDataLoaded; }
         void setGridObjectDataLoaded(bool pLoaded) { i_GridObjectDataLoaded = pLoaded; }
 
-        PeriodicTimer& getRelocationTimer() { return vis_Update; }
-
         // Visit all Grids (cells) in NGrid (grid)
         template<class T, class TT>
         void VisitAllGrids(TypeContainerVisitor<T, TypeMapContainer<TT> > &visitor)
