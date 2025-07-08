@@ -856,7 +856,6 @@ void Map::Update(uint32 t_diff)
         // to make sure calls to Map::Remove don't invalidate it
         for (m_mapRefIter = m_mapRefManager.begin(); m_mapRefIter != m_mapRefManager.end(); ++m_mapRefIter)
         {
-            ZoneScopedN("Map::Update::Players::Player")
             Player* player = m_mapRefIter->GetSource();
 
             if (!player || !player->IsInWorld())

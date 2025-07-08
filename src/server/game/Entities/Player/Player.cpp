@@ -1059,6 +1059,8 @@ void Player::Update(uint32 p_time)
     if (!IsInWorld())
         return;
 
+    ZoneScopedN("Player::Update")
+
     // undelivered mail
     if (m_nextMailDelivereTime && m_nextMailDelivereTime <= GameTime::GetGameTime())
     {
@@ -1414,6 +1416,7 @@ void Player::Update(uint32 p_time)
         WorldObject const* viewPoint = m_seer;
         if (viewPoint->isNeedNotify(NOTIFY_VISIBILITY_CHANGED) && (this == viewPoint || viewPoint->IsPositionValid()))
         {
+            ZoneScopedN("Player::Update::RelocationNotifier")
             PlayerRelocationNotifier relocate(*this);
             Cell::VisitAllObjects(viewPoint, relocate, 100, false);
             relocate.SendToSelf();
