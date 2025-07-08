@@ -513,7 +513,9 @@ bool Map::AddPlayerToMap(Player* player)
 {
     ZoneScopedN("Map::AddPlayerToMap")
 
-    TC_LOG_DEBUG("threads", "Adding player {} to map {} on thread {}", player->GetName(), GetId(), std::this_thread::get_id());
+    std::ostringstream oss;
+    oss << std::this_thread::get_id();
+    TC_LOG_DEBUG("threads", "Adding player {} to map {} on thread {}", player->GetName(), GetId(), oss.str());
 
     CellCoord cellCoord = Trinity::ComputeCellCoord(player->GetPositionX(), player->GetPositionY());
     if (!cellCoord.IsCoordValid())
@@ -3915,7 +3917,9 @@ void InstanceMap::RemovePlayerFromMap(Player* player, bool remove)
 {
     ZoneScopedN("InstanceMap::RemovePlayerFromMap")
 
-    TC_LOG_DEBUG("threads", "Removing player {} from map {} on thread {}", player->GetName(), GetId(), std::this_thread::get_id());
+    std::ostringstream oss;
+    oss << std::this_thread::get_id();
+    TC_LOG_DEBUG("threads", "Removing player {} from map {} on thread {}", player->GetName(), GetId(), oss.str());
     TC_LOG_DEBUG("maps", "MAP: Removing player '{}' from instance '{}' of map '{}' before relocating to another map", player->GetName(), GetInstanceId(), GetMapName());
 
     if (i_data)
