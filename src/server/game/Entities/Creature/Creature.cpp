@@ -29,6 +29,7 @@
 #include "GameEventMgr.h"
 #include "GameTime.h"
 #include "GossipDef.h"
+#include "GridNotifiers.h"
 #include "GridNotifiersImpl.h"
 #include "Group.h"
 #include "GroupMgr.h"
@@ -1104,6 +1105,21 @@ void Creature::Update(uint32 diff)
         }
         default:
             break;
+    }
+
+    // For now, do this at the end of the update
+    vis_Update.TUpdate(diff);
+    if (vis_Update.TPassed())
+    {
+        vis_Update.TReset(diff, GetMap()->GetVisibilityNotifyPeriod());
+
+        if (isNeedNotify(NOTIFY_VISIBILITY_CHANGED))
+        {
+            CreatureRelocationNotifier relocate(this);
+            Cell::VisitAllObjects(this, relocate, 100, false);
+        }
+
+        ResetAllNotifies();
     }
 }
 

@@ -1401,6 +1401,24 @@ void Player::Update(uint32 p_time)
 
     if (IsHasDelayedTeleport())
         TeleportTo(m_teleport_dest, m_teleport_options);
+
+    // For now, do this at the end of the update
+    // Periodically send player updated visibility of all surrounding units
+    vis_Update.TUpdate(p_time);
+    if (vis_Update.TPassed())
+    {
+        vis_Update.TReset(p_time, GetMap()->GetVisibilityNotifyPeriod());
+
+        WorldObject const* viewPoint = m_seer;
+        if (viewPoint->isNeedNotify(NOTIFY_VISIBILITY_CHANGED) && (this == viewPoint || viewPoint->IsPositionValid()))
+        {
+            PlayerRelocationNotifier relocate(this);
+            Cell::VisitAllObjects(viewPoint, relocate, 100, false);
+            relocate.SendToSelf();
+        }
+
+        ResetAllNotifies();
+    }
 }
 
 void Player::setDeathState(DeathState s)

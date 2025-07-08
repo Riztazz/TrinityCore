@@ -1691,6 +1691,7 @@ void World::SetInitialWorldSettings()
     // Load IP Location Database
     sIPLocation->Load();
 
+    TC_LOG_DEBUG("threads", "Loading maps on thread {}", std::this_thread::get_id());
     std::vector<uint32> mapIds;
     for (uint32 mapId = 0; mapId < sMapStore.GetNumRows(); mapId++)
         if (sMapStore.LookupEntry(mapId))
