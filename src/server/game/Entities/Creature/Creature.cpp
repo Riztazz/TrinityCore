@@ -1117,7 +1117,7 @@ void Creature::Update(uint32 diff)
 
         if (isNeedNotify(NOTIFY_VISIBILITY_CHANGED))
         {
-            CreatureRelocationNotifier relocate(this);
+            CreatureRelocationNotifier relocate(*this);
             Cell::VisitAllObjects(this, relocate, 100, false);
         }
 

@@ -1414,7 +1414,7 @@ void Player::Update(uint32 p_time)
         WorldObject const* viewPoint = m_seer;
         if (viewPoint->isNeedNotify(NOTIFY_VISIBILITY_CHANGED) && (this == viewPoint || viewPoint->IsPositionValid()))
         {
-            PlayerRelocationNotifier relocate(this);
+            PlayerRelocationNotifier relocate(*this);
             Cell::VisitAllObjects(viewPoint, relocate, 100, false);
             relocate.SendToSelf();
         }
