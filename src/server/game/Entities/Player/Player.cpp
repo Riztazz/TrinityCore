@@ -127,6 +127,8 @@
 #include "AnticheatMgr.h"
 // @epoch-end
 
+using namespace Trinity;
+
 #define ZONE_UPDATE_INTERVAL (1*IN_MILLISECONDS)
 
 #define PLAYER_SKILL_INDEX(x)       (PLAYER_SKILL_INFO_1_1 + ((x)*3))
