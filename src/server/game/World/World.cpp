@@ -807,6 +807,7 @@ void World::LoadConfigSettings(bool reload)
     m_bool_configs[CONFIG_ALLOW_TWO_SIDE_ADD_FRIEND]    = sConfigMgr->GetBoolDefault("AllowTwoSide.AddFriend", false);
     m_bool_configs[CONFIG_NAME_RESERVATION] = sConfigMgr->GetBoolDefault("NameReservation", false);
     m_bool_configs[CONFIG_ALWAYS_UPDATE_WAYPOINT_CREATURES] = sConfigMgr->GetBoolDefault("AlwaysUpdateWaypointCreatures", false);
+    m_int_configs[CONFIG_MAX_RESPAWN_COUNT_ON_UPDATE] = sConfigMgr->GetIntDefault("MaxRespawnCountOnUpdate", 0);
     m_int_configs[CONFIG_MUTE_DEFAULT_GUILD_BROADCASTS] = sConfigMgr->GetIntDefault("MuteDefaultGuildBroadcasts", 0);
     /** @epoch-end */
 
@@ -2348,8 +2349,20 @@ void World::SetInitialWorldSettings()
         {
             if (!map->Instanceable())
             {
-                TC_LOG_INFO("server.loading", "Pre-loading base map data for map {} partition {}", map->GetId(), map->GetPartitionId());
+                TC_LOG_INFO("server.loading", "Pre-loading base map data and objects for map {} partition {}", map->GetId(), map->GetPartitionId());
                 map->LoadAllCells();
+            }
+        });
+    }
+
+    if (sWorld->getBoolConfig(CONFIG_INSTANCEMAP_LOAD_GRIDS))
+    {
+        sMapMgr->DoForAllMaps([](Map* map)
+        {
+            if (map->Instanceable())
+            {
+                TC_LOG_INFO("server.loading", "Pre-loading instance map data for map {}", map->GetId());
+                map->LoadAllGrids();
             }
         });
     }

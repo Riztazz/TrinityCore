@@ -229,6 +229,13 @@ void Map::LoadMap(int gx, int gy)
     LoadMMap(gx, gy);
 }
 
+void Map::LoadAllGrids()
+{
+    for (int gx=0; gx < MAX_NUMBER_OF_GRIDS; ++gx)
+        for (int gy=0; gy < MAX_NUMBER_OF_GRIDS; ++gy)
+            EnsureGridCreated(gx, gy);
+}
+
 void Map::LoadAllCells()
 {
     for (uint32 cellX = 0; cellX < TOTAL_NUMBER_OF_CELLS_PER_MAP; cellX++)
@@ -591,6 +598,7 @@ bool Map::AddToMap(T* obj)
     /// @todo Needs clean up. An object should not be added to map twice.
     if (obj->IsInWorld())
     {
+        TC_LOG_ERROR("maps", "Map::AddToMap called on Object that is already in world, map {}, obj {}", GetId(), obj->GetDebugInfo());
         ASSERT(obj->IsInGrid());
         obj->UpdateObjectVisibility(true);
         return true;
@@ -601,11 +609,6 @@ bool Map::AddToMap(T* obj)
     //The correct way to fix it is to make AddToMap return false and delete the object if it is not added to grid
     //But now AddToMap is used in too many places, I will just see how many ASSERT failures it will cause
     ASSERT(cellCoord.IsCoordValid());
-    if (!cellCoord.IsCoordValid())
-    {
-        TC_LOG_ERROR("maps", "Map::Add: Object {} has invalid coordinates X:{} Y:{} grid cell [{}:{}]", obj->GetGUID().ToString(), obj->GetPositionX(), obj->GetPositionY(), cellCoord.x_coord, cellCoord.y_coord);
-        return false; //Should delete object
-    }
 
     Cell cell(cellCoord);
     EnsureGridLoaded(cell);
@@ -622,15 +625,22 @@ bool Map::AddToMap(T* obj)
 
     //something, such as vehicle, needs to be update immediately
     //also, trigger needs to cast spell, if not update, cannot see visual
-    obj->SetIsNewObject(true);
-    obj->UpdateObjectVisibilityOnCreate();
-    obj->SetIsNewObject(false);
+    {
+        ZoneScopedN("Map::AddToMap::UpdateObjectVisibilityOnCreate")
+
+        obj->SetIsNewObject(true);
+        obj->UpdateObjectVisibilityOnCreate();
+        obj->SetIsNewObject(false);
+    }
+
     return true;
 }
 
 template<>
 bool Map::AddToMap(Transport* obj)
 {
+    ZoneScopedN("Map::AddToMap::Transport")
+
     //TODO: Needs clean up. An object should not be added to map twice.
     if (obj->IsInWorld())
         return true;
@@ -763,8 +773,6 @@ void Map::UpdatePlayerZoneStats(uint32 oldZone, uint32 newZone)
 // @tswow-begin tracy
 void Map::Update(uint32 t_diff)
 {
-    ZoneScopedNC("Map::Update", MAP_UPDATE_COLOR)
-
     // @tswow-begin tswow-events
     {
         ZoneScopedNC("TSMap::Tick", MAP_UPDATE_COLOR)
@@ -2966,6 +2974,7 @@ void Map::ProcessRespawns()
 
     time_t now = GameTime::GetGameTime();
     uint32 count = 0;
+    uint32 maxCount = std::max(10, sWorld->getIntConfig(CONFIG_MAX_RESPAWN_COUNT_ON_UPDATE));
     while (!_respawnTimes->empty())
     {
         RespawnInfoWithHandle* next = _respawnTimes->top();
@@ -2985,7 +2994,7 @@ void Map::ProcessRespawns()
             RemoveRespawnTime(next->type, next->spawnId, nullptr, true);
             delete next;
 
-            if (++count >= 2)
+            if (++count >= maxCount)
                 break;
         }
         else if (CheckRespawn(next)) // see if we're allowed to respawn
@@ -3001,7 +3010,7 @@ void Map::ProcessRespawns()
             RemoveRespawnTime(next->type, next->spawnId, nullptr, true);
             delete next;
 
-            if (++count >= 2)
+            if (++count >= maxCount)
                 break;
         }
         else if (!next->respawnTime)
@@ -3699,6 +3708,13 @@ PartitionMap::~PartitionMap()
 {
 }
 
+void PartitionMap::Update(uint32 t_diff)
+{
+    ZoneScopedNC("PartitionMap::Update", MAP_UPDATE_COLOR)
+
+    Map::Update(t_diff);
+}
+
 // TODO anything we need to override from map or additional functions
 
 /* ******* Dungeon Instance Maps ******* */
@@ -3909,6 +3925,8 @@ bool InstanceMap::AddPlayerToMap(Player* player)
 
 void InstanceMap::Update(uint32 t_diff)
 {
+    ZoneScopedNC("InstanceMap::Update", MAP_UPDATE_COLOR)
+
     Map::Update(t_diff);
 
     if (i_data)

@@ -412,6 +412,7 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
         bool IsGridLoaded(Position const& pos) const { return IsGridLoaded(pos.GetPositionX(), pos.GetPositionY()); }
 
         void LoadGrid(float x, float y);
+        void LoadAllGrids();
         void LoadAllCells();
         void UnloadGrid(NGridType& ngrid);
         virtual void UnloadAll();
@@ -950,7 +951,8 @@ class TC_GAME_API PartitionMap : public Map
         uint32 GetPartitionId() const override { return _partitionId; }
         const Map* GetParent() const override { return _parent; }
         Map* GetParent() override { return _parent; }
-        void UpdateWeather(uint32 t_diff) override { /* do nothing, parent updates weather */ }
+        void UpdateWeather(uint32) override { /* do nothing, parent updates weather */ }
+        void Update(uint32) override;
 
         void SendZoneDynamicInfo(uint32 zoneId, Player* player) const override
         {
