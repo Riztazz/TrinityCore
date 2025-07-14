@@ -233,7 +233,7 @@ void Map::LoadAllGrids()
 {
     for (int gx=0; gx < MAX_NUMBER_OF_GRIDS; ++gx)
         for (int gy=0; gy < MAX_NUMBER_OF_GRIDS; ++gy)
-            EnsureGridCreated(gx, gy);
+            EnsureGridCreated(GridCoord((MAX_NUMBER_OF_GRIDS - 1) - gx, (MAX_NUMBER_OF_GRIDS - 1) - gy));
 }
 
 void Map::LoadAllCells()
