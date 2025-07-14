@@ -2974,7 +2974,7 @@ void Map::ProcessRespawns()
 
     time_t now = GameTime::GetGameTime();
     uint32 count = 0;
-    uint32 maxCount = std::max(10, sWorld->getIntConfig(CONFIG_MAX_RESPAWN_COUNT_ON_UPDATE));
+    uint32 maxCount = std::max(10u, sWorld->getIntConfig(CONFIG_MAX_RESPAWN_COUNT_ON_UPDATE));
     while (!_respawnTimes->empty())
     {
         RespawnInfoWithHandle* next = _respawnTimes->top();
