@@ -248,7 +248,7 @@ i_mapEntry(sMapStore.LookupEntry(id)),
 m_unloadTimer(0), m_VisibleDistance(DEFAULT_VISIBILITY_DISTANCE),
 m_VisibilityNotifyPeriod(DEFAULT_VISIBILITY_NOTIFY_PERIOD),
 m_activeNonPlayersIter(m_activeNonPlayers.end()), m_waypointCreaturesIter(m_waypointCreatures.end()), _transportsUpdateIter(_transports.end()),
-i_scriptLock(false), _respawnTimes(std::make_unique<RespawnListContainer>()), _respawnCheckTimer(0)
+i_scriptLock(false), _respawnTimes(std::make_unique<RespawnListContainer>())
 {
     for (unsigned int idx=0; idx < MAX_NUMBER_OF_GRIDS; ++idx)
     {
@@ -836,13 +836,7 @@ void Map::Update(uint32 t_diff)
     }
 
     /// process any due respawns
-    if (_respawnCheckTimer <= t_diff)
-    {
-        ProcessRespawns();
-        _respawnCheckTimer = sWorld->getIntConfig(CONFIG_RESPAWN_MINCHECKINTERVALMS);
-    }
-    else
-        _respawnCheckTimer -= t_diff;
+    ProcessRespawns();
 
     /// update active cells around players and active objects
     resetMarkedCells();
@@ -2974,7 +2968,7 @@ void Map::ProcessRespawns()
 
     time_t now = GameTime::GetGameTime();
     uint32 count = 0;
-    uint32 maxCount = std::max(10u, sWorld->getIntConfig(CONFIG_MAX_RESPAWN_COUNT_ON_UPDATE));
+    uint32 maxCount = sWorld->getIntConfig(CONFIG_MAX_RESPAWN_COUNT_ON_UPDATE);
     while (!_respawnTimes->empty())
     {
         RespawnInfoWithHandle* next = _respawnTimes->top();

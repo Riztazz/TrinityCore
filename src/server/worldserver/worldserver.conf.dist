@@ -1873,13 +1873,6 @@ Creature.RegenHPCannotReachTargetInRaid = 1
 ###################################################################################################
 # SPAWN/RESPAWN SETTINGS
 #
-#    Respawn.MinCheckIntervalMS
-#        Description: Minimum time that needs to pass between respawn checks for any given map.
-#        Default:     5000 - 5 seconds
-
-Respawn.MinCheckIntervalMS = 5000
-
-#
 #    Respawn.GuidWarnLevel
 #        Description: The point at which the highest guid for creatures or gameobjects in any map must reach
 #                     before the warning logic is enabled. A restart will then be queued at the next quiet time
