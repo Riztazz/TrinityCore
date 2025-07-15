@@ -215,33 +215,28 @@ void CreatureGroup::AddMember(Creature* member)
     // If the new member is not the default leader
     if (member->GetSpawnId() != _leaderSpawnId)
     {
-        // If the leader is engaged, we need to set the member as engaged with the same target (which also overrides movement)
-        if (_leader && _leader->IsEngaged())
-        {
-            member->EngageWithTarget(_leader->GetThreatManager().GetCurrentVictim());
-            member->SetHomePosition(_leader->GetHomePosition());
-        }
-            
+        // The spawn point is selected on Creature.LoadFromDB, we will let the AI/Aggro system
+        // determine the engagement state
         // No need to do anything else
         return;
     }
 
-    // Just to make the logic legible
+    // Just to make the logic legible, we are re-adding the default leader to the group
     Creature* defaultLeader = member;
 
-    // If the group is not yet formed then form it
+    // The _leader is only null on initial creation, so this means the group is not yet formed
     if (!_leader)
     {
         _leader = defaultLeader;
-        if (defaultLeader->GetWaypointPath())
-            _leaderPathId = defaultLeader->GetWaypointPath();
 
         // The motion is already initialized to the default so simply return
         return;
     }
     
-    // If waypoint moving formation
-    if (_leaderPathId)
+    // We must take back leadership
+
+    // If the temporary leader has been set to waypoint moving and has a path, we need to copy the waypoint info back to the default leader
+    if (_leader->GetDefaultMovementType() == WAYPOINT_MOTION_TYPE && _leader->GetWaypointPath())
     {
         // Copy the temp leaders waypoint info back to the default leader
         defaultLeader->UpdateCurrentWaypointInfo(_leader->GetCurrentWaypointInfo().first, _leader->GetCurrentWaypointInfo().second);
@@ -253,15 +248,18 @@ void CreatureGroup::AddMember(Creature* member)
             defaultLeader->SetHomePosition(_leader->GetHomePosition());
         }
         else
-            defaultLeader->GetMotionMaster()->Initialize();
+            defaultLeader->GetMotionMaster()->Initialize(); // Else initialize with the new waypoint info
 
-        // Reset the temp leaders motion type (idle or random)
+        // Reset the temp leaders motion type (idle or random) and path id
         _leader->SetDefaultMovementType(_tempLeaderDefaultMovementType);
-        _leader->LoadPath(0);
-        // Unregister temp leader from waypoint creatures
-        _leader->GetMap()->RemoveFromWaypointCreatures(_leader);
-        // Reset temp variable
+        _leader->LoadPath(_tempLeaderPathId);
+        // Unregister temp leader from waypoint creatures if not have a path (same criteria for adding)
+        if (!_tempLeaderPathId)
+            _leader->GetMap()->RemoveFromWaypointCreatures(_leader);
+        // Reset temp variables
         _tempLeaderDefaultMovementType = IDLE_MOTION_TYPE;
+        _tempLeaderPathId = 0;
+
         // If the temp leader is not engaged, initialize the default motion
         if (!_leader->IsEngaged())
             _leader->GetMotionMaster()->Initialize();
@@ -275,6 +273,7 @@ void CreatureGroup::RemoveMember(Creature* member)
 {
     _members.erase(member);
     member->SetFormation(nullptr);
+    // If group is unformed or member is not the leader we don't need to do anything else
     if (!_leader || member != _leader)
         return;
 
@@ -284,21 +283,20 @@ void CreatureGroup::RemoveMember(Creature* member)
     if (!newLeader)
     {
         _leader = nullptr;
-        _leaderPathId = 0;
         return;
     }
     
-    
-    if (_leaderPathId)
+    if (_leader->GetDefaultMovementType() == WAYPOINT_MOTION_TYPE && _leader->GetWaypointPath())
     {
         // Store the temp leaders motion type so that we can restore it later
         _tempLeaderDefaultMovementType = newLeader->GetDefaultMovementType();
+        _tempLeaderPathId = newLeader->GetWaypointPath();
         
         // Copy old leaders waypoint info
         newLeader->UpdateCurrentWaypointInfo(_leader->GetCurrentWaypointInfo().first, _leader->GetCurrentWaypointInfo().second);
         // Override temp leaders movement
         newLeader->SetDefaultMovementType(WAYPOINT_MOTION_TYPE);
-        newLeader->LoadPath(_leaderPathId);
+        newLeader->LoadPath(_leader->GetWaypointPath());
         // Register the temp leader as a waypoint creature (always ticked)
         newLeader->GetMap()->AddToWaypointCreatures(newLeader);
         // Re-initialize the motion if not engaged
@@ -310,7 +308,6 @@ void CreatureGroup::RemoveMember(Creature* member)
 
     // set new leader
     _leader = newLeader;
-    
 }
 
 void CreatureGroup::UpdateMemberMapPartition(Map* map)
@@ -441,14 +438,12 @@ Position CreatureGroup::GetRespawnPosition(Creature* member, Position const& spa
     if (!_leader)
         return spawnPoint;
 
-    uint8 groupAI = ASSERT_NOTNULL(sFormationMgr->GetFormationInfo(member->GetSpawnId()))->GroupAI;
+    uint32 groupAI = ASSERT_NOTNULL(sFormationMgr->GetFormationInfo(member->GetSpawnId()))->GroupAI;
     if (!groupAI)
         return spawnPoint;
 
     if (groupAI & FLAG_IDLE_IN_FORMATION)
-    {
         return _leader->GetRandomNearPosition(3.0f);
-    }
 
     return spawnPoint;
 }
