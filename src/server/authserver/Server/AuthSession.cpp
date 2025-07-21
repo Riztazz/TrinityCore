@@ -269,9 +269,9 @@ void AuthSession::SendPacket(ByteBuffer& packet)
 
     if (!packet.empty())
     {
-        auto buffer = MessageBufferPool::Instance().Acquire(packet.size());
+        auto buffer = CreatePooledMessageBuffer(packet.size());
         buffer->Write(packet.contents(), packet.size());
-        QueuePacket(std::move(*buffer));
+        QueuePacket(std::move(buffer));
     }
 }
 

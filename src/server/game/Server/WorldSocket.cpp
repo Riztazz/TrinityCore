@@ -85,7 +85,7 @@ bool WorldSocket::Update()
     EncryptablePacket* queued;
     if (_bufferQueue.Dequeue(queued))
     {
-        auto buffer = MessageBufferPool::Instance().Acquire(_sendBufferSize);
+        auto buffer = CreatePooledMessageBuffer(_sendBufferSize);
         do
         {
             ServerPktHeader header(queued->size() + 2, queued->GetOpcode());
@@ -94,8 +94,8 @@ bool WorldSocket::Update()
 
             if (buffer->GetRemainingSpace() < queued->size() + header.getHeaderLength())
             {
-                QueuePacket(std::move(*buffer));
-                buffer = MessageBufferPool::Instance().Acquire(_sendBufferSize);
+                QueuePacket(std::move(buffer));
+                buffer = CreatePooledMessageBuffer(_sendBufferSize);
             }
 
             if (buffer->GetRemainingSpace() >= queued->size() + header.getHeaderLength())
@@ -106,19 +106,19 @@ bool WorldSocket::Update()
             }
             else    // single packet larger than buffer size
             {
-                auto packetBuffer = MessageBufferPool::Instance().Acquire(queued->size() + header.getHeaderLength());
+                auto packetBuffer = CreatePooledMessageBuffer(queued->size() + header.getHeaderLength());
                 packetBuffer->Write(header.header, header.getHeaderLength());
                 if (!queued->empty())
                     packetBuffer->Write(queued->contents(), queued->size());
 
-                QueuePacket(std::move(*packetBuffer));
+                QueuePacket(std::move(packetBuffer));
             }
 
             delete queued;
         } while (_bufferQueue.Dequeue(queued));
 
         if (buffer->GetActiveSize() > 0)
-            QueuePacket(std::move(*buffer));
+            QueuePacket(std::move(buffer));
     }
 
     if (!BaseSocket::Update())

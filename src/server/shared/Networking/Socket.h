@@ -104,6 +104,17 @@ public:
 
     void QueuePacket(MessageBuffer&& buffer)
     {
+        auto pooledBuffer = CreatePooledMessageBuffer(0);
+        *pooledBuffer = std::move(buffer);
+        _writeQueue.push(std::move(pooledBuffer));
+
+#ifdef TC_SOCKET_USE_IOCP
+        AsyncProcessQueue();
+#endif
+    }
+
+    void QueuePacket(PooledMessageBufferPtr buffer)
+    {
         _writeQueue.push(std::move(buffer));
 
 #ifdef TC_SOCKET_USE_IOCP
@@ -152,8 +163,8 @@ protected:
         _isWritingAsync = true;
 
 #ifdef TC_SOCKET_USE_IOCP
-        MessageBuffer& buffer = _writeQueue.front();
-        _socket.async_write_some(boost::asio::buffer(buffer.GetReadPointer(), buffer.GetActiveSize()), std::bind(&Socket<T>::WriteHandler,
+        PooledMessageBufferPtr& buffer = _writeQueue.front();
+        _socket.async_write_some(boost::asio::buffer(buffer->GetReadPointer(), buffer->GetActiveSize()), std::bind(&Socket<T>::WriteHandler,
             this->shared_from_this(), std::placeholders::_1, std::placeholders::_2));
 #else
         _socket.async_write_some(boost::asio::null_buffers(), std::bind(&Socket<T>::WriteHandlerWrapper,
@@ -192,8 +203,8 @@ private:
         if (!error)
         {
             _isWritingAsync = false;
-            _writeQueue.front().ReadCompleted(transferedBytes);
-            if (!_writeQueue.front().GetActiveSize())
+            _writeQueue.front()->ReadCompleted(transferedBytes);
+            if (!_writeQueue.front()->GetActiveSize())
                 _writeQueue.pop();
 
             if (!_writeQueue.empty())
@@ -218,12 +229,12 @@ private:
         if (_writeQueue.empty())
             return false;
 
-        MessageBuffer& queuedMessage = _writeQueue.front();
+        PooledMessageBufferPtr& queuedMessage = _writeQueue.front();
 
-        std::size_t bytesToSend = queuedMessage.GetActiveSize();
+        std::size_t bytesToSend = queuedMessage->GetActiveSize();
 
         boost::system::error_code error;
-        std::size_t bytesSent = _socket.write_some(boost::asio::buffer(queuedMessage.GetReadPointer(), bytesToSend), error);
+        std::size_t bytesSent = _socket.write_some(boost::asio::buffer(queuedMessage->GetReadPointer(), bytesToSend), error);
 
         if (error)
         {
@@ -244,7 +255,7 @@ private:
         }
         else if (bytesSent < bytesToSend) // now n > 0
         {
-            queuedMessage.ReadCompleted(bytesSent);
+            queuedMessage->ReadCompleted(bytesSent);
             return AsyncProcessQueue();
         }
 
@@ -262,7 +273,7 @@ private:
     uint16 _remotePort;
 
     MessageBuffer _readBuffer;
-    std::queue<MessageBuffer> _writeQueue;
+    std::queue<PooledMessageBufferPtr> _writeQueue;
 
     std::atomic<bool> _closed;
     std::atomic<bool> _closing;

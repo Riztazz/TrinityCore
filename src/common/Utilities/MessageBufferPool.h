@@ -159,7 +159,8 @@ public:
     
     ~PooledMessageBuffer()
     {
-        MessageBufferPool::Instance().Release(std::move(_buffer));
+        if (_buffer)
+            MessageBufferPool::Instance().Release(std::move(_buffer));
     }
 
     PooledMessageBuffer(PooledMessageBuffer const&) = delete;
@@ -172,7 +173,8 @@ public:
     {
         if (this != &other)
         {
-            MessageBufferPool::Instance().Release(std::move(_buffer));
+            if (_buffer)
+                MessageBufferPool::Instance().Release(std::move(_buffer));
             _buffer = std::move(other._buffer);
         }
         return *this;
@@ -186,8 +188,32 @@ public:
     MessageBuffer* Get() { return _buffer.get(); }
     MessageBuffer const* Get() const { return _buffer.get(); }
 
+    // Extract the underlying MessageBuffer (for move into queues)
+    MessageBuffer&& ExtractBuffer() { return std::move(*_buffer); }
+
 private:
     std::unique_ptr<MessageBuffer> _buffer;
 };
+
+// Custom deleter for MessageBuffer that returns it to pool
+struct MessageBufferPoolDeleter
+{
+    void operator()(MessageBuffer* buffer) const
+    {
+        if (buffer)
+        {
+            MessageBufferPool::Instance().Release(std::unique_ptr<MessageBuffer>(buffer));
+        }
+    }
+};
+
+using PooledMessageBufferPtr = std::unique_ptr<MessageBuffer, MessageBufferPoolDeleter>;
+
+// Helper function to create pool-aware MessageBuffer
+inline PooledMessageBufferPtr CreatePooledMessageBuffer(std::size_t size = 4096)
+{
+    auto buffer = MessageBufferPool::Instance().Acquire(size);
+    return PooledMessageBufferPtr(buffer.release(), MessageBufferPoolDeleter{});
+}
 
 #endif /* __MESSAGEBUFFERPOOL_H_ */

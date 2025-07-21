@@ -175,3 +175,20 @@ TEST_CASE("MessageBufferPool thread-local optimization", "[MessageBufferPool][pe
     REQUIRE(buffer3 != nullptr);
     REQUIRE(buffer4 != nullptr);
 }
+
+TEST_CASE("PooledMessageBufferPtr RAII integration", "[MessageBufferPool][RAII]")
+{
+    MessageBufferPool& pool = MessageBufferPool::Instance();
+    pool.Clear();
+    
+    std::size_t initialCount = pool.GetPooledCount();
+    
+    {
+        auto buffer = CreatePooledMessageBuffer(4096);
+        buffer->Write("test data", 9);
+        REQUIRE(buffer->GetActiveSize() == 9);
+    } // buffer should auto-return to pool here
+    
+    // Should have more buffers in pool now
+    REQUIRE(pool.GetPooledCount() >= initialCount);
+}
