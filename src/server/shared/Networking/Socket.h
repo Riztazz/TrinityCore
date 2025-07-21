@@ -19,6 +19,7 @@
 #define __SOCKET_H__
 
 #include "MessageBuffer.h"
+#include "MessageBufferPool.h"
 #include "Log.h"
 #include <atomic>
 #include <queue>

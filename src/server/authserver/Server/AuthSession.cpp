@@ -27,6 +27,7 @@
 #include "DatabaseEnv.h"
 #include "IPLocation.h"
 #include "Log.h"
+#include "MessageBufferPool.h"
 #include "RealmList.h"
 #include "SecretMgr.h"
 #include "TOTP.h"
@@ -268,9 +269,9 @@ void AuthSession::SendPacket(ByteBuffer& packet)
 
     if (!packet.empty())
     {
-        MessageBuffer buffer(packet.size());
-        buffer.Write(packet.contents(), packet.size());
-        QueuePacket(std::move(buffer));
+        auto buffer = MessageBufferPool::Instance().Acquire(packet.size());
+        buffer->Write(packet.contents(), packet.size());
+        QueuePacket(std::move(*buffer));
     }
 }
 
