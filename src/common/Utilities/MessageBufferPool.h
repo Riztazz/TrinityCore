@@ -19,13 +19,23 @@
 #define __MESSAGEBUFFERPOOL_H_
 
 #include "MessageBuffer.h"
+#include "MPSCQueue.h"
 #include <memory>
 #include <stack>
 #include <mutex>
 #include <atomic>
+#include <thread>
 
 class MessageBufferPool
 {
+private:
+    struct ThreadLocalPool
+    {
+        std::stack<std::unique_ptr<MessageBuffer>> localPool;
+        std::size_t localCount = 0;
+        static constexpr std::size_t MAX_LOCAL_SIZE = 16;
+    };
+
 public:
     static MessageBufferPool& Instance()
     {
@@ -35,23 +45,42 @@ public:
 
     std::unique_ptr<MessageBuffer> Acquire(std::size_t minSize = 4096)
     {
-        std::lock_guard<std::mutex> lock(_poolMutex);
+        thread_local ThreadLocalPool tlsPool;
         
-        if (!_pool.empty())
+        // Try thread-local pool first (no locks)
+        if (!tlsPool.localPool.empty())
         {
-            auto buffer = std::move(_pool.top());
-            _pool.pop();
+            auto buffer = std::move(tlsPool.localPool.top());
+            tlsPool.localPool.pop();
+            --tlsPool.localCount;
             
             if (buffer->GetBufferSize() >= minSize)
             {
                 buffer->Reset();
-                --_pooledCount;
                 return buffer;
             }
             
             buffer->Resize(minSize);
             buffer->Reset();
+            return buffer;
+        }
+        
+        // Fallback to lock-free global pool
+        std::unique_ptr<MessageBuffer>* bufferPtr;
+        if (_globalQueue.Dequeue(bufferPtr))
+        {
+            auto buffer = std::move(*bufferPtr);
+            delete bufferPtr;
             --_pooledCount;
+            
+            if (buffer->GetBufferSize() >= minSize)
+            {
+                buffer->Reset();
+                return buffer;
+            }
+            
+            buffer->Resize(minSize);
+            buffer->Reset();
             return buffer;
         }
         
@@ -63,24 +92,35 @@ public:
         if (!buffer)
             return;
 
-        std::lock_guard<std::mutex> lock(_poolMutex);
+        thread_local ThreadLocalPool tlsPool;
         
-        if (_pooledCount < _maxPoolSize)
+        buffer->Reset();
+        
+        // Store in thread-local pool if space available
+        if (tlsPool.localCount < ThreadLocalPool::MAX_LOCAL_SIZE)
         {
-            buffer->Reset();
-            _pool.push(std::move(buffer));
+            tlsPool.localPool.push(std::move(buffer));
+            ++tlsPool.localCount;
+            return;
+        }
+        
+        // Overflow to lock-free global pool
+        if (_pooledCount.load() < _maxPoolSize)
+        {
+            _globalQueue.Enqueue(new std::unique_ptr<MessageBuffer>(std::move(buffer)));
             ++_pooledCount;
         }
     }
 
     void SetMaxPoolSize(std::size_t maxSize)
     {
-        std::lock_guard<std::mutex> lock(_poolMutex);
         _maxPoolSize = maxSize;
         
-        while (_pool.size() > _maxPoolSize)
+        // Trim global queue if needed
+        std::unique_ptr<MessageBuffer>* bufferPtr;
+        while (_pooledCount.load() > _maxPoolSize && _globalQueue.Dequeue(bufferPtr))
         {
-            _pool.pop();
+            delete bufferPtr;
             --_pooledCount;
         }
     }
@@ -92,10 +132,10 @@ public:
 
     void Clear()
     {
-        std::lock_guard<std::mutex> lock(_poolMutex);
-        while (!_pool.empty())
+        std::unique_ptr<MessageBuffer>* bufferPtr;
+        while (_globalQueue.Dequeue(bufferPtr))
         {
-            _pool.pop();
+            delete bufferPtr;
         }
         _pooledCount = 0;
     }
@@ -106,9 +146,8 @@ private:
     MessageBufferPool(MessageBufferPool const&) = delete;
     MessageBufferPool& operator=(MessageBufferPool const&) = delete;
 
-    std::stack<std::unique_ptr<MessageBuffer>> _pool;
-    std::mutex _poolMutex;
-    std::size_t _maxPoolSize;
+    MPSCQueue<std::unique_ptr<MessageBuffer>> _globalQueue;
+    std::atomic<std::size_t> _maxPoolSize;
     std::atomic<std::size_t> _pooledCount;
 };
 

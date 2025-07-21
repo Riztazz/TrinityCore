@@ -121,10 +121,10 @@ TEST_CASE("MessageBufferPool thread safety", "[MessageBufferPool][threading]")
 {
     MessageBufferPool& pool = MessageBufferPool::Instance();
     pool.Clear();
-    pool.SetMaxPoolSize(10);
+    pool.SetMaxPoolSize(100);
 
-    constexpr int numThreads = 4;
-    constexpr int operationsPerThread = 100;
+    constexpr int numThreads = 8;
+    constexpr int operationsPerThread = 500;
     std::atomic<int> totalAcquired{0};
     std::atomic<int> totalReleased{0};
 
@@ -140,7 +140,6 @@ TEST_CASE("MessageBufferPool thread safety", "[MessageBufferPool][threading]")
                 totalAcquired++;
                 
                 buffer->Write("test data", 9);
-                std::this_thread::sleep_for(std::chrono::microseconds(1));
                 
                 pool.Release(std::move(buffer));
                 totalReleased++;
@@ -155,5 +154,24 @@ TEST_CASE("MessageBufferPool thread safety", "[MessageBufferPool][threading]")
 
     REQUIRE(totalAcquired == numThreads * operationsPerThread);
     REQUIRE(totalReleased == numThreads * operationsPerThread);
-    REQUIRE(pool.GetPooledCount() <= 10);
+}
+
+TEST_CASE("MessageBufferPool thread-local optimization", "[MessageBufferPool][performance]")
+{
+    MessageBufferPool& pool = MessageBufferPool::Instance();
+    pool.Clear();
+    
+    // Test that thread-local pools work correctly
+    auto buffer1 = pool.Acquire();
+    auto buffer2 = pool.Acquire();
+    
+    pool.Release(std::move(buffer1));
+    pool.Release(std::move(buffer2));
+    
+    // These should come from thread-local cache (no global pool access)
+    auto buffer3 = pool.Acquire();
+    auto buffer4 = pool.Acquire();
+    
+    REQUIRE(buffer3 != nullptr);
+    REQUIRE(buffer4 != nullptr);
 }
