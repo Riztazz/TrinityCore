@@ -19,9 +19,9 @@
 #define __MESSAGEBUFFERPOOL_H_
 
 #include "MessageBuffer.h"
-#include "MPSCQueue.h"
 #include <memory>
 #include <stack>
+#include <vector>
 #include <mutex>
 #include <atomic>
 #include <thread>
@@ -65,23 +65,25 @@ public:
             return buffer;
         }
         
-        // Fallback to lock-free global pool
-        std::unique_ptr<MessageBuffer>* bufferPtr;
-        if (_globalQueue.Dequeue(bufferPtr))
+        // Fallback to mutex-protected global pool
         {
-            auto buffer = std::move(*bufferPtr);
-            delete bufferPtr;
-            --_pooledCount;
-            
-            if (buffer->GetBufferSize() >= minSize)
+            std::lock_guard<std::mutex> lock(_globalMutex);
+            if (!_globalPool.empty())
             {
+                auto buffer = std::move(_globalPool.back());
+                _globalPool.pop_back();
+                --_pooledCount;
+                
+                if (buffer->GetBufferSize() >= minSize)
+                {
+                    buffer->Reset();
+                    return buffer;
+                }
+                
+                buffer->Resize(minSize);
                 buffer->Reset();
                 return buffer;
             }
-            
-            buffer->Resize(minSize);
-            buffer->Reset();
-            return buffer;
         }
         
         return std::make_unique<MessageBuffer>(minSize);
@@ -104,18 +106,16 @@ public:
             return;
         }
         
-        // Overflow to lock-free global pool
-        _globalQueue.Enqueue(new std::unique_ptr<MessageBuffer>(std::move(buffer)));
-        ++_pooledCount;
-        
-        // Periodic cleanup when pool gets very large (soft limit)
-        if (_pooledCount.load() > _maxPoolSize * 2)
+        // Overflow to mutex-protected global pool
         {
-            // Trim excess buffers in background
-            std::unique_ptr<MessageBuffer>* excessBuffer;
-            while (_pooledCount.load() > _maxPoolSize && _globalQueue.Dequeue(excessBuffer))
+            std::lock_guard<std::mutex> lock(_globalMutex);
+            _globalPool.push_back(std::move(buffer));
+            ++_pooledCount;
+            
+            // Trim excess buffers if needed
+            while (_pooledCount > _maxPoolSize * 2 && !_globalPool.empty())
             {
-                delete excessBuffer;
+                _globalPool.pop_back();
                 --_pooledCount;
             }
         }
@@ -125,11 +125,11 @@ public:
     {
         _maxPoolSize = maxSize;
         
-        // Trim global queue if needed
-        std::unique_ptr<MessageBuffer>* bufferPtr;
-        while (_pooledCount.load() > _maxPoolSize && _globalQueue.Dequeue(bufferPtr))
+        // Trim global pool if needed
+        std::lock_guard<std::mutex> lock(_globalMutex);
+        while (_pooledCount.load() > _maxPoolSize && !_globalPool.empty())
         {
-            delete bufferPtr;
+            _globalPool.pop_back();
             --_pooledCount;
         }
     }
@@ -141,11 +141,8 @@ public:
 
     void Clear()
     {
-        std::unique_ptr<MessageBuffer>* bufferPtr;
-        while (_globalQueue.Dequeue(bufferPtr))
-        {
-            delete bufferPtr;
-        }
+        std::lock_guard<std::mutex> lock(_globalMutex);
+        _globalPool.clear();
         _pooledCount = 0;
     }
 
@@ -155,7 +152,8 @@ private:
     MessageBufferPool(MessageBufferPool const&) = delete;
     MessageBufferPool& operator=(MessageBufferPool const&) = delete;
 
-    MPSCQueue<std::unique_ptr<MessageBuffer>> _globalQueue;
+    std::vector<std::unique_ptr<MessageBuffer>> _globalPool;
+    std::mutex _globalMutex;
     std::atomic<std::size_t> _maxPoolSize;
     std::atomic<std::size_t> _pooledCount;
 };
