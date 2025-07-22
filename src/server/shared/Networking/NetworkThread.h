@@ -87,9 +87,7 @@ public:
     {
         ++_connections;
         SocketAdded(sock);
-        
-        std::lock_guard<std::mutex> lock(_pendingSocketsMutex);
-        _pendingSockets.push_back(std::move(sock));
+        _newSocketQueue.Enqueue(new std::shared_ptr<SocketType>(std::move(sock)));
     }
 
     tcp::socket* GetSocketForAccept() { return &_acceptSocket; }
@@ -100,22 +98,19 @@ protected:
 
     void AddNewSockets()
     {
-        SocketContainer newSockets;
-        
+        std::shared_ptr<SocketType>* sockPtr;
+        while (_newSocketQueue.Dequeue(sockPtr))
         {
-            std::lock_guard<std::mutex> lock(_pendingSocketsMutex);
-            newSockets.swap(_pendingSockets);
-        }
-        
-        for (auto& sock : newSockets)
-        {
+            std::shared_ptr<SocketType> sock = std::move(*sockPtr);
+            delete sockPtr;
+
             if (!sock->IsOpen())
             {
                 SocketRemoved(sock);
                 --_connections;
             }
             else
-                _sockets.push_back(std::move(sock));
+                _sockets.push_back(sock);
         }
     }
 
@@ -167,8 +162,8 @@ private:
     std::thread* _thread;
 
     SocketContainer _sockets;
-    SocketContainer _pendingSockets;
-    std::mutex _pendingSocketsMutex;
+
+    MPSCQueue<std::shared_ptr<SocketType>> _newSocketQueue;
 
     Trinity::Asio::IoContext _ioContext;
     tcp::socket _acceptSocket;
