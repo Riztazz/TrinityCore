@@ -22,9 +22,10 @@
 #ifndef __WORLDSESSION_H
 #define __WORLDSESSION_H
 
-#include "Common.h"
 #include "AsyncCallbackProcessor.h"
 #include "AuthDefines.h"
+#include "Channel.h"
+#include "Common.h"
 #include "DatabaseEnvFwd.h"
 #include "Duration.h"
 #include "LockedQueue.h"
