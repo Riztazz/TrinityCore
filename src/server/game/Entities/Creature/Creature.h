@@ -25,6 +25,7 @@
 #include "Duration.h"
 #include "Loot.h"
 #include "GridObject.h"
+#include "MapObject.h"
 #include <list>
 
 class CreatureOutfit;
@@ -60,17 +61,13 @@ typedef std::list<VendorItemCount> VendorItemCounts;
 typedef std::vector<uint8> CreatureTextRepeatIds;
 typedef std::unordered_map<uint8, CreatureTextRepeatIds> CreatureTextRepeatGroup;
 
-class TC_GAME_API Creature : public Unit, public GridObject<Creature>
+class TC_GAME_API Creature : public Unit, public GridObject<Creature>, public MapObject
 {
     public:
         explicit Creature(bool isWorldObject = false);
 
         void AddToWorld() override;
         void RemoveFromWorld() override;
-        void AddToPartition() override;
-        void RemoveFromPartition() override;
-        bool ShouldRelocateUpdateMapPartition() override;
-        void UpdateMapPartition(Map* forcedMap = nullptr) override;
 
         float GetNativeObjectScale() const override;
         void SetObjectScale(float scale) override;
@@ -224,7 +221,7 @@ class TC_GAME_API Creature : public Unit, public GridObject<Creature>
 
         void setDeathState(DeathState s) override;                   // override virtual Unit::setDeathState
 
-        bool LoadFromDB(ObjectGuid::LowType spawnId, Map* map, bool addToMap, bool allowDuplicate, bool allowAnyPartition = false);
+        bool LoadFromDB(ObjectGuid::LowType spawnId, Map* map, bool addToMap, bool allowDuplicate);
         void SaveToDB();
                                                             // overriden in Pet
         virtual void SaveToDB(uint32 mapid, uint8 spawnMask, uint32 phaseMask);

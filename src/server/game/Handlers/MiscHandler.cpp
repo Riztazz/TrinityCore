@@ -691,7 +691,33 @@ void WorldSession::HandleReclaimCorpse(WorldPackets::Misc::ReclaimCorpse& /*pack
 {
     TC_LOG_DEBUG("network", "WORLD: Received CMSG_RECLAIM_CORPSE");
 
-    _player->ReclaimCorpse();
+    if (_player->IsAlive())
+        return;
+
+    // do not allow corpse reclaim in arena
+    if (_player->InArena())
+        return;
+
+    // body not released yet
+    if (!_player->HasFlag(PLAYER_FLAGS, PLAYER_FLAGS_GHOST))
+        return;
+
+    Corpse* corpse = _player->GetCorpse();
+    if (!corpse)
+        return;
+
+    // prevent resurrect before 30-sec delay after body release not finished
+    if (time_t(corpse->GetGhostTime() + _player->GetCorpseReclaimDelay(corpse->GetType() == CORPSE_RESURRECTABLE_PVP)) > GameTime::GetGameTime())
+        return;
+
+    if (!corpse->IsWithinDistInMap(_player, CORPSE_RECLAIM_RADIUS, true))
+        return;
+
+    // resurrect
+    _player->ResurrectPlayer(_player->InBattleground() ? 1.0f : 0.5f);
+
+    // spawn bones
+    _player->SpawnCorpseBones();
 }
 
 void WorldSession::HandleResurrectResponse(WorldPackets::Misc::ResurrectResponse& packet)

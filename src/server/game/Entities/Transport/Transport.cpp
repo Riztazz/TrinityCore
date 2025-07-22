@@ -20,7 +20,6 @@
 #include "CellImpl.h"
 #include "Common.h"
 #include "DBCStores.h"
-#include "DynamicObject.h"
 #include "GameObjectAI.h"
 #include "Log.h"
 #include "MapManager.h"
@@ -252,8 +251,6 @@ void Transport::DelayedUpdate(uint32 /*diff*/)
         return;
 
     DelayedTeleportTransport();
-
-    UpdateMapPartition();
 }
 
 void GenericTransport::AddPassenger(WorldObject* passenger)
@@ -272,8 +269,8 @@ void GenericTransport::AddPassenger(WorldObject* passenger)
         {
             sScriptMgr->OnAddPassenger(this, plr);
 
-            if (Pet* pet = plr->GetPet())
-                AddFollowerToTransport(plr, pet);
+        if (Pet* pet = plr->GetPet())
+            AddFollowerToTransport(plr, pet);
         }
     }
 }
@@ -347,7 +344,7 @@ Creature* Transport::CreateNPCPassenger(ObjectGuid::LowType guid, CreatureData c
 
     Creature* creature = new Creature();
 
-    if (!creature->LoadFromDB(guid, map, false, false, true))
+    if (!creature->LoadFromDB(guid, map, false, false))
     {
         delete creature;
         return nullptr;
@@ -395,7 +392,7 @@ GameObject* Transport::CreateGOPassenger(ObjectGuid::LowType guid, GameObjectDat
 
     GameObject* go = new GameObject();
 
-    if (!go->LoadFromDB(guid, map, false, false, true))
+    if (!go->LoadFromDB(guid, map, false))
     {
         delete go;
         return nullptr;
@@ -697,15 +694,14 @@ void Transport::DelayedTeleportTransport()
         return;
 
     _delayedTeleport = false;
+    Map* newMap = sMapMgr->CreateBaseMap(_nextFrame->Node->ContinentID);
+    GetMap()->RemoveFromMap<Transport>(this, false);
+    SetMap(newMap);
 
     float x = _nextFrame->Node->Loc.X,
           y = _nextFrame->Node->Loc.Y,
           z = _nextFrame->Node->Loc.Z,
           o =_nextFrame->InitialOrientation;
-
-    Map* newMap = sMapMgr->CreateMap(_nextFrame->Node->ContinentID, {x, y, z, o});
-    GetMap()->RemoveFromMap<Transport>(this, false);
-    SetMap(newMap);
 
     for (_passengerTeleportItr = _passengers.begin(); _passengerTeleportItr != _passengers.end();)
     {
@@ -740,69 +736,6 @@ void Transport::DelayedTeleportTransport()
 
     Relocate(x, y, z, o);
     GetMap()->AddToMap<Transport>(this);
-}
-
-void Transport::UpdateMapPartition()
-{
-    Map* currentMap = IsInWorld() ? GetMap() : nullptr;
-    // Sanity checks
-    if (!currentMap || !currentMap->IsWorldMap())
-        return;
-
-    Map* newMap = sMapMgr->CreateMap(currentMap->GetId(), GetPosition());
-    // Sanity checks
-    if (!newMap || newMap == currentMap)
-        return;
-
-    // Update transport first
-    UnloadStaticPassengers();
-    currentMap->RemoveFromMap<Transport>(this, false);
-    SetMap(newMap);
-    newMap->AddToMap<Transport>(this);
-    LoadStaticPassengers();
-
-    // Check passenger maps since they cannot update themselves
-    for (PassengerSet::iterator itr = _passengers.begin(); itr != _passengers.end(); ++itr)
-    {
-        WorldObject* passenger = *itr;
-        // Passenger sanity check
-        if (!passenger->IsInWorld() || passenger->GetMap() == newMap)
-            continue;
-
-        // if passenger is on a vehicle we have to assume the vehicle is also on transport
-        // and its the vehicle that will be updating its passengers
-        if (Unit* unit = passenger->ToUnit())
-            if (unit->GetVehicle())
-                continue;
-
-        switch (passenger->GetTypeId())
-        {
-            case TYPEID_UNIT:
-                // owned units will be ignored in here and updated when player is updated
-                passenger->ToCreature()->UpdateMapPartition(newMap);
-                break;
-            case TYPEID_PLAYER:
-                // if player is teleporting we need to wait for it to finish before updating partitions
-                // this will be handled in HandleMoveTeleportAck in that case
-                if (!passenger->ToPlayer()->IsBeingTeleported())
-                    passenger->ToPlayer()->UpdateMapPartition(newMap);
-                break;
-            case TYPEID_GAMEOBJECT:
-                // Only Units have UpdateMapPartition/AddToPartition/RemoveFromPartition methods defined
-                currentMap->RemoveFromMap(passenger->ToGameObject(), false);
-                passenger->ToGameObject()->SetMap(newMap);
-                newMap->AddToMap(passenger->ToGameObject());
-                break;
-            case TYPEID_DYNAMICOBJECT:
-                // Only Units have UpdateMapPartition/AddToPartition/RemoveFromPartition methods defined
-                currentMap->RemoveFromMap(passenger->ToDynObject(), false);
-                passenger->ToDynObject()->SetMap(newMap);
-                newMap->AddToMap(passenger->ToDynObject());
-                break;
-            default:
-                break;
-        }
-    }
 }
 
 // bool ElevatorTransport::Create(uint32 dbGuid, uint32 guidlow, uint32 name_id, Map* map, Position const& pos, float ang, const QuaternionData& rotation, uint32 animprogress, GOState go_state)
@@ -947,7 +880,7 @@ void GenericTransport::UpdatePassengerPositions(PassengerSet& passengers)
             case TYPEID_UNIT:
             {
                 Creature* creature = passenger->ToCreature();
-                GetMap()->CreatureRelocation(creature, x, y, z, o);
+                GetMap()->CreatureRelocation(creature, x, y, z, o, false);
                 creature->GetTransportHomePosition(x, y, z, o);
                 CalculatePassengerPosition(x, y, z, &o);
                 creature->SetHomePosition(x, y, z, o);
@@ -962,7 +895,7 @@ void GenericTransport::UpdatePassengerPositions(PassengerSet& passengers)
                 }
                 break;
             case TYPEID_GAMEOBJECT:
-                GetMap()->GameObjectRelocation(passenger->ToGameObject(), x, y, z, o);
+                GetMap()->GameObjectRelocation(passenger->ToGameObject(), x, y, z, o, false);
                 passenger->ToGameObject()->RelocateStationaryPosition(x, y, z, o);
                 break;
             case TYPEID_DYNAMICOBJECT:

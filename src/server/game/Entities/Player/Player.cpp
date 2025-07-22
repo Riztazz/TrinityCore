@@ -105,7 +105,6 @@
 #include "UpdateFieldFlags.h"
 #include "UpdateMask.h"
 #include "Util.h"
-#include "Vehicle.h"
 #include "Weather.h"
 #include "WeatherMgr.h"
 #include "World.h"
@@ -126,8 +125,6 @@
 // @epoch-begin
 #include "AnticheatMgr.h"
 // @epoch-end
-
-using namespace Trinity;
 
 #define ZONE_UPDATE_INTERVAL (1*IN_MILLISECONDS)
 
@@ -520,7 +517,7 @@ bool Player::Create(ObjectGuid::LowType guidlow, CharacterCreateInfo* createInfo
         return false;
     }
 
-    SetMap(sMapMgr->CreateMap(info->mapId, GetPosition(), this));
+    SetMap(sMapMgr->CreateMap(info->mapId, this));
 
     uint8 powertype = cEntry->DisplayPower;
 
@@ -1059,7 +1056,7 @@ void Player::Update(uint32 p_time)
     if (!IsInWorld())
         return;
 
-    ZoneScopedN("Player::Update")
+    ZoneScopedNC("Player::Update", MAP_UPDATE_COLOR);
 
     // undelivered mail
     if (m_nextMailDelivereTime && m_nextMailDelivereTime <= GameTime::GetGameTime())
@@ -1405,25 +1402,6 @@ void Player::Update(uint32 p_time)
 
     if (IsHasDelayedTeleport())
         TeleportTo(m_teleport_dest, m_teleport_options);
-
-    // For now, do this at the end of the update
-    // Periodically send player updated visibility of all surrounding units
-    vis_Update.TUpdate(p_time);
-    if (vis_Update.TPassed())
-    {
-        vis_Update.TReset(p_time, GetMap()->GetVisibilityNotifyPeriod());
-
-        WorldObject const* viewPoint = m_seer;
-        if (viewPoint->isNeedNotify(NOTIFY_VISIBILITY_CHANGED) && (this == viewPoint || viewPoint->IsPositionValid()))
-        {
-            ZoneScopedN("Player::Update::RelocationNotifier")
-            PlayerRelocationNotifier relocate(*this);
-            Cell::VisitAllObjects(viewPoint, relocate, 100, false);
-            relocate.SendToSelf();
-        }
-
-        ResetAllNotifies();
-    }
 }
 
 void Player::setDeathState(DeathState s)
@@ -1994,10 +1972,6 @@ void Player::ProcessDelayedOperations()
 
 void Player::AddToWorld()
 {
-    // TODO should we add this check?
-    //if (IsInWorld())
-    //    return;
-
     ///- Do not add/remove the player from the object storage
     ///- It will crash when updating the ObjectAccessor
     ///- The player should only be added when logging in
@@ -2010,10 +1984,6 @@ void Player::AddToWorld()
 
 void Player::RemoveFromWorld()
 {
-    // TODO should we add this check?
-    //if (!IsInWorld())
-    //    return;
-
     // cleanup
     if (IsInWorld())
     {
@@ -2054,165 +2024,6 @@ void Player::RemoveFromWorld()
             SetViewpoint(viewpoint, false);
         }
     }
-}
-
-void Player::AddToPartition()
-{
-    if (IsInWorld())
-        return;
-
-    ///- Do not add/remove the player from the object storage
-    ///- It will crash when updating the ObjectAccessor
-    ///- The player should only be added when logging in
-    Unit::AddToPartition();
-
-    for (uint8 i = PLAYER_SLOT_START; i < PLAYER_SLOT_END; ++i)
-        if (m_items[i])
-            m_items[i]->AddToWorld();
-}
-
-void Player::RemoveFromPartition()
-{
-    if (!IsInWorld())
-        return;
-
-    ///- Release charmed creatures, unsummon totems and remove pets/guardians
-    //StopCastingCharm();
-    Unit* charmed = GetCharmed();
-    if (charmed && !charmed->IsVehicle())
-        StopCastingCharm();
-    StopCastingBindSight();
-    UnsummonPetTemporaryIfAny();
-    ClearComboPoints();
-    ClearComboPointHolders();
-    ObjectGuid lootGuid = GetLootGUID();
-    if (!lootGuid.IsEmpty())
-        m_session->DoLootRelease(lootGuid);
-    sOutdoorPvPMgr->HandlePlayerLeaveZone(this, m_zoneUpdateId);
-    sBattlefieldMgr->HandlePlayerLeaveZone(this, m_zoneUpdateId);
-
-    // Remove items from world before self - player must be found in Item::RemoveFromObjectUpdate
-    for (uint8 i = PLAYER_SLOT_START; i < PLAYER_SLOT_END; ++i)
-    {
-        if (m_items[i])
-            m_items[i]->RemoveFromWorld();
-    }
-
-    ///- Do not add/remove the player from the object storage
-    ///- It will crash when updating the ObjectAccessor
-    ///- The player should only be removed when logging out
-    Unit::RemoveFromPartition();
-
-    for (ItemMap::iterator iter = mMitems.begin(); iter != mMitems.end(); ++iter)
-        iter->second->RemoveFromWorld();
-
-    // if (m_uint32Values)
-    // {
-    //     if (WorldObject* viewpoint = GetViewpoint())
-    //     {
-    //         TC_LOG_ERROR("entities.player", "Player::RemoveFromPartition: Player '{}' ({}) has viewpoint (Entry:{}, Type: {}) when removed from world",
-    //             GetName(), GetGUID().ToString(), viewpoint->GetEntry(), viewpoint->GetTypeId());
-    //         SetViewpoint(viewpoint, false);
-    //     }
-    // }
-}
-
-// Only call from Map Delayed Update (map thread safety)
-void Player::UpdateMapPartition(Map* forcedMap)
-{
-    // When players are in a vehicle or on transport these entities are responsible for updating partition
-    if ((m_vehicle || m_transport) && !forcedMap)
-        return;
-
-    Map* currentMap = IsInWorld() ? GetMap() : nullptr;
-    // We only ever change partitions if we are currently in a world map
-    if (!currentMap || !currentMap->IsWorldMap())
-        return;
-
-    Map* newMap = forcedMap ? forcedMap : sMapMgr->CreateMap(currentMap->GetId(), GetPosition(), this);
-    // We don't change partitions if already in the correct partition
-    if (!newMap || newMap == currentMap)
-        return;
-
-    // Experiment with all of the things we should set off when we cross partitions, these are taken from teleport
-    DuelComplete(DUEL_FLED);
-    SetSelection(ObjectGuid::Empty);
-    CombatStop();
-    ResetContestedPvP();
-
-    if (IsNonMeleeSpellCast(true))
-        InterruptNonMeleeSpells(true);
-
-    // TODO do we need to remove these?
-    RemoveAurasWithInterruptFlags(AURA_INTERRUPT_FLAG_CHANGE_MAP | AURA_INTERRUPT_FLAG_MOVE | AURA_INTERRUPT_FLAG_TURNING);
-
-    currentMap->RemovePlayerFromPartition(this);
-
-    // Delete all existing visible objects, we don't have an existing function that does this
-    // since usually we send teleport packets for changing maps
-    UpdateData deleteData;
-    for (auto it = m_clientGUIDs.begin(); it != m_clientGUIDs.end(); ++it)
-    {
-        if (m_vehicle)
-        {
-            // Don't delete the vehicle
-            if (m_vehicle->GetBase()->GetGUID() == *it)
-                continue;
-
-            // Don't delete passengers
-            bool passenger = false;
-            for (auto const& [_, seat] : m_vehicle->Seats)
-            {
-                if (seat.Passenger.Guid == *it)
-                {
-                    passenger = true;
-                    break;
-                }
-            }
-            if (passenger)
-                continue;
-        }
-
-        // Transport static passengers get new guids each time, and other passengers will eventually appear, this
-        // isn't a priority to not clear visibility
-
-        deleteData.AddOutOfRangeGUID(*it);
-    }
-    if (deleteData.HasData())
-    {
-        WorldPacket packet;
-        deleteData.BuildPacket(&packet);
-        SendDirectMessage(&packet);
-    }
-
-    // Set the new map
-    ResetMap();
-    SetMap(newMap);
-
-    newMap->AddPlayerToPartition(this);
-
-    if (!m_vehicle)
-    {
-        ResummonPetTemporaryUnSummonedIfAny();
-    }
-    // Trying to move the controlled units is a challenge, for now we will just resummon pets
-    // for (ControlList::iterator itr = m_Controlled.begin(); itr != m_Controlled.end(); ++itr)
-    // {
-    //     // controlled players always need to move with their controller (if on boat etc)
-    //     if (auto player = (*itr)->ToPlayer())
-    //     {
-    //         player->UpdateMapPartition(newMap);
-    //     }
-    //     // controlled creatures as well, except for vehicles, I hope 'controlled' vehicle are always driven and will update their
-    //     // passengers, but we can test for edge cases here
-    //     else if (auto creature = (*itr)->ToCreature())
-    //     {
-    //         if (!creature->IsVehicle())
-    //         {
-    //             creature->UpdateMapPartition(newMap);
-    //         }
-    //     }
-    // }
 }
 
 void Player::SetObjectScale(float scale)
@@ -4792,62 +4603,11 @@ void Player::BuildPlayerRepop()
 
     // to prevent cheating
     corpse->ResetGhostTime();
-    _corpseTime = corpse->GetGhostTime();
 
     StopMirrorTimers();                                     //disable timers(bars)
 
     // OnPlayerRepop hook
     sScriptMgr->OnPlayerRepop(this);
-}
-
-void Player::ReclaimCorpse()
-{
-    if (IsAlive())
-        return;
-
-    // do not allow corpse reclaim in arena
-    if (InArena())
-        return;
-
-    // body not released yet
-    if (!HasFlag(PLAYER_FLAGS, PLAYER_FLAGS_GHOST))
-        return;
-
-    Corpse* corpse = GetCorpse();
-    // Original Logic
-    if (corpse)
-    {
-        // prevent resurrect before 30-sec delay after body release not finished
-        if (time_t(corpse->GetGhostTime() + GetCorpseReclaimDelay(corpse->GetType() == CORPSE_RESURRECTABLE_PVP)) > GameTime::GetGameTime())
-            return;
-
-        if (!corpse->IsWithinDistInMap(this, CORPSE_RECLAIM_RADIUS, true))
-            return;
-
-        // resurrect
-        ResurrectPlayer(InBattleground() ? 1.0f : 0.5f);
-
-        // spawn bones
-        SpawnCorpseBones();
-    }
-    // Cross partition logic
-    else if (_corpseLocation.GetMapId() == GetMapId())
-    {
-        // prevent resurrect before 30-sec delay after body release not finished
-        if (time_t(_corpseTime + GetCorpseReclaimDelay(false)) > GameTime::GetGameTime())
-            return;
-
-        if (!IsInDist(_corpseLocation, CORPSE_RECLAIM_RADIUS))
-            return;
-
-        // resurrect
-        ResurrectPlayer(InBattleground() ? 1.0f : 0.5f);
-        
-        // we cannot actually spawn bones immediately since we are in the wrong partition,
-        // but we need to call it anyway to reset our _corpseLocation
-        // corpse will be converted to bones on map.AddPlayerToPartition if we ever return to the same partition
-        SpawnCorpseBones();
-    }
 }
 
 void Player::ResurrectPlayer(float restore_percent, bool applySickness)
@@ -4992,7 +4752,6 @@ Corpse* Player::CreateCorpse()
     }
 
     _corpseLocation.WorldRelocate(*this);
-    _corpseTime = corpse->GetGhostTime();
 
     _cfb1 = ((0x00) | (GetRace() << 8) | (GetNativeGender() << 16) | (GetSkinId() << 24));
     _cfb2 = (GetFaceId() | (GetHairStyleId() << 8) | (GetHairColorId() << 16) | (GetFacialStyle() << 24));
@@ -15127,7 +14886,7 @@ void Player::PrepareQuestMenu(ObjectGuid guid)
     {
         //we should obtain map pointer from GetMap() in 99% of cases. Special case
         //only for quests which cast teleport spells on player
-        Map* _map = IsInWorld() ? GetMap() : sMapMgr->FindMap(GetMapId(), GetPosition(), GetInstanceId());
+        Map* _map = IsInWorld() ? GetMap() : sMapMgr->FindMap(GetMapId(), GetInstanceId());
         ASSERT(_map);
         GameObject* pGameObject = _map->GetGameObject(guid);
         if (pGameObject)
@@ -15267,7 +15026,7 @@ Quest const* Player::GetNextQuest(ObjectGuid guid, Quest const* quest) const
     {
         //we should obtain map pointer from GetMap() in 99% of cases. Special case
         //only for quests which cast teleport spells on player
-        Map* _map = IsInWorld() ? GetMap() : sMapMgr->FindMap(GetMapId(), GetPosition(), GetInstanceId());
+        Map* _map = IsInWorld() ? GetMap() : sMapMgr->FindMap(GetMapId(), GetInstanceId());
         ASSERT(_map);
         GameObject* pGameObject = _map->GetGameObject(guid);
         if (pGameObject)
@@ -18177,8 +17936,7 @@ bool Player::LoadFromDB(ObjectGuid guid, CharacterDatabaseQueryHolder const& hol
     // NOW player must have valid map
     // load the player's map here if it's not already loaded
     if (!map)
-        map = sMapMgr->CreateMap(mapId, GetPosition(), this, instanceId);
-
+        map = sMapMgr->CreateMap(mapId, this, instanceId);
     AreaTrigger const* areaTrigger = nullptr;
     bool check = false;
 
@@ -18229,7 +17987,7 @@ bool Player::LoadFromDB(ObjectGuid guid, CharacterDatabaseQueryHolder const& hol
             if (mapId != areaTrigger->target_mapId)
             {
                 mapId = areaTrigger->target_mapId;
-                map = sMapMgr->CreateMap(mapId, GetPosition(), this);
+                map = sMapMgr->CreateMap(mapId, this);
             }
         }
         else
@@ -18245,7 +18003,7 @@ bool Player::LoadFromDB(ObjectGuid guid, CharacterDatabaseQueryHolder const& hol
     {
         mapId = info->mapId;
         Relocate(info->positionX, info->positionY, info->positionZ, 0.0f);
-        map = sMapMgr->CreateMap(mapId, GetPosition(), this);
+        map = sMapMgr->CreateMap(mapId, this);
         if (!map)
         {
             TC_LOG_ERROR("entities.player.loading", "Player::LoadFromDB: Player '{}' ({}) Map: {}, X: {}, Y: {}, Z: {}, O: {}. Invalid default map coordinates or instance couldn't be created.",
@@ -21135,7 +20893,7 @@ void Player::ResetInstances(uint8 method, bool isRaid)
         }
 
         // if the map is loaded, reset it
-        Map* map = sMapMgr->FindMap(p->GetMapId(), Position(), p->GetInstanceId());
+        Map* map = sMapMgr->FindMap(p->GetMapId(), p->GetInstanceId());
         if (map && map->IsDungeon())
             if (!map->ToInstanceMap()->Reset(method))
             {

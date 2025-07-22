@@ -29,7 +29,6 @@
 #include "GameEventMgr.h"
 #include "GameTime.h"
 #include "GossipDef.h"
-#include "GridNotifiers.h"
 #include "GridNotifiersImpl.h"
 #include "Group.h"
 #include "GroupMgr.h"
@@ -62,8 +61,6 @@
 #include "TSMap.h"
 #include "TSBossAI.h"
 // @tswow-end
-
-using namespace Trinity;
 
 CreatureMovementData::CreatureMovementData() : Ground(CreatureGroundMovementType::Run), Flight(CreatureFlightMovementType::None), Swim(true), Rooted(false), Chase(CreatureChaseMovementType::Run),
 Random(CreatureRandomMovementType::Walk), InteractionPauseTimer(sWorld->getIntConfig(CONFIG_CREATURE_STOP_FOR_PLAYER)) { }
@@ -280,7 +277,7 @@ bool ForcedDespawnDelayEvent::Execute(uint64 /*e_time*/, uint32 /*p_time*/)
     return true;
 }
 
-Creature::Creature(bool isWorldObject): Unit(isWorldObject), m_groupLootTimer(0), lootingGroupLowGUID(0), m_PlayerDamageReq(0), m_lootRecipient(), m_lootRecipientGroup(0), _pickpocketLootRestore(0),
+Creature::Creature(bool isWorldObject): Unit(isWorldObject), MapObject(), m_groupLootTimer(0), lootingGroupLowGUID(0), m_PlayerDamageReq(0), m_lootRecipient(), m_lootRecipientGroup(0), _pickpocketLootRestore(0),
     m_corpseRemoveTime(0), m_respawnTime(0), m_respawnDelay(300), m_corpseDelay(60), m_respawnAggroDelay(5000), m_ignoreCorpseDecayRatio(false), m_wanderDistance(0.0f), m_boundaryCheckTime(2500), m_backpedalTime(MOVE_BACKWARDS_CHECK_INTERVAL), m_encircleTime(MOVE_CIRCLE_CHECK_INTERVAL), m_extendLeashTime(EXTEND_LEASH_CHECK_INTERVAL), m_combatPulseTime(0), m_combatPulseDelay(0), m_reactState(REACT_AGGRESSIVE),
     m_defaultMovementType(IDLE_MOTION_TYPE), m_spawnId(0), m_equipmentId(0), m_originalEquipmentId(0), m_AlreadyCallAssistance(false), m_InitialAggroCallAssistance(true), m_AlreadySearchedAssistance(false), m_cannotReachTarget(false), m_cannotReachTimer(0),
     m_meleeDamageSchool(SPELL_SCHOOL_NORMAL), m_originalEntry(0), m_homePosition(), m_transportHomePosition(), m_creatureInfo(nullptr), m_creatureData(nullptr), m_detectionDistance(20.0f), _waypointPathId(0),
@@ -304,10 +301,6 @@ Creature::Creature(bool isWorldObject): Unit(isWorldObject), m_groupLootTimer(0)
 
 void Creature::AddToWorld()
 {
-    // TODO should we add this check? 
-    //if (IsInWorld())
-    //    return;
-
     // @tswow-begin
     bool b = false;
     FIRE_ID(GetCreatureTemplate()->events.id,Creature,OnCreate,TSCreature(this),TSMutable<bool,bool>(&b));
@@ -361,101 +354,6 @@ void Creature::RemoveFromWorld()
         TC_LOG_DEBUG("entities.unit", "Removing creature {} with DBGUID {} to world in map {}", GetGUID().ToString(), m_spawnId, GetMap()->GetId());
         GetMap()->GetObjectsStore().Remove<Creature>(GetGUID());
     }
-}
-
-void Creature::AddToPartition()
-{
-    if (IsInWorld())
-        return;
-
-    // @tswow-begin
-    //bool b = false;
-    //FIRE_ID(GetCreatureTemplate()->events.id,Creature,OnCreate,TSCreature(this),TSMutable<bool,bool>(&b));
-    //FIRE_ID(GetMap()->GetId(),Map,OnCreatureCreate,TSMap(GetMap()),TSCreature(this),TSMutable<bool,bool>(&b));
-    //if(b)
-    //{
-    //    // TODO: Is this enough to stop spawning?
-    //    return;
-    //}
-    // @tswow-end
-
-    ///- Register the creature for guid lookup
-    GetMap()->GetObjectsStore().Insert<Creature>(GetGUID(), this);
-    if (m_spawnId)
-        GetMap()->GetCreatureBySpawnIdStore().insert(std::make_pair(m_spawnId, this));
-
-    TC_LOG_DEBUG("entities.unit", "Adding creature {} with DBGUID {} to world in map {}", GetGUID().ToString(), m_spawnId, GetMap()->GetId());
-
-    Unit::AddToPartition();
-    //AIM_Initialize();
-    SearchFormation();
-    //if (IsVehicle())
-    //    GetVehicleKit()->Install();
-
-    //if (GetZoneScript())
-    //    GetZoneScript()->OnCreatureCreate(this);
-}
-
-void Creature::RemoveFromPartition()
-{
-    if (!IsInWorld())
-        return;
-
-    // @tswow-begin
-    //FIRE_ID(GetCreatureTemplate()->events.id,Creature,OnRemove,TSCreature(this));
-    //FIRE_ID(GetMap()->GetId(),Map,OnCreatureRemove,TSMap(GetMap()),TSCreature(this));
-    // @tswow-end
-    //if (GetZoneScript())
-    //    GetZoneScript()->OnCreatureRemove(this);
-
-    if (m_formation)
-        sFormationMgr->RemoveCreatureFromGroup(m_formation, this);
-
-    Unit::RemoveFromPartition();
-
-    if (m_spawnId)
-        Trinity::Containers::MultimapErasePair(GetMap()->GetCreatureBySpawnIdStore(), m_spawnId, this);
-
-    GetMap()->GetObjectsStore().Remove<Creature>(GetGUID());
-}
-
-// Creature specific relocation checks - we can add further restrictions for certain creatures here
-bool Creature::ShouldRelocateUpdateMapPartition()
-{
-   if (m_formation && !m_formation->IsLeader(this))
-      return false;
-
-   return Unit::ShouldRelocateUpdateMapPartition();
-}
-
-void Creature::UpdateMapPartition(Map* forcedMap)
-{
-    if ((m_vehicle || m_transport || (m_formation && !m_formation->IsLeader(this)) || (GetCharmerOrOwner() && !IsVehicle())) && !forcedMap)
-        return;
-
-    Map* currentMap = IsInWorld() ? GetMap() : nullptr;
-    if (!currentMap || !currentMap->IsWorldMap())
-        return;
-
-    Map* newMap = forcedMap ? forcedMap : sMapMgr->CreateMap(currentMap->GetId(), GetPosition());
-    if (!newMap || newMap == currentMap)
-        return;
-
-    // If this unit is a vehicle force update its passengers
-    Vehicle* vehicle = GetVehicleKit();
-    if (vehicle)
-        vehicle->UpdatePassengersMapPartition(newMap);
-
-    // If leader of a formation force update its members
-    if (m_formation && m_formation->IsLeader(this))
-        m_formation->UpdateMemberMapPartition(newMap);
-
-    currentMap->RemoveFromPartition(this);
-
-    // Set the new map (unlike players, ResetMap is called from Map::RemoveFromMap)
-    SetMap(newMap);
-
-    newMap->AddToPartition(this);
 }
 
 void Creature::SetOutfit(std::shared_ptr<CreatureOutfit> const & outfit)
@@ -1105,21 +1003,6 @@ void Creature::Update(uint32 diff)
         }
         default:
             break;
-    }
-
-    // For now, do this at the end of the update
-    vis_Update.TUpdate(diff);
-    if (vis_Update.TPassed())
-    {
-        vis_Update.TReset(diff, GetMap()->GetVisibilityNotifyPeriod());
-
-        if (isNeedNotify(NOTIFY_VISIBILITY_CHANGED))
-        {
-            CreatureRelocationNotifier relocate(*this);
-            Cell::VisitAllObjects(this, relocate, 100, false);
-        }
-
-        ResetAllNotifies();
     }
 }
 
@@ -1908,7 +1791,7 @@ bool Creature::CreateFromProto(ObjectGuid::LowType guidlow, uint32 entry, Creatu
     return true;
 }
 
-bool Creature::LoadFromDB(ObjectGuid::LowType spawnId, Map* map, bool addToMap, bool allowDuplicate, bool allowAnyPartition /*= false*/)
+bool Creature::LoadFromDB(ObjectGuid::LowType spawnId, Map* map, bool addToMap, bool allowDuplicate)
 {
     if (!allowDuplicate)
     {
@@ -1948,19 +1831,16 @@ bool Creature::LoadFromDB(ObjectGuid::LowType spawnId, Map* map, bool addToMap, 
         return false;
     }
 
-    Position spawnPoint = data->spawnPoint;
-
-    // Only load creatures into their respective partitions
-    if (!allowAnyPartition && sMapMgr->CalculatePartitionId(map->GetId(), spawnPoint) != map->GetPartitionId())
-        return false;
-
     m_spawnId = spawnId;
+
     m_respawnCompatibilityMode = ((data->spawnGroupData->flags & SPAWNGROUP_FLAG_COMPATIBILITY_MODE) != 0);
     m_creatureData = data;
     m_wanderDistance = data->wander_distance;
     m_respawnDelay = data->spawntimesecs;
+    Position spawnPoint = data->spawnPoint;
 
     // Change our spawn/home position to the leader's position if we are in a formation
+    
     if (FormationInfo const* formationInfo = sFormationMgr->GetFormationInfo(spawnId))
         if (CreatureGroup* formation = sFormationMgr->GetCreatureGroup(formationInfo->LeaderSpawnId, map))
             spawnPoint = formation->GetRespawnPosition(this, spawnPoint);

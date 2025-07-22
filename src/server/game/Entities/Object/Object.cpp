@@ -135,7 +135,7 @@ std::string Object::_ConcatFields(uint16 startIndex, uint16 size) const
 
 void Object::AddToWorld()
 {
-    if (IsInWorld())
+    if (m_inWorld)
         return;
 
     ASSERT(m_uint32Values);
@@ -154,7 +154,7 @@ void Object::AddToWorld()
 
 void Object::RemoveFromWorld()
 {
-    if (!IsInWorld())
+    if (!m_inWorld)
         return;
 
     m_inWorld = false;
@@ -962,7 +962,7 @@ void MovementInfo::OutDebug()
 WorldObject::WorldObject(bool isWorldObject) : Object(), WorldLocation(), LastUsedScriptID(0),
 m_movementInfo(), m_name(), m_isActive(false), m_isFarVisible(false), m_isStoredInWorldObjectGridContainer(isWorldObject), m_zoneScript(nullptr),
 m_transport(nullptr), m_zoneId(0), m_areaId(0), m_staticFloorZ(VMAP_INVALID_HEIGHT), m_outdoors(false), m_liquidStatus(LIQUID_MAP_NO_WATER),
-m_currMap(nullptr), m_InstanceId(0), m_partitionId(0), m_phaseMask(PHASEMASK_NORMAL), m_notifyflags(0)
+m_currMap(nullptr), m_InstanceId(0), m_phaseMask(PHASEMASK_NORMAL), m_notifyflags(0)
 {
     m_serverSideVisibility.SetValue(SERVERSIDE_VISIBILITY_GHOST, GHOST_VISIBILITY_ALIVE | GHOST_VISIBILITY_GHOST);
     m_serverSideVisibilityDetect.SetValue(SERVERSIDE_VISIBILITY_GHOST, GHOST_VISIBILITY_ALIVE);
@@ -1093,37 +1093,11 @@ void WorldObject::ProcessPositionDataChanged(PositionFullTerrainStatus const& da
 
 void WorldObject::AddToWorld()
 {
-    // TODO should we check this
-    //if (IsInWorld())
-    //    return;
-
     Object::AddToWorld();
     GetMap()->GetZoneAndAreaId(GetPhaseMask(), m_zoneId, m_areaId, GetPositionX(), GetPositionY(), GetPositionZ());
 }
 
 void WorldObject::RemoveFromWorld()
-{
-    if (!IsInWorld())
-        return;
-
-    DestroyForNearbyPlayers();
-
-    Object::RemoveFromWorld();
-    // @tswow-begin
-    RemoveFromAllGroups();
-    // @tswow-end
-}
-
-void WorldObject::AddToPartition()
-{
-    if (IsInWorld())
-        return;
-
-    Object::AddToWorld();
-    GetMap()->GetZoneAndAreaId(GetPhaseMask(), m_zoneId, m_areaId, GetPositionX(), GetPositionY(), GetPositionZ());
-}
-
-void WorldObject::RemoveFromPartition()
 {
     if (!IsInWorld())
         return;
@@ -1937,7 +1911,6 @@ void WorldObject::SetMap(Map* map)
     m_currMap = map;
     m_mapId = map->GetId();
     m_InstanceId = map->GetInstanceId();
-    m_partitionId = map->GetPartitionId();
     if (IsStoredInWorldObjectGridContainer())
         m_currMap->AddWorldObject(this);
 }

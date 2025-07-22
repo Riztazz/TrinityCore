@@ -938,9 +938,6 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
 
         void AddToWorld() override;
         void RemoveFromWorld() override;
-        void AddToPartition() override;
-        void RemoveFromPartition() override;
-        void UpdateMapPartition(Map* forcedMap = nullptr) override;
 
         void SetObjectScale(float scale) override;
 
@@ -1752,7 +1749,6 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
         void SendMessageToSetInRange(WorldPacket const* data, float dist, bool self, bool own_team_only, bool required3dDist = false) const;
         void SendMessageToSet(WorldPacket const* data, Player const* skipped_rcvr) const override;
 
-        void ReclaimCorpse();
         Corpse* GetCorpse() const;
         void SpawnCorpseBones(bool triggerSave = true);
         Corpse* CreateCorpse();
@@ -2650,7 +2646,6 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
         uint32 manaBeforeDuel;
 
         WorldLocation _corpseLocation;
-        time_t _corpseTime;
 
         // @tswow-begin
         friend class TSPlayer;

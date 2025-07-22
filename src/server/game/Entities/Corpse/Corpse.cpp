@@ -21,7 +21,7 @@
 #include "DBCStores.h"
 #include "GameTime.h"
 #include "Log.h"
-#include "MapManager.h"
+#include "Map.h"
 #include "Player.h"
 #include "UpdateData.h"
 #include "UpdateMask.h"
@@ -148,7 +148,7 @@ void Corpse::ResetGhostTime()
     m_time = GameTime::GetGameTime();
 }
 
-bool Corpse::LoadCorpseFromDB(ObjectGuid::LowType guid, Field* fields, Map* map)
+bool Corpse::LoadCorpseFromDB(ObjectGuid::LowType guid, Field* fields)
 {
     //        0     1     2     3            4      5          6          7       8       9        10     11        12    13          14          15         16
     // SELECT posX, posY, posZ, orientation, mapId, displayId, itemCache, bytes1, bytes2, guildId, flags, dynFlags, time, corpseType, instanceId, phaseMask, guid FROM corpse WHERE mapId = ? AND instanceId = ?
@@ -193,11 +193,6 @@ bool Corpse::LoadCorpseFromDB(ObjectGuid::LowType guid, Field* fields, Map* map)
             GetGUID().ToString(), GetOwnerGUID().ToString(), posX, posY, posZ);
         return false;
     }
-
-    // We only load corpses for the current partition, we don't save partitionId to the database so that this can
-    // be dynamically calculated at runtime
-    if (mapId != map->GetId() || sMapMgr->CalculatePartitionId(map->GetId(), GetPosition()) != map->GetPartitionId())
-        return false;
 
     _cellCoord = Trinity::ComputeCellCoord(GetPositionX(), GetPositionY());
     return true;

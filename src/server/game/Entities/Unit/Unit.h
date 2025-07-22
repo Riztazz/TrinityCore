@@ -20,7 +20,6 @@
 
 #include "Object.h"
 #include "CombatManager.h"
-#include "Random.h"
 #include "SharedDefines.h"
 #include "SpellAuraDefines.h"
 #include "ThreatManager.h"
@@ -895,10 +894,6 @@ class TC_GAME_API Unit : public WorldObject
     public:
         void AddToWorld() override;
         void RemoveFromWorld() override;
-        void AddToPartition() override;
-        void RemoveFromPartition() override;
-        virtual void UpdateMapPartition(Map* forcedMap = nullptr) { };
-        virtual bool ShouldRelocateUpdateMapPartition();
 
         void CleanupBeforeRemoveFromMap(bool finalCleanup);
         void CleanupsBeforeDelete(bool finalCleanup = true) override;                        // used in ~Creature/~Player (or before mass creature delete to remove cross-references to already deleted units)
@@ -2013,7 +2008,6 @@ class TC_GAME_API Unit : public WorldObject
 
         uint32 m_reactiveTimer[MAX_REACTIVE];
         uint32 m_regenTimer;
-        PeriodicTimer vis_Update;
 
         Vehicle* m_vehicle;
         Trinity::unique_trackable_ptr<Vehicle> m_vehicleKit;
@@ -2101,7 +2095,6 @@ class TC_GAME_API Unit : public WorldObject
         SpellHistory* _spellHistory;
 
         PositionUpdateInfo _positionUpdateInfo;
-        Position _lastCheckedPartitionPosition;
 
         bool _isCombatDisallowed;
 

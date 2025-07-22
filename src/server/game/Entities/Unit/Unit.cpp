@@ -44,7 +44,6 @@
 #include "Item.h"
 #include "Log.h"
 #include "LootMgr.h"
-#include "MapManager.h"
 #include "MotionMaster.h"
 #include "MovementGenerator.h"
 #include "MovementPacketBuilder.h"
@@ -61,7 +60,6 @@
 #include "Player.h"
 #include "PlayerAI.h"
 #include "QuestDef.h"
-#include "Random.h"
 #include "ReputationMgr.h"
 #include "ScheduledChangeAI.h"
 #include "SharedDefines.h"
@@ -314,8 +312,7 @@ Unit::Unit(bool isWorldObject) :
     m_removedAurasCount(0), m_charmer(nullptr), m_charmed(nullptr),
     i_motionMaster(new MotionMaster(this)), m_regenTimer(0), m_vehicle(nullptr), m_vehicleKit(nullptr),
     m_unitTypeMask(UNIT_MASK_NONE), m_Diminishing(), m_combatManager(this), m_threatManager(this),
-    m_aiLocked(false), m_comboTarget(nullptr), m_comboPoints(0), _spellHistory(new SpellHistory(this)),
-    vis_Update(0, irand(0, DEFAULT_VISIBILITY_NOTIFY_PERIOD))
+    m_aiLocked(false), m_comboTarget(nullptr), m_comboPoints(0), _spellHistory(new SpellHistory(this))
 {
     m_objectType |= TYPEMASK_UNIT;
     m_objectTypeId = TYPEID_UNIT;
@@ -454,11 +451,12 @@ Unit::~Unit()
 
 void Unit::Update(uint32 p_time)
 {
+    ZoneScopedNC("Unit::Update", MAP_UPDATE_COLOR);
+
     // @tswow-begin
     m_tsWorldEntity.tick(TSWorldObject(this));
     m_tsCollisions.Tick(TSWorldObject(this));
     // @tswow-end
-
     // WARNING! Order of execution here is important, do not change.
     // Spells must be processed with event system BEFORE they go to _UpdateSpells.
     // Or else we may have some SPELL_STATE_FINISHED spells stalled in pointers, that is bad.
@@ -10192,18 +10190,15 @@ uint32 Unit::GetCreatePowerValue(Powers power) const
 
 void Unit::AIUpdateTick(uint32 diff)
 {
+    ZoneScopedNC("Unit::AIUpdateTick", MAP_UPDATE_COLOR);
+
     // @tswow-begin
     if(Creature* c = ToCreature())
     {
         if ((c->GetCreatureTemplate()->flags_extra & 0x80000000) != 0 && c->IsInCombat() && !c->IsCharmed() && !c->isPossessedByPlayer() && !c->isPossessed()) // CREATURE_FLAG_EXTRA_TICK_AI
         {
             m_aiLocked = true;
-            {
-                ZoneScopedNC("TSOnCombatTick", MAP_UPDATE_COLOR);
-
-                FIRE_ID(c->GetCreatureTemplate()->events.id,Creature,OnCombatTick,TSCreature(c),diff);
-            }
-            
+            FIRE_ID(c->GetCreatureTemplate()->events.id,Creature,OnCombatTick,TSCreature(c),diff);
             m_aiLocked = false;
         }
     }
@@ -10292,8 +10287,6 @@ void Unit::AddToWorld()
 
     WorldObject::AddToWorld();
     i_motionMaster->AddToWorld();
-
-    _lastCheckedPartitionPosition = GetPosition();
 }
 
 void Unit::RemoveFromWorld()
@@ -10301,152 +10294,48 @@ void Unit::RemoveFromWorld()
     // cleanup
     ASSERT(GetGUID());
 
-    if (!IsInWorld())
-        return;
-
-    m_duringRemoveFromWorld = true;
-    if (UnitAI* ai = GetAI())
-        ai->OnDespawn();
-
-    if (IsVehicle())
-        RemoveVehicleKit();
-
-    RemoveCharmAuras();
-    RemoveBindSightAuras();
-    RemoveNotOwnSingleTargetAuras();
-
-    RemoveAllGameObjects();
-    RemoveAllDynObjects();
-
-    ExitVehicle();  // Remove applied auras with SPELL_AURA_CONTROL_VEHICLE
-    UnsummonAllTotems();
-    RemoveAllControlled();
-
-    RemoveAreaAurasDueToLeaveWorld();
-
-    RemoveAllFollowers();
-
-    if (IsCharmed())
-        RemoveCharmedBy(nullptr);
-
-    ASSERT(!GetCharmedGUID(), "Unit %u has charmed guid when removed from world", GetEntry());
-    ASSERT(!GetCharmerGUID(), "Unit %u has charmer guid when removed from world", GetEntry());
-
-    if (Unit* owner = GetOwner())
-    {
-        if (owner->m_Controlled.find(this) != owner->m_Controlled.end())
-        {
-            TC_LOG_FATAL("entities.unit", "Unit {} is in controlled list of {} when removed from world", GetEntry(), owner->GetEntry());
-            ABORT();
-        }
-    }
-
-    WorldObject::RemoveFromWorld();
-    m_duringRemoveFromWorld = false;
-}
-
-void Unit::AddToPartition()
-{
     if (IsInWorld())
-        return;
-
-    WorldObject::AddToPartition();
-    //i_motionMaster->AddToWorld();
-
-    _lastCheckedPartitionPosition = GetPosition();
-}
-
-void Unit::RemoveFromPartition()
-{
-    // cleanup
-    ASSERT(GetGUID());
-
-    if (!IsInWorld())
-        return;
-
-    m_duringRemoveFromWorld = true;
-
-    //if (UnitAI* ai = GetAI())
-    //    ai->OnDespawn();
-
-    //if (IsVehicle())
-    //    RemoveVehicleKit();
-
-    //RemoveCharmAuras();
-    if (!IsVehicle())
-        RemoveCharmAuras();
-    RemoveBindSightAuras();
-    RemoveNotOwnSingleTargetAuras();
-
-    RemoveAllGameObjects();
-    RemoveAllDynObjects();
-
-    //ExitVehicle();  // Remove applied auras with SPELL_AURA_CONTROL_VEHICLE
-    UnsummonAllTotems();
-    //RemoveAllControlled();
-    // unsummon any controlled temp summons
-    for (auto itr = m_Controlled.begin(); itr != m_Controlled.end(); )
     {
-        Unit* target = *itr;
-        if (target->GetOwnerGUID() == GetGUID() && target->IsSummon())
+        m_duringRemoveFromWorld = true;
+        if (UnitAI* ai = GetAI())
+            ai->OnDespawn();
+
+        if (IsVehicle())
+            RemoveVehicleKit();
+
+        RemoveCharmAuras();
+        RemoveBindSightAuras();
+        RemoveNotOwnSingleTargetAuras();
+
+        RemoveAllGameObjects();
+        RemoveAllDynObjects();
+
+        ExitVehicle();  // Remove applied auras with SPELL_AURA_CONTROL_VEHICLE
+        UnsummonAllTotems();
+        RemoveAllControlled();
+
+        RemoveAreaAurasDueToLeaveWorld();
+
+        RemoveAllFollowers();
+
+        if (IsCharmed())
+            RemoveCharmedBy(nullptr);
+
+        ASSERT(!GetCharmedGUID(), "Unit %u has charmed guid when removed from world", GetEntry());
+        ASSERT(!GetCharmerGUID(), "Unit %u has charmer guid when removed from world", GetEntry());
+
+        if (Unit* owner = GetOwner())
         {
-            itr = m_Controlled.erase(itr); // erase returns the next iterator
-            target->ToTempSummon()->UnSummon();
+            if (owner->m_Controlled.find(this) != owner->m_Controlled.end())
+            {
+                TC_LOG_FATAL("entities.unit", "Unit {} is in controlled list of {} when removed from world", GetEntry(), owner->GetEntry());
+                ABORT();
+            }
         }
-        else
-        {
-            ++itr;
-        }
+
+        WorldObject::RemoveFromWorld();
+        m_duringRemoveFromWorld = false;
     }
-
-    //RemoveAreaAurasDueToLeaveWorld();
-
-    RemoveAllFollowers();
-
-    //if (IsCharmed())
-    //    RemoveCharmedBy(nullptr);
-
-    //ASSERT(!GetCharmedGUID(), "Unit %u has charmed guid when removed from world", GetEntry());
-    //ASSERT(!GetCharmerGUID(), "Unit %u has charmer guid when removed from world", GetEntry());
-
-    //if (Unit* owner = GetOwner())
-    //{
-    //    if (owner->m_Controlled.find(this) != owner->m_Controlled.end())
-    //    {
-    //        TC_LOG_FATAL("entities.unit", "Unit {} is in controlled list of {} when removed from world", GetEntry(), owner->GetEntry());
-    //        ABORT();
-    //    }
-    //}
-
-    WorldObject::RemoveFromPartition();
-
-    m_duringRemoveFromWorld = false;
-}
-
-// Calculating the partition id is expensive, so we mitigate this by:
-// 1. we only check on relocation
-// 2. we only check when relocation is consequential
-// 3. we guard against multiple checks on the same tick by updating the last checked position
-bool Unit::ShouldRelocateUpdateMapPartition()
-{
-    // Sanity checks
-    if (!IsInWorld())
-        return false;
-
-    if (!GetMap()->IsWorldMap())
-        return false;
-
-    // if units are on vehicle or transport, or have an owner but are not a vehicle themselves
-    // we do not change partitions from relocation
-    if (m_vehicle || m_transport || (GetCharmerOrOwner() && !IsVehicle()))
-        return false;
-
-    // Partition calculation is expensive, so only check again if we have moved a consequential amount
-    if (GetPosition().GetExactDist(_lastCheckedPartitionPosition) < 0.25f)
-        return false;
-
-    _lastCheckedPartitionPosition = GetPosition();
-    return sMapMgr->CalculatePartitionId(GetMap()->GetId(), GetPosition()) != GetMap()->GetPartitionId();
 }
 
 void Unit::CleanupBeforeRemoveFromMap(bool finalCleanup)
@@ -13915,10 +13804,9 @@ bool Unit::UpdatePosition(float x, float y, float z, float orientation, bool tel
             GetMap()->CreatureRelocation(ToCreature(), x, y, z, orientation);
     }
     else if (turn)
-    {
         UpdateOrientation(orientation);
-        UpdatePositionData();
-    }
+
+    UpdatePositionData();
 
     _positionUpdateInfo.Relocated = relocated;
     _positionUpdateInfo.Turned = turn;

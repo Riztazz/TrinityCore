@@ -275,6 +275,15 @@ PlayerLimit = 0
 MaxOverspeedPings = 2
 
 #
+#    GridUnload
+#        Description: Unload grids to save memory. Can be disabled if enough memory is available
+#                     to speed up moving players to new grids.
+#        Default:     1 - (enable, Unload grids)
+#                     0 - (disable, Do not unload grids)
+
+GridUnload = 1
+
+#
 #    BaseMapLoadAllGrids
 #        Description: Load all grids for base maps upon load. Requires GridUnload to be 0.
 #                     This will take around 5GB of ram upon server load, and will take some time
@@ -299,7 +308,6 @@ InstanceMapLoadAllGrids = 0
 #                     selection screen is disconnected.
 #        Default:     900000 - (15 minutes)
 
-
 SocketTimeOutTime = 900000
 
 #
@@ -318,6 +326,13 @@ SocketTimeOutTimeActive = 60000
 #        Default:     10000 - (10 milliseconds, 0.01 second)
 
 SessionAddDelay = 10000
+
+#
+#    GridCleanUpDelay
+#        Description: Time (in milliseconds) grid clean up delay.
+#        Default:     300000 - (5 minutes)
+
+GridCleanUpDelay = 300000
 
 #
 #    MinWorldUpdateTime
@@ -1872,6 +1887,13 @@ Creature.RegenHPCannotReachTargetInRaid = 1
 
 ###################################################################################################
 # SPAWN/RESPAWN SETTINGS
+#
+#    Respawn.MinCheckIntervalMS
+#        Description: Minimum time that needs to pass between respawn checks for any given map.
+#        Default:     5000 - 5 seconds
+
+Respawn.MinCheckIntervalMS = 5000
+
 #
 #    Respawn.GuidWarnLevel
 #        Description: The point at which the highest guid for creatures or gameobjects in any map must reach
@@ -4479,20 +4501,13 @@ NameReservation = 0
 #    AlwaysUpdateWaypointCreatures
 #       Description: Always tick update waypoint creatures. This means that they will start
 #                    movement once they are loaded (which happens on grid load) and keep moving even
-#                    when no player is near.
+#                    when no player is near. This will increase CPU usage significantly and can be
+#                    used with enabled "BaseMapLoadAllGrids" and "Grid Unload" disabled to start
+#                    waypoint movement on server startup.
 #       Default:    0 - (Disabled)
 #                   1 - (Enabled)
 
 AlwaysUpdateWaypointCreatures = 0
-
-#
-#    MaxRespawnCountOnUpdate
-#       Description: Respawning creatures and particularly adding them to a map is a expensive operation.
-#                    This setting limits the number of respawns that can be processed in a single update.
-#       Default:     2 - (Count)
-#                    0 - (Disabled)
-
-MaxRespawnCountOnUpdate = 2
 
 #
 #    MuteDefaultGuildBroadcasts

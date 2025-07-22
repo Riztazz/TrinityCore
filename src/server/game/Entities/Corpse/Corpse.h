@@ -23,7 +23,6 @@
 #include "DatabaseEnvFwd.h"
 #include "GridDefines.h"
 #include "Loot.h"
-#include "Map.h"
 
 enum CorpseType
 {
@@ -60,7 +59,7 @@ class TC_GAME_API Corpse : public WorldObject, public GridObject<Corpse>
         bool Create(ObjectGuid::LowType guidlow, Player* owner);
 
         void SaveToDB();
-        bool LoadCorpseFromDB(ObjectGuid::LowType guid, Field* fields, Map* map);
+        bool LoadCorpseFromDB(ObjectGuid::LowType guid, Field* fields);
 
         void DeleteFromDB(CharacterDatabaseTransaction trans);
         static void DeleteFromDB(ObjectGuid const& ownerGuid, CharacterDatabaseTransaction trans);

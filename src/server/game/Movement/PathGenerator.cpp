@@ -42,13 +42,13 @@ PathGenerator::PathGenerator(WorldObject const* owner) :
     {
         MMAP::MMapManager* mmap = MMAP::MMapFactory::createOrGetMMapManager();
         // Cache defaultNavMeshQuery
-        _defaultNavMeshQuery = mmap->GetNavMeshQuery(mapId, _source->GetInstanceOrPartitionId());
+        _defaultNavMeshQuery = mmap->GetNavMeshQuery(mapId, _source->GetInstanceId());
 
 
         // if (GenericTransport* transport = owner->GetTransport())
         //     _navMeshQuery = mmap->GetModelNavMeshQuery(transport->GetDisplayId());
         // else
-        //     _navMeshQuery = mmap->GetNavMeshQuery(mapId, _source->GetInstanceOrPartitionId());
+        //     _navMeshQuery = mmap->GetNavMeshQuery(mapId, _source->GetInstanceId());
 
         // if (_navMeshQuery)
         //     _navMesh = _navMeshQuery->getAttachedNavMesh();
@@ -75,7 +75,7 @@ void PathGenerator::SetCurrentNavMesh()
         else
         {
             if (_defaultMapId != sourceUnit->GetMapId()) // Fetch NavMeshQuery again?
-                _defaultNavMeshQuery = mmap->GetNavMeshQuery(sourceUnit->GetMapId(), sourceUnit->GetInstanceOrPartitionId());
+                _defaultNavMeshQuery = mmap->GetNavMeshQuery(sourceUnit->GetMapId(), sourceUnit->GetInstanceId());
 
             _navMeshQuery = _defaultNavMeshQuery;
         }

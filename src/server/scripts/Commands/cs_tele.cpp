@@ -401,7 +401,7 @@ public:
             return false;
         }
 
-        Map* map = sMapMgr->FindMap(save->GetMapId(), Position(), instanceId);
+        Map* map = sMapMgr->FindMap(save->GetMapId(), instanceId);
         if (!map)
         {
             handler->SendSysMessage(LANG_COMMAND_TELE_INSTANCEID_NOTFOUND);

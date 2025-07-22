@@ -116,7 +116,7 @@ QuaternionData QuaternionData::fromEulerAnglesZYX(float Z, float Y, float X)
     return QuaternionData(quat.x, quat.y, quat.z, quat.w);
 }
 
-GameObject::GameObject() : WorldObject(false),
+GameObject::GameObject() : WorldObject(false), MapObject(),
     m_model(nullptr), m_goValue(), m_AI(nullptr), m_respawnCompatibilityMode(false)
 {
     m_objectType |= TYPEMASK_GAMEOBJECT;
@@ -500,7 +500,6 @@ void GameObject::Update(uint32 diff)
     m_tsCollisions.Tick(TSWorldObject(this));
     FIRE_ID(GetGOInfo()->events.id,GameObject,OnUpdate,TSGameObject(this),diff);
     // @tswow-end
-
     m_Events.Update(diff);
 
     if (AI())
@@ -1120,7 +1119,7 @@ void GameObject::SaveToDB(uint32 mapid, uint8 spawnMask, uint32 phaseMask)
     WorldDatabase.CommitTransaction(trans);
 }
 
-bool GameObject::LoadFromDB(ObjectGuid::LowType spawnId, Map* map, bool addToMap, bool /*= true*/, bool allowAnyPartition /*= false*/)
+bool GameObject::LoadFromDB(ObjectGuid::LowType spawnId, Map* map, bool addToMap, bool)
 {
     GameObjectData const* data = sObjectMgr->GetGameObjectData(spawnId);
 
@@ -1130,12 +1129,6 @@ bool GameObject::LoadFromDB(ObjectGuid::LowType spawnId, Map* map, bool addToMap
         return false;
     }
 
-    Position spawnPoint = data->spawnPoint;
-
-    // Only load game objects into their respective partitions
-    if (!allowAnyPartition && sMapMgr->CalculatePartitionId(map->GetId(), spawnPoint) != map->GetPartitionId())
-        return false;
-
     uint32 entry = data->id;
 
     // @epoch-start
@@ -1144,13 +1137,14 @@ bool GameObject::LoadFromDB(ObjectGuid::LowType spawnId, Map* map, bool addToMap
 
     //uint32 map_id = data->mapid;                          // already used before call
     uint32 phaseMask = data->phaseMask;
+
     uint32 animprogress = data->animprogress;
     GOState go_state = data->goState;
     uint32 artKit = data->artKit;
 
     m_spawnId = spawnId;
     m_respawnCompatibilityMode = ((data->spawnGroupData->flags & SPAWNGROUP_FLAG_COMPATIBILITY_MODE) != 0);
-    if (!Create(map->GenerateLowGuid<HighGuid::GameObject>(), entry, map, phaseMask, spawnPoint, data->rotation, animprogress, go_state, artKit, !m_respawnCompatibilityMode))
+    if (!Create(map->GenerateLowGuid<HighGuid::GameObject>(), entry, map, phaseMask, data->spawnPoint, data->rotation, animprogress, go_state, artKit, !m_respawnCompatibilityMode))
         return false;
 
     if (data->spawntimesecs >= 0)

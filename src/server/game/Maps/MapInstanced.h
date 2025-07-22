@@ -27,33 +27,48 @@ class TC_GAME_API MapInstanced : public Map
 {
     friend class MapManager;
     public:
-        typedef std::unordered_map<uint32, Trinity::unique_trackable_ptr<Map>> Instances;
+        typedef std::unordered_map<uint32, Trinity::unique_trackable_ptr<Map>> InstancedMaps;
 
-        MapInstanced(uint32 id);
+        MapInstanced(uint32 id, time_t expiry);
         ~MapInstanced() { }
 
         // functions overwrite Map versions
-        virtual void InitVisibilityDistance() override;
         void Update(uint32 diff) override;
         void DelayedUpdate(uint32 diff) override;
+        //void RelocationNotify();
         void UnloadAll() override;
         EnterState CannotEnter(Player* /*player*/) override;
 
         Map* CreateInstanceForPlayer(uint32 mapId, Player* player, uint32 loginInstanceId = 0);
-        Map* FindInstance(uint32 instanceId) const
+        Map* FindInstanceMap(uint32 instanceId) const
         {
-            auto it = _instances.find(instanceId);
-            return (it != _instances.end()) ? it->second.get() : nullptr;
+            InstancedMaps::const_iterator i = m_InstancedMaps.find(instanceId);
+            return(i == m_InstancedMaps.end() ? nullptr : i->second.get());
         }
-        bool DestroyInstance(Instances::iterator &itr);
+        bool DestroyInstance(InstancedMaps::iterator &itr);
 
-        Instances &GetInstances() { return _instances; }
-        
+        void AddGridMapReference(GridCoord const& p)
+        {
+            ++GridMapReference[p.x_coord][p.y_coord];
+            SetUnloadReferenceLock(GridCoord((MAX_NUMBER_OF_GRIDS - 1) - p.x_coord, (MAX_NUMBER_OF_GRIDS - 1) - p.y_coord), true);
+        }
+
+        void RemoveGridMapReference(GridCoord const& p)
+        {
+            --GridMapReference[p.x_coord][p.y_coord];
+            if (!GridMapReference[p.x_coord][p.y_coord])
+                SetUnloadReferenceLock(GridCoord((MAX_NUMBER_OF_GRIDS - 1) - p.x_coord, (MAX_NUMBER_OF_GRIDS - 1) - p.y_coord), false);
+        }
+
+        InstancedMaps &GetInstancedMaps() { return m_InstancedMaps; }
+        virtual void InitVisibilityDistance() override;
 
     private:
         InstanceMap* CreateInstance(uint32 InstanceId, InstanceSave* save, Difficulty difficulty, TeamId InstanceTeam);
         BattlegroundMap* CreateBattleground(uint32 InstanceId, Battleground* bg);
 
-        Instances _instances;
+        InstancedMaps m_InstancedMaps;
+
+        uint16 GridMapReference[MAX_NUMBER_OF_GRIDS][MAX_NUMBER_OF_GRIDS];
 };
 #endif
