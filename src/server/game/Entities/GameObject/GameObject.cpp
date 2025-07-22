@@ -476,7 +476,7 @@ bool GameObject::Create(ObjectGuid::LowType guidlow, uint32 name_id, Map* map, u
         if (linkedGO->Create(map->GenerateLowGuid<HighGuid::GameObject>(), linkedEntry, map, phaseMask, pos, rotation, 255, GO_STATE_READY))
         {
             SetLinkedTrap(linkedGO);
-            TC_LOG_DEBUG("bgs", "AddToMap {} called from create (LinkedGO) map {}, partition {}, instance {}, entry {}", linkedEntry, map->GetId(), map->GetPartitionId(), map->GetInstanceId());
+            TC_LOG_DEBUG("bgs", "AddToMap {} called from create (LinkedGO) map {}, partition {}, instance {}", linkedEntry, map->GetId(), map->GetPartitionId(), map->GetInstanceId());
             map->AddToMap(linkedGO);
         }
         else
