@@ -23,7 +23,6 @@
 #include "Errors.h"
 #include "IoContext.h"
 #include "Log.h"
-#include "MPSCQueue.h"
 #include "Timer.h"
 #include <boost/asio/ip/tcp.hpp>
 #include <atomic>
@@ -85,9 +84,11 @@ public:
 
     virtual void AddSocket(std::shared_ptr<SocketType> sock)
     {
+        std::lock_guard<std::mutex> lock(_newSocketsLock);
+
         ++_connections;
+        _newSockets.push_back(sock);
         SocketAdded(sock);
-        _newSocketQueue.Enqueue(new std::shared_ptr<SocketType>(std::move(sock)));
     }
 
     tcp::socket* GetSocketForAccept() { return &_acceptSocket; }
@@ -98,12 +99,13 @@ protected:
 
     void AddNewSockets()
     {
-        std::shared_ptr<SocketType>* sockPtr;
-        while (_newSocketQueue.Dequeue(sockPtr))
-        {
-            std::shared_ptr<SocketType> sock = std::move(*sockPtr);
-            delete sockPtr;
+        std::lock_guard<std::mutex> lock(_newSocketsLock);
 
+        if (_newSockets.empty())
+            return;
+
+        for (std::shared_ptr<SocketType> sock : _newSockets)
+        {
             if (!sock->IsOpen())
             {
                 SocketRemoved(sock);
@@ -112,6 +114,8 @@ protected:
             else
                 _sockets.push_back(sock);
         }
+
+        _newSockets.clear();
     }
 
     void Run()
@@ -123,6 +127,7 @@ protected:
         _ioContext.run();
 
         TC_LOG_DEBUG("misc", "Network Thread exits");
+        _newSockets.clear();
         _sockets.clear();
     }
 
@@ -163,7 +168,8 @@ private:
 
     SocketContainer _sockets;
 
-    MPSCQueue<std::shared_ptr<SocketType>> _newSocketQueue;
+    std::mutex _newSocketsLock;
+    SocketContainer _newSockets;
 
     Trinity::Asio::IoContext _ioContext;
     tcp::socket _acceptSocket;
