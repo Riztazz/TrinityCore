@@ -1487,6 +1487,7 @@ bool Battleground::AddObject(uint32 type, uint32 entry, float x, float y, float 
     data.go_state       = 1;
 */
     // Add to world, so it can be later looked up from HashMapHolder
+    TC_LOG_DEBUG("bgs", "AddToMap {} called from Battleground::AddObject map: {}, partition {}, instance {}", entry, map->GetId(), map->GetPartitionId(), map->GetInstanceId());
     if (!map->AddToMap(go))
     {
         delete go;
@@ -1584,6 +1585,7 @@ void Battleground::SpawnBGObject(uint32 type, uint32 respawntime)
                 obj->SetLootState(GO_READY);
             }
             obj->SetRespawnTime(respawntime);
+            TC_LOG_DEBUG("bgs", "AddToMap {} called from Battleground::SpawnBGObject map: {}, partition {}, instance {}", obj->GetSpawnId(), map->GetId(), map->GetPartitionId(), map->GetInstanceId());
             map->AddToMap(obj);
         }
 }
@@ -1644,6 +1646,7 @@ Creature* Battleground::AddCreature(uint32 entry, uint32 type, float x, float y,
         return nullptr;
     }
 
+    TC_LOG_DEBUG("bgs", "AddToMap {} called from Battleground::AddCreature map: {}, partition {}, instance {}", entry, map->GetId(), map->GetPartitionId(), map->GetInstanceId());
     if (!map->AddToMap(creature))
     {
         delete creature;
