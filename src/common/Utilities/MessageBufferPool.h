@@ -105,10 +105,19 @@ public:
         }
         
         // Overflow to lock-free global pool
-        if (_pooledCount.load() < _maxPoolSize)
+        _globalQueue.Enqueue(new std::unique_ptr<MessageBuffer>(std::move(buffer)));
+        ++_pooledCount;
+        
+        // Periodic cleanup when pool gets very large (soft limit)
+        if (_pooledCount.load() > _maxPoolSize * 2)
         {
-            _globalQueue.Enqueue(new std::unique_ptr<MessageBuffer>(std::move(buffer)));
-            ++_pooledCount;
+            // Trim excess buffers in background
+            std::unique_ptr<MessageBuffer>* excessBuffer;
+            while (_pooledCount.load() > _maxPoolSize && _globalQueue.Dequeue(excessBuffer))
+            {
+                delete excessBuffer;
+                --_pooledCount;
+            }
         }
     }
 
@@ -141,7 +150,7 @@ public:
     }
 
 private:
-    MessageBufferPool() : _maxPoolSize(100), _pooledCount(0) {}
+    MessageBufferPool() : _maxPoolSize(1000), _pooledCount(0) {}
     ~MessageBufferPool() = default;
     MessageBufferPool(MessageBufferPool const&) = delete;
     MessageBufferPool& operator=(MessageBufferPool const&) = delete;
