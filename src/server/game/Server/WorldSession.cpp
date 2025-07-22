@@ -727,6 +727,52 @@ bool WorldSession::CanSpeak() const
     return m_muteTime <= GameTime::GetGameTime();
 }
 
+bool WorldSession::CanSpeakInChannel(Channel* chn) const
+{
+    auto it = m_channelMuteTime.find(chn);
+    if (it != m_channelMuteTime.end())
+    {
+        return it->second <= GameTime::GetGameTime();
+    }
+    return true;
+}
+
+uint64 WorldSession::TimeUntilSpeakInChannel(Channel* chn) const
+{
+    auto it = m_channelMuteTime.find(chn);
+    if (it != m_channelMuteTime.end())
+    {
+        time_t currentTime = GameTime::GetGameTime();
+        if (it->second > currentTime)
+        {
+            return it->second - currentTime;
+        }
+    }
+    return 0;
+}
+
+void WorldSession::UpdateChannelSpeakTime(Channel* chn)
+{
+    uint32 slowModeMuteTime = sWorld->getIntConfig(CONFIG_SLOW_MODE_MUTE_TIME);
+    if (slowModeMuteTime > 0 && chn)
+    {
+        bool applySlowMode = chn->HasFlag(CHANNEL_FLAG_GENERAL);
+        
+        // Also apply to channels named 'world' or 'global'
+        if (!applySlowMode)
+        {
+            std::string channelName = chn->GetName();
+            std::transform(channelName.begin(), channelName.end(), channelName.begin(), ::tolower);
+            applySlowMode = (channelName == "world" || channelName == "global");
+        }
+        
+        if (applySlowMode)
+        {
+            m_channelMuteTime[chn] = GameTime::GetGameTime() + slowModeMuteTime;
+        }
+    }
+}
+
 char const* WorldSession::GetTrinityString(uint32 entry) const
 {
     return sObjectMgr->GetTrinityString(entry, GetSessionDbLocaleIndex());

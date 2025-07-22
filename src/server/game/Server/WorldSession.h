@@ -619,6 +619,12 @@ class TC_GAME_API WorldSession
         bool CanSpeak() const;
         time_t m_muteTime;
 
+        // Channel mute times
+        bool CanSpeakInChannel(Channel*) const;
+        uint64 TimeUntilSpeakInChannel(Channel*) const;
+        void UpdateChannelSpeakTime(Channel*);
+        std::unordered_map<Channel*, time_t> m_channelMuteTime;
+
         // @tswow-begin (Using Rochet2/Multitrainer)
         // Multitrainer
         uint32 GetCurrentTrainer() const { return m_current_trainer; }

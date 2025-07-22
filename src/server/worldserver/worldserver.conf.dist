@@ -4504,6 +4504,14 @@ MaxRespawnCountOnUpdate = 2
 MuteDefaultGuildBroadcasts = 0
 
 #
+#    SlowModeMuteTime
+#       Description: Primary channels will incur a temporary mute per message when enabled
+#       Default:     0 - (Disabled)
+#                    X - (Seconds to mute after each message)
+
+SlowModeMuteTime = 0
+
+#
 #
 ###################################################################################################
 
