@@ -408,6 +408,7 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
         // assert print helper
         bool CheckGridIntegrity(Creature* c, bool moved) const;
 
+        uint32 GetPartitionId() const { return 0; }
         uint32 GetInstanceId() const { return i_InstanceId; }
         uint8 GetSpawnMode() const { return (i_spawnMode); }
 
