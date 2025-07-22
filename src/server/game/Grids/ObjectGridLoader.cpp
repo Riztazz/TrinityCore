@@ -56,6 +56,8 @@ void AddObjectHelper(CellCoord &cell, GridRefManager<T> &m, uint32 &count, Map* 
 {
     obj->AddToGrid(m);
     obj->SetCell(Cell(cell));
+    if (map->GetId() == 489)
+        TC_LOG_DEBUG("bgs", "AddToMap {} called from AddObjectHelper map: {}, partition {}, instance {}", obj->GetSpawnId(), map->GetId(), map->GetPartitionId(), map->GetInstanceId());
     obj->AddToWorld();
     if (obj->isActiveObject())
         map->AddToActive(obj);
