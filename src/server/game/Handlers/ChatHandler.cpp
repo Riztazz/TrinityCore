@@ -520,14 +520,17 @@ void WorldSession::HandleMessagechatOpcode(WorldPacket& recvData)
 
             if (Channel* chn = ChannelMgr::GetChannelForPlayerByNamePart(channel, sender))
             {
-                if (!CanSpeakInChannel(chn))
+                if (!sender->IsGameMaster())
                 {
-                    std::string timeStr = secsToTimeString(TimeUntilSpeakInChannel(chn));
-                    SendNotification(GetTrinityString(LANG_WAIT_BEFORE_SPEAKING), timeStr.c_str());
-                    recvData.rfinish(); // Prevent warnings
-                    return;
+                    if (!CanSpeakInChannel(chn))
+                    {
+                        std::string timeStr = secsToTimeString(TimeUntilSpeakInChannel(chn));
+                        SendNotification(GetTrinityString(LANG_WAIT_BEFORE_SPEAKING), timeStr.c_str());
+                        recvData.rfinish(); // Prevent warnings
+                        return;
+                    }
+                    UpdateChannelSpeakTime(chn);
                 }
-                UpdateChannelSpeakTime(chn);
 
                 sScriptMgr->OnPlayerChat(sender, type, lang, msg, chn);
                 chn->Say(sender->GetGUID(), msg, lang);
