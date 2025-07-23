@@ -241,7 +241,7 @@ void WorldSession::HandleCharEnum(PreparedQueryResult result)
         {
             ObjectGuid guid(HighGuid::Player, (*result)[0].GetUInt32());
             // Handles race condition on delete: client sends enum packet after delete which can grab characters in the process of being
-            // delete.  Here we skip any that are not in the cache.
+            // deleted. The cache tells us which characters are still valid.
             if (!sCharacterCache->HasCharacterCacheEntry(guid))
                 continue;
 
