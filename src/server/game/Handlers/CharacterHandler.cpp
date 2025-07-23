@@ -240,6 +240,11 @@ void WorldSession::HandleCharEnum(PreparedQueryResult result)
         do
         {
             ObjectGuid guid(HighGuid::Player, (*result)[0].GetUInt32());
+            // Handles race condition on delete: client sends enum packet after delete which can grab characters in the process of being
+            // deleted. The cache tells us which characters are still valid.
+            if (!sCharacterCache->HasCharacterCacheEntry(guid))
+                continue;
+
             TC_LOG_INFO("network", "Loading {} from account {}.", guid.ToString(), GetAccountId());
             if (Player::BuildEnumData(result, &data))
             {
@@ -247,8 +252,6 @@ void WorldSession::HandleCharEnum(PreparedQueryResult result)
                 if (!(*result)[23].GetUInt32())
                     _legitCharacters.insert(guid);
 
-                if (!sCharacterCache->HasCharacterCacheEntry(guid)) // This can happen if characters are inserted into the database manually. Core hasn't loaded name data yet.
-                    sCharacterCache->AddCharacterCacheEntry(guid, GetAccountId(), (*result)[1].GetString(), (*result)[4].GetUInt8(), (*result)[2].GetUInt8(), (*result)[3].GetUInt8(), (*result)[10].GetUInt8());
                 ++num;
             }
         }

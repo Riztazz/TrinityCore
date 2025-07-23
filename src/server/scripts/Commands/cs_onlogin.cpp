@@ -50,7 +50,7 @@ public:
     {
         static ChatCommandTable commandTable =
         {
-            { "onlogin", HandleOnLoginCommand, rbac::RBAC_PERM_COMMAND_ONLOGIN, Console::No }
+            { "onlogin", HandleOnLoginCommand, rbac::RBAC_PERM_COMMAND_ONLOGIN, Console::Yes }
         };
         return commandTable;
     }

@@ -4483,7 +4483,15 @@ NameReservation = 0
 #       Default:    0 - (Disabled)
 #                   1 - (Enabled)
 
-AlwaysUpdateWaypointCreatures = 0
+AlwaysUpdateWaypointCreatures = 1
+
+#
+#    HideGameObjectSparkle
+#       Description: Hide sparkle effect on gameobjects.
+#       Default:    0 - (Disabled)
+#                   1 - (Enabled)
+
+HideGameObjectSparkle = 1
 
 #
 #    MaxRespawnCountOnUpdate
