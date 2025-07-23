@@ -4317,9 +4317,6 @@ void Player::DeleteFromDB(ObjectGuid playerguid, uint32 accountId, bool updateRe
     ObjectGuid::LowType guid = playerguid.GetCounter();
     uint32 charDelete_method = sWorld->getIntConfig(CONFIG_CHARDELETE_METHOD);
     CharacterCacheEntry const* characterInfo = sCharacterCache->GetCharacterCacheByGuid(playerguid);
-    std::string name;
-    if (characterInfo)
-        name = characterInfo->Name;
 
     if (deleteFinally)
         charDelete_method = CHAR_DELETE_REMOVE;
@@ -4678,7 +4675,7 @@ void Player::DeleteFromDB(ObjectGuid playerguid, uint32 accountId, bool updateRe
     if (updateRealmChars)
         sWorld->UpdateRealmCharCount(accountId);
 
-    sCharacterCache->DeleteCharacterCacheEntry(playerguid, name);
+    sCharacterCache->DeleteCharacterCacheEntry(playerguid);
 }
 
 /**
