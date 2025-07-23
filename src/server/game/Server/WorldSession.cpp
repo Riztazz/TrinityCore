@@ -753,22 +753,38 @@ uint64 WorldSession::TimeUntilSpeakInChannel(Channel* chn) const
 
 void WorldSession::UpdateChannelSpeakTime(Channel* chn)
 {
-    uint32 slowModeMuteTime = sWorld->getIntConfig(CONFIG_SLOW_MODE_MUTE_TIME);
-    if (slowModeMuteTime > 0 && chn)
+    uint32 channelMask = sWorld->getIntConfig(CONFIG_SLOW_MODE_CHANNEL_MASK);
+    uint32 muteTime = sWorld->getIntConfig(CONFIG_SLOW_MODE_MUTE_TIME);
+    if (chn && channelMask > 0 && muteTime > 0)
     {
-        bool applySlowMode = chn->HasFlag(CHANNEL_FLAG_GENERAL);
-        
-        // Also apply to channels named 'world' or 'global'
-        if (!applySlowMode)
-        {
-            std::string channelName = chn->GetName();
-            std::transform(channelName.begin(), channelName.end(), channelName.begin(), ::tolower);
-            applySlowMode = (channelName == "world" || channelName == "global");
-        }
-        
+        std::string channelName = chn->GetName();
+        std::transform(channelName.begin(), channelName.end(), channelName.begin(), ::tolower);
+
+        TC_LOG_DEBUG("slowmode", "UpdateChannelSpeakTime {}", channelName.c_str())
+
+        bool applySlowMode = false;
+
+        // Check each channel type against the mask
+        if ((channelMask & 1) && channelName.find("general") != std::string::npos)
+            applySlowMode = true;
+        else if ((channelMask & 2) && channelName.find("trade") != std::string::npos)
+            applySlowMode = true;
+        else if ((channelMask & 4) && channelName.find("localdefense") != std::string::npos)
+            applySlowMode = true;
+        else if ((channelMask & 8) && channelName.find("worlddefense") != std::string::npos)
+            applySlowMode = true;
+        else if ((channelMask & 16) && channelName.find("guildrecruitment") != std::string::npos)
+            applySlowMode = true;
+        else if ((channelMask & 32) && channelName.find("lookingforgroup") != std::string::npos)
+            applySlowMode = true;
+        else if ((channelMask & 64) && channelName.find("world") != std::string::npos)
+            applySlowMode = true;
+        else if ((channelMask & 128) && channelName.find("challenges") != std::string::npos)
+            applySlowMode = true;
+
         if (applySlowMode)
         {
-            m_channelMuteTime[chn] = GameTime::GetGameTime() + slowModeMuteTime;
+            m_channelMuteTime[chn] = GameTime::GetGameTime() + muteTime;
         }
     }
 }

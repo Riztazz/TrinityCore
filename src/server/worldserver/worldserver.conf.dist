@@ -4504,12 +4504,29 @@ MaxRespawnCountOnUpdate = 2
 MuteDefaultGuildBroadcasts = 0
 
 #
-#    SlowModeMuteTime
+#    SlowMode.ChannelMask
+#       Description: Channel Mask for channels to apply SlowMode to:
+#       0 = Disabled
+#       1 = General
+#       2 = Trade
+#       4 = LocalDefense
+#       8 = WorldDefense
+#       16 = GuildRecruitment
+#       32 = LookingForGroup
+#       64 = World
+#       128 = Challenges
+#       Default:     0 - (Disabled)
+#                    255 - (All)
+
+SlowMode.ChannelMask = 66
+
+#
+#    SlowMode.MuteTime
 #       Description: Primary channels will incur a temporary mute per message when enabled
 #       Default:     0 - (Disabled)
 #                    X - (Seconds to mute after each message)
 
-SlowModeMuteTime = 0
+SlowMode.MuteTime = 0
 
 #
 #
