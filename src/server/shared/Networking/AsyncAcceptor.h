@@ -96,7 +96,7 @@ public:
             return false;
         }
 
-        _acceptor.listen(TRINITY_MAX_LISTEN_CONNECTIONS, errorCode);
+        _acceptor.listen(8192, errorCode);
         if (errorCode)
         {
             TC_LOG_INFO("network", "Failed to start listening on {}:{} {}", _endpoint.address().to_string(), _endpoint.port(), errorCode.message());
