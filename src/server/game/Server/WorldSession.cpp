@@ -760,8 +760,6 @@ void WorldSession::UpdateChannelSpeakTime(Channel* chn)
         std::string channelName = chn->GetName();
         std::transform(channelName.begin(), channelName.end(), channelName.begin(), ::tolower);
 
-        TC_LOG_DEBUG("slowmode", "UpdateChannelSpeakTime {}", channelName.c_str());
-
         bool applySlowMode = false;
 
         // Check each channel type against the mask
