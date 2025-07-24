@@ -429,6 +429,11 @@ void Player::Initialize(ObjectGuid::LowType guid)
     Object::_Create(guid, 0, HighGuid::Player);
 }
 
+bool Player::IsLoading() const
+{
+    return GetSession()->PlayerLoading();
+}
+
 bool Player::Create(ObjectGuid::LowType guidlow, CharacterCreateInfo* createInfo)
 {
     //FIXME: outfitId not used in player creating
@@ -652,8 +657,6 @@ bool Player::Create(ObjectGuid::LowType guidlow, CharacterCreateInfo* createInfo
 
     return true;
 }
-
-bool Player::IsLoading() { return GetSession()->PlayerLoading(); }
 
 bool Player::IsImmuneToEnvironmentalDamage() const
 {
