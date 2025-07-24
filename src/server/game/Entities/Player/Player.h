@@ -41,6 +41,24 @@
 #include <queue>
 #include <unordered_set>
 
+#define ZONE_UPDATE_INTERVAL (1*IN_MILLISECONDS)
+
+#define PLAYER_SKILL_INDEX(x)       (PLAYER_SKILL_INFO_1_1 + ((x)*3))
+#define PLAYER_SKILL_VALUE_INDEX(x) (PLAYER_SKILL_INDEX(x)+1)
+#define PLAYER_SKILL_BONUS_INDEX(x) (PLAYER_SKILL_INDEX(x)+2)
+
+#define SKILL_VALUE(x)         PAIR32_LOPART(x)
+#define SKILL_MAX(x)           PAIR32_HIPART(x)
+#define MAKE_SKILL_VALUE(v, m) MAKE_PAIR32(v, m)
+
+#define SKILL_TEMP_BONUS(x)    int16(PAIR32_LOPART(x))
+#define SKILL_PERM_BONUS(x)    int16(PAIR32_HIPART(x))
+#define MAKE_SKILL_BONUS(t, p) MAKE_PAIR32(t, p)
+
+// corpse reclaim times
+#define DEATH_EXPIRE_STEP (5*MINUTE)
+#define MAX_DEATH_COUNT 3
+
 struct AccessRequirement;
 struct AchievementEntry;
 struct AreaTableEntry;
