@@ -653,6 +653,8 @@ bool Player::Create(ObjectGuid::LowType guidlow, CharacterCreateInfo* createInfo
     return true;
 }
 
+bool Player::IsLoading() { return GetSession()->PlayerLoading(); }
+
 bool Player::IsImmuneToEnvironmentalDamage() const
 {
     // check for GM and death state included in isAttackableByAOE
