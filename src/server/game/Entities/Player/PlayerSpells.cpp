@@ -213,7 +213,7 @@ void Player::SendTameFailure(uint8 result)
     SendDirectMessage(&data);
 }
 
-void DeleteSpellFromAllPlayers(uint32 spellId)
+void Player::DeleteSpellFromAllPlayers(uint32 spellId)
 {
     CharacterDatabaseStatements stmts[2] = {CHAR_DEL_INVALID_SPELL_SPELLS, CHAR_DEL_INVALID_SPELL_TALENTS};
     for (uint8 i = 0; i < 2; i++)
