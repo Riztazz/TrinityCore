@@ -37,6 +37,7 @@
 // @tswow-begin (Using Rochet2/Transmog)
 #include "Transmogrification.h"
 // @tswow-end
+#include "WorldSession.h"
 #include <memory>
 #include <queue>
 #include <unordered_set>
@@ -1398,7 +1399,7 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
         /*********************************************************/
 
         bool LoadFromDB(ObjectGuid guid, CharacterDatabaseQueryHolder const& holder);
-        bool IsLoading() const override { return GetSession()->PlayerLoading(); }
+        bool IsLoading() const override { return m_session->PlayerLoading(); }
 
         void Initialize(ObjectGuid::LowType guid);
         static uint32 GetZoneIdFromDB(ObjectGuid guid);
