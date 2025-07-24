@@ -2757,3 +2757,14 @@ void Player::ResetMonthlyQuestStatus()
     // DB data deleted in caller
     m_MonthlyQuestChanged = false;
 }
+
+// @epoch-start
+uint32 Player::GetXPForDifficulty(uint8 difficulty)
+{
+    QuestXPEntry const* xpentry = sQuestXPStore.LookupEntry(GetLevel());
+    if (!xpentry)
+        return 0;
+
+    return Quest::RoundXPValue(xpentry->Difficulty[difficulty]);
+}
+//@epoch-end

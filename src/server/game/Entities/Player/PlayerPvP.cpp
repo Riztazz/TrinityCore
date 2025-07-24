@@ -282,6 +282,13 @@ void Player::CheckDuelDistance(time_t currTime)
     }
 }
 
+void Player::SendDuelCountdown(uint32 counter)
+{
+    WorldPacket data(SMSG_DUEL_COUNTDOWN, 4);
+    data << uint32(counter);                                // seconds
+    SendDirectMessage(&data);
+}
+
 void Player::DuelComplete(DuelCompleteType type)
 {
     // duel not requested
@@ -1057,4 +1064,24 @@ void Player::ModifyArenaPoints(int32 value, CharacterDatabaseTransaction trans)
         stmt->setUInt32(1, GetGUID().GetCounter());
         trans->Append(stmt);
     }
+}
+
+uint32 Player::GetMaxPersonalArenaRatingRequirement(uint32 minarenaslot) const
+{
+    // returns the maximal personal arena rating that can be used to purchase items requiring this condition
+    // the personal rating of the arena team must match the required limit as well
+    // so return max[in arenateams](min(personalrating[teamtype], teamrating[teamtype]))
+    uint32 max_personal_rating = 0;
+    for (uint8 i = minarenaslot; i < MAX_ARENA_SLOT; ++i)
+    {
+        if (ArenaTeam* at = sArenaTeamMgr->GetArenaTeamById(GetArenaTeamId(i)))
+        {
+            uint32 p_rating = GetArenaPersonalRating(i);
+            uint32 t_rating = at->GetRating();
+            p_rating = p_rating < t_rating ? p_rating : t_rating;
+            if (max_personal_rating < p_rating)
+                max_personal_rating = p_rating;
+        }
+    }
+    return max_personal_rating;
 }

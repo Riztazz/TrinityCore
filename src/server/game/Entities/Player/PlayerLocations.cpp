@@ -1037,6 +1037,51 @@ void Player::CheckAreaExploreAndOutdoor()
     }
 }
 
+void Player::ProcessTerrainStatusUpdate(ZLiquidStatus oldLiquidStatus, Optional<LiquidData> const& newLiquidData)
+{
+    // process liquid auras using generic unit code
+    Unit::ProcessTerrainStatusUpdate(oldLiquidStatus, newLiquidData);
+
+    // player specific logic for mirror timers
+    if (GetLiquidStatus() && newLiquidData)
+    {
+        // Breath bar state (under water in any liquid type)
+        if (newLiquidData->type_flags & MAP_ALL_LIQUIDS)
+        {
+            if (GetLiquidStatus() & LIQUID_MAP_UNDER_WATER)
+                m_MirrorTimerFlags |= UNDERWATER_INWATER;
+            else
+                m_MirrorTimerFlags &= ~UNDERWATER_INWATER;
+        }
+
+        // Fatigue bar state (if not on flight path or transport)
+        if ((newLiquidData->type_flags & MAP_LIQUID_TYPE_DARK_WATER) && !IsInFlight() && !GetTransport())
+            m_MirrorTimerFlags |= UNDERWATER_INDARKWATER;
+        else
+            m_MirrorTimerFlags &= ~UNDERWATER_INDARKWATER;
+
+        // Lava state (any contact)
+        if (newLiquidData->type_flags & MAP_LIQUID_TYPE_MAGMA)
+        {
+            if (GetLiquidStatus() & MAP_LIQUID_STATUS_IN_CONTACT)
+                m_MirrorTimerFlags |= UNDERWATER_INLAVA;
+            else
+                m_MirrorTimerFlags &= ~UNDERWATER_INLAVA;
+        }
+
+        // Slime state (any contact)
+        if (newLiquidData->type_flags & MAP_LIQUID_TYPE_SLIME)
+        {
+            if (GetLiquidStatus() & MAP_LIQUID_STATUS_IN_CONTACT)
+                m_MirrorTimerFlags |= UNDERWATER_INSLIME;
+            else
+                m_MirrorTimerFlags &= ~UNDERWATER_INSLIME;
+        }
+    }
+    else
+        m_MirrorTimerFlags &= ~(UNDERWATER_INWATER | UNDERWATER_INLAVA | UNDERWATER_INSLIME | UNDERWATER_INDARKWATER);
+}
+
 uint32 Player::GetZoneIdFromDB(ObjectGuid guid)
 {
     ObjectGuid::LowType guidLow = guid.GetCounter();
