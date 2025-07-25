@@ -659,31 +659,22 @@ class TC_GAME_API World
         /// Get number of players
         uint32 GetPlayerCount() const { return m_PlayerCount; }
         uint32 GetMaxPlayerCount() const { return m_MaxPlayerCount; }
-        uint32 GetTeamPlayerCount(uint32 team) const
+        uint32 GetTeamCount(uint32 team) const
         {
-            if (team == ALLIANCE)
-                return m_AllianceCount;
-            if (team == HORDE)
-                return m_HordeCount;
-            return 0;
+            auto it = m_TeamCount.find(team);
+            return it != m_TeamCount.end() ? it->second : 0;
         }
         /// Increase/Decrease number of players
         void IncreasePlayerCount(uint32 team)
         {
             ++m_PlayerCount;
             m_MaxPlayerCount = std::max(m_MaxPlayerCount, m_PlayerCount);
-            if (team == ALLIANCE)
-                ++m_AllianceCount;
-            if (team == HORDE)
-                ++m_HordeCount;
+            ++m_TeamCount[team];
         }
         void DecreasePlayerCount(uint32 team)
         {
             --m_PlayerCount;
-            if (team == ALLIANCE)
-                --m_AllianceCount;
-            if (team == HORDE)
-                --m_HordeCount;
+            --m_TeamCount[team];
         }
 
         Player* FindPlayerInZone(uint32 zone);
@@ -903,6 +894,7 @@ class TC_GAME_API World
         uint32 m_maxQueuedSessionCount;
         uint32 m_PlayerCount;
         uint32 m_MaxPlayerCount;
+        std::unordered_map<uint32,uint32> m_TeamCount;
 
         std::string m_newCharString;
 

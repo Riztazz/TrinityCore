@@ -329,24 +329,9 @@ void WorldSession::HandleCharCreateOpcode(WorldPacket& recvData)
         }
         else if (uint32 pct = sWorld->getIntConfig(CONFIG_CHARACTER_CREATING_DISABLED_FACTION_BALANCE))
         {
-            bool disabled = false;
-            
             uint32 playerCount = sWorld->GetPlayerCount();
-            if (playerCount > 0)
-            {
-                float maxPct = 50.0f + pct;
-                switch (Player::TeamForRace(createInfo->Race))
-                {
-                    case ALLIANCE:
-                        disabled = 100.0f * sWorld->GetTeamPlayerCount(ALLIANCE) / playerCount >= maxPct;
-                        break;
-                    case HORDE:
-                        disabled = 100.0f * sWorld->GetTeamPlayerCount(HORDE) / playerCount >= maxPct;
-                        break;
-                }
-            }
-
-            if (disabled)
+            uint32 teamCount = sWorld->GetTeamCount(Player::TeamForRace(createInfo->Race));
+            if (playerCount > 0 && 100.0f * teamCount / playerCount >= 50.0f + pct)
             {
                 SendCharCreate(CHAR_CREATE_SERVER_LIMIT);
                 return;
