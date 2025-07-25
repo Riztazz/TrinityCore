@@ -2051,6 +2051,12 @@ bool AchievementMgr::RequirementsSatisfied(AchievementCriteriaEntry const* achie
             if (miscValue1 != achievementCriteria->Asset.MapID)
                 return false;
             break;
+        /** @epoch-start */
+        case ACHIEVEMENT_CRITERIA_TYPE_CAST_SKILL_SPELL:
+            if (miscValue1 != achievementCriteria->Asset.SkillID)
+                return false;
+            break;
+        /** @epoch-end */
         default:
             break;
     }
@@ -2316,6 +2322,9 @@ inline bool IsAchievementCriteriaTypeStoredByMiscValue(AchievementCriteriaTypes 
         case ACHIEVEMENT_CRITERIA_TYPE_LOOT_TYPE:
         case ACHIEVEMENT_CRITERIA_TYPE_CAST_SPELL2:
         case ACHIEVEMENT_CRITERIA_TYPE_LEARN_SKILL_LINE:
+        /** @epoch-start */
+        case ACHIEVEMENT_CRITERIA_TYPE_CAST_SKILL_SPELL:
+        /** @epoch-end */
             return true;
         default:
             break;
