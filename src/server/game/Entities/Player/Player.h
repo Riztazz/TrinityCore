@@ -941,6 +941,7 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
     friend class CinematicMgr;
     friend void AddItemToUpdateQueueOf(Item* item, Player* player);
     friend void RemoveItemFromUpdateQueueOf(Item* item, Player* player);
+
     public:
         // @tswow-begin
         TSServerBuffer m_msg_buffer;
@@ -954,19 +955,58 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
 
         void CleanupsBeforeDelete(bool finalCleanup = true) override;
 
+        void SetObjectScale(float scale) override;
+
+        // PlayerChat
+
+        // PlayerDatabase
+        bool LoadFromDB(ObjectGuid guid, CharacterDatabaseQueryHolder const& holder);
+        void LoadCorpse(PreparedQueryResult result);
+        void LoadPet();
+        void SaveToDB(bool create = false);
+        void SaveToDB(CharacterDatabaseTransaction trans, bool create = false);
+        void SaveInventoryAndGoldToDB(CharacterDatabaseTransaction trans); // fast save function for item/money cheating preventing
+        void SaveGoldToDB(CharacterDatabaseTransaction trans) const;
+        void SetHomebind(WorldLocation const& loc, uint32 areaId);
+        static uint32 GetZoneIdFromDB(ObjectGuid guid);
+        static void DeleteFromDB(ObjectGuid playerguid, uint32 accountId, bool updateRealmChars = true, bool deleteFinally = false);
+        static void DeleteOldCharacters();
+        static void DeleteOldCharacters(uint32 keepDays);
+        static bool BuildEnumData(PreparedQueryResult result, WorldPacket* data);
+        static bool LoadPositionFromDB(uint32& mapid, float& x, float& y, float& z, float& o, bool& in_flight, ObjectGuid guid);
+        static void SavePositionInDB(WorldLocation const& loc, uint16 zoneId, ObjectGuid guid, CharacterDatabaseTransaction trans);
+        static void Customize(CharacterCustomizeInfo const* customizeInfo, CharacterDatabaseTransaction trans);
+
+        // PlayerLocations
+        void SetMap(Map* map) override;
+        void ResetMap() override;
         void AddToWorld() override;
         void RemoveFromWorld() override;
         void AddToPartition() override;
         void RemoveFromPartition() override;
         void UpdateMapPartition(Map* forcedMap = nullptr) override;
-
-        void SetObjectScale(float scale) override;
-
         bool TeleportTo(uint32 mapid, float x, float y, float z, float orientation, uint32 options = 0);
         bool TeleportTo(WorldLocation const& loc, uint32 options = 0);
         bool TeleportToInstanceId(uint32 mapid, float x, float y, float z, float orientation, uint32 instanceId, uint32 options = 0);
         bool TeleportToInstanceId(WorldLocation const& loc, uint32 instanceId, uint32 options = 0);
         bool TeleportToBGEntryPoint();
+        void SendSavedInstances();
+        void SendInitialPacketsBeforeAddToMap();
+        void SendBindPointUpdate();
+        void SendInitialPacketsAfterAddToMap();
+        void SetMovement(PlayerMovementType pType);
+        bool UpdatePosition(float x, float y, float z, float orientation, bool teleport = false) override;
+        bool UpdatePosition(Position const& pos, bool teleport = false) override { return UpdatePosition(pos.GetPositionX(), pos.GetPositionY(), pos.GetPositionZ(), pos.GetOrientation(), teleport); }
+        void CheckAreaExploreAndOutdoor(void);
+        void ProcessTerrainStatusUpdate(ZLiquidStatus oldLiquidStatus, Optional<LiquidData> const& newLiquidData) override;
+        void SetNeedsZoneUpdate(bool needsUpdate) { m_needsZoneUpdate = needsUpdate; }
+        void UpdateZone(uint32 newZone, uint32 newArea);
+        void UpdateZoneDependentAuras(uint32 zone_id); // zones
+        void UpdateArea(uint32 newArea);
+        void UpdateAreaDependentAuras(uint32 area_id); // subzones
+        std::string GetMapAreaAndZoneString() const;
+        std::string GetCoordsMapAreaAndZoneString() const;
+        std::string GetAreaString() const;
 
         bool HasSummonPending() const;
         void SendSummonRequestFrom(Unit* summoner);
@@ -976,15 +1016,12 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
 
         void Update(uint32 time) override;
 
-        static bool BuildEnumData(PreparedQueryResult result, WorldPacket* data);
-
         bool IsImmunedToSpellEffect(SpellInfo const* spellInfo, SpellEffectInfo const& spellEffectInfo, WorldObject const* caster, bool requireImmunityPurgesEffectAttribute = false) const override;
 
         bool IsFalling() const { return GetPositionZ() < m_lastFallZ; }
         bool IsInAreaTriggerRadius(AreaTriggerEntry const* trigger) const;
 
-        void SendInitialPacketsBeforeAddToMap();
-        void SendInitialPacketsAfterAddToMap();
+        
         void SendSupercededSpell(uint32 oldSpell, uint32 newSpell) const;
         void SendTransferAborted(uint32 mapid, TransferAbortReason reason, uint8 arg = 0) const;
         void SendInstanceResetWarning(uint32 mapid, Difficulty difficulty, uint32 time, bool welcome) const;
@@ -1256,8 +1293,7 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
         void AddItemDurations(Item* item);
         void RemoveItemDurations(Item* item);
         void SendItemDurations();
-        void LoadCorpse(PreparedQueryResult result);
-        void LoadPet();
+        
 
         bool AddItem(uint32 itemId, uint32 count);
 
@@ -1397,12 +1433,12 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
         /***                   LOAD SYSTEM                     ***/
         /*********************************************************/
 
-        bool LoadFromDB(ObjectGuid guid, CharacterDatabaseQueryHolder const& holder);
+        
         bool IsLoading() const override;
 
         void Initialize(ObjectGuid::LowType guid);
-        static uint32 GetZoneIdFromDB(ObjectGuid guid);
-        static bool   LoadPositionFromDB(uint32& mapid, float& x, float& y, float& z, float& o, bool& in_flight, ObjectGuid guid);
+        
+        
 
         static bool IsValidGender(uint8 Gender) { return Gender <= GENDER_FEMALE; }
         static bool ValidateAppearance(uint8 race, uint8 class_, uint8 gender, uint8 hairID, uint8 hairColor, uint8 faceID, uint8 facialHair, uint8 skinColor, bool create = false);
@@ -1411,17 +1447,7 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
         /***                   SAVE SYSTEM                     ***/
         /*********************************************************/
 
-        void SaveToDB(bool create = false);
-        void SaveToDB(CharacterDatabaseTransaction trans, bool create = false);
-        void SaveInventoryAndGoldToDB(CharacterDatabaseTransaction trans);                    // fast save function for item/money cheating preventing
-        void SaveGoldToDB(CharacterDatabaseTransaction trans) const;
-
-        static void Customize(CharacterCustomizeInfo const* customizeInfo, CharacterDatabaseTransaction trans);
-        static void SavePositionInDB(WorldLocation const& loc, uint16 zoneId, ObjectGuid guid, CharacterDatabaseTransaction trans);
-
-        static void DeleteFromDB(ObjectGuid playerguid, uint32 accountId, bool updateRealmChars = true, bool deleteFinally = false);
-        static void DeleteOldCharacters();
-        static void DeleteOldCharacters(uint32 keepDays);
+        
 
         bool m_mailsUpdated;
 
@@ -1609,12 +1635,12 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
         void UpdatePvPState(bool onlyFFA = false);
         void SetPvP(bool state) override;
         bool UpdatePvP(bool state, bool override = false, WorldObject const* source = nullptr);
-        void UpdateZone(uint32 newZone, uint32 newArea);
-        void UpdateArea(uint32 newArea);
-        void SetNeedsZoneUpdate(bool needsUpdate) { m_needsZoneUpdate = needsUpdate; }
 
-        void UpdateZoneDependentAuras(uint32 zone_id);    // zones
-        void UpdateAreaDependentAuras(uint32 area_id);    // subzones
+        
+        
+
+        
+        
 
         void UpdateAfkReport(time_t currTime);
         void UpdatePvPFlag(time_t currTime);
@@ -1761,9 +1787,6 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
         void SendResetInstanceFailed(uint32 reason, uint32 MapId) const;
         void SendResetFailedNotify(uint32 mapid) const;
 
-        bool UpdatePosition(float x, float y, float z, float orientation, bool teleport = false) override;
-        bool UpdatePosition(Position const& pos, bool teleport = false) override { return UpdatePosition(pos.GetPositionX(), pos.GetPositionY(), pos.GetPositionZ(), pos.GetOrientation(), teleport); }
-        void ProcessTerrainStatusUpdate(ZLiquidStatus oldLiquidStatus, Optional<LiquidData> const& newLiquidData) override;
         void AtExitCombat() override;
 
         void SendMessageToSet(WorldPacket const* data, bool self) const override { SendMessageToSetInRange(data, GetVisibilityRange(), self); }
@@ -1801,7 +1824,7 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
         void StopMirrorTimers();
         bool IsMirrorTimerActive(MirrorTimerType type) const;
 
-        void SetMovement(PlayerMovementType pType);
+        
 
         bool CanJoinConstantChannelInZone(ChatChannelsEntry const* channel, AreaTableEntry const* zone) const;
 
@@ -1839,7 +1862,7 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
         void SetSemaphoreTeleportFar(bool semphsetting) { mSemaphoreTeleport_Far = semphsetting; }
         void ProcessDelayedOperations();
 
-        void CheckAreaExploreAndOutdoor(void);
+        
 
         static uint32 TeamForRace(uint8 race);
         uint32 GetTeam() const { return m_team; }
@@ -2125,8 +2148,7 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
         void SaveRecallPosition() { m_recall_location.WorldRelocate(*this); }
         void Recall() { TeleportTo(m_recall_location); }
 
-        void SetHomebind(WorldLocation const& loc, uint32 areaId);
-        void SendBindPointUpdate();
+        
 
         // Homebind coordinates
         uint32 m_homebindMapId;
@@ -2202,7 +2224,7 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
         void SetPendingBind(uint32 instanceId, uint32 bindTimer);
         bool HasPendingBind() const { return _pendingBindId > 0; }
         void SendRaidInfo();
-        void SendSavedInstances();
+        
         bool Satisfy(AccessRequirement const* ar, uint32 target_map, bool report = false);
         bool CheckInstanceValidity(bool /*isLogin*/);
 
@@ -2241,9 +2263,7 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
 
         MapReference &GetMapRef() { return m_mapRef; }
 
-        // Set map to player and add reference
-        void SetMap(Map* map) override;
-        void ResetMap() override;
+        
 
         // @epoch-begin
         bool CanTeleport() { return m_canTeleport; }
@@ -2319,15 +2339,10 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
         bool CanFly() const override { return m_movementInfo.HasMovementFlag(MOVEMENTFLAG_CAN_FLY); }
         bool CanEnterWater() const override { return true; }
 
-        std::string GetMapAreaAndZoneString() const;
-        std::string GetCoordsMapAreaAndZoneString() const;
         
-        // @epoch-start
-        std::string GetAreaString() const;
 
         bool CanSeeTransmog() const { return m_canSeeTransmog; }
         void SetCanSeeTransmog(bool on);
-        // @epoch-end
 
 // @tswow-begin (Using Rochet2/Transmog)
 #ifdef PRESETS
@@ -2338,6 +2353,9 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
         std::string GetDebugInfo() const override;
 
     protected:
+        // PlayerDatabase
+        void outDebugValues() const;
+
         // Gamemaster whisper whitelist
         GuidList WhisperList;
         uint32 m_foodEmoteTimerCount;
@@ -2445,7 +2463,6 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
         /*********************************************************/
         time_t m_lastHonorUpdateTime;
 
-        void outDebugValues() const;
         ObjectGuid m_lootGuid;
 
         uint32 m_team;
