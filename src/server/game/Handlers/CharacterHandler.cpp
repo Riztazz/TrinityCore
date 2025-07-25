@@ -331,6 +331,7 @@ void WorldSession::HandleCharCreateOpcode(WorldPacket& recvData)
         {
             uint32 playerCount = sWorld->GetPlayerCount();
             uint32 teamCount = sWorld->GetTeamCount(Player::TeamForRace(createInfo->Race));
+            TC_LOG_DEBUG("factionbalance", "team count {} player count {} pct {}", teamCount, playerCount, pct)
             if (playerCount > 0 && 100.0f * teamCount / playerCount >= 50.0f + pct)
             {
                 SendCharCreate(CHAR_CREATE_SERVER_LIMIT);
