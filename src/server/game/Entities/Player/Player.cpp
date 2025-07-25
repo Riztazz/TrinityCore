@@ -1443,6 +1443,37 @@ void Player::RemoveFromGroup(Group* group, ObjectGuid guid, RemoveMethod method 
     group->RemoveMember(guid, method, kicker, reason);
 }
 
+void Player::BuildCreateUpdateBlockForPlayer(UpdateData* data, Player* target)
+{
+    if (target == this)
+    {
+        for (uint8 i = 0; i < EQUIPMENT_SLOT_END; ++i)
+        {
+            if (m_items[i] == nullptr)
+                continue;
+
+            m_items[i]->BuildCreateUpdateBlockForPlayer(data, target);
+        }
+
+        for (uint8 i = INVENTORY_SLOT_BAG_START; i < BANK_SLOT_BAG_END; ++i)
+        {
+            if (m_items[i] == nullptr)
+                continue;
+
+            m_items[i]->BuildCreateUpdateBlockForPlayer(data, target);
+        }
+        for (uint8 i = KEYRING_SLOT_START; i < CURRENCYTOKEN_SLOT_END; ++i)
+        {
+            if (m_items[i] == nullptr)
+                continue;
+
+            m_items[i]->BuildCreateUpdateBlockForPlayer(data, target);
+        }
+    }
+
+    Unit::BuildCreateUpdateBlockForPlayer(data, target);
+}
+
 void Player::DestroyForPlayer(Player* target, bool onDeath) const
 {
     Unit::DestroyForPlayer(target, onDeath);
@@ -2223,27 +2254,7 @@ void Player::RewardReputation(Quest const* quest)
     }
 }
 
-void Player::ApplyItemDependentAuras(Item* item, bool apply)
-{
-    if (apply)
-    {
-        PlayerSpellMap const& spells = GetSpellMap();
-        for (auto itr = spells.begin(); itr != spells.end(); ++itr)
-        {
-            if (itr->second.state == PLAYERSPELL_REMOVED || itr->second.disabled)
-                continue;
 
-            SpellInfo const* spellInfo = sSpellMgr->GetSpellInfo(itr->first);
-            if (!spellInfo || !spellInfo->IsPassive() || spellInfo->EquippedItemClass < 0)
-                continue;
-
-            if (!HasAura(itr->first) && HasItemFitToSpellRequirements(spellInfo))
-                AddAura(itr->first, this);  // no SMSG_SPELL_GO in sniff found
-        }
-    }
-    else
-        RemoveItemDependentAurasAndCasts(item);
-}
 
 bool Player::CheckAttackFitToAuraRequirement(WeaponAttackType attackType, AuraEffect const* aurEff) const
 {
@@ -2529,100 +2540,9 @@ void Player::CastItemUseSpell(Item* item, SpellCastTargets const& targets, uint8
     }
 }
 
-void Player::_RemoveAllItemMods()
-{
-    TC_LOG_DEBUG("entities.player.items", "_RemoveAllItemMods start.");
 
-    for (uint8 i = 0; i < INVENTORY_SLOT_BAG_END; ++i)
-    {
-        if (m_items[i])
-        {
-            ItemTemplate const* proto = m_items[i]->GetTemplate();
-            if (!proto)
-                continue;
 
-            // item set bonuses not dependent from item broken state
-            if (proto->ItemSet)
-                RemoveItemsSetItem(this, proto);
 
-            if (m_items[i]->IsBroken() || !CanUseAttackType(GetAttackBySlot(i)))
-                continue;
-
-            ApplyItemEquipSpell(m_items[i], false);
-            ApplyEnchantment(m_items[i], false);
-        }
-    }
-
-    for (uint8 i = 0; i < INVENTORY_SLOT_BAG_END; ++i)
-    {
-        if (m_items[i])
-        {
-            if (m_items[i]->IsBroken() || !CanUseAttackType(GetAttackBySlot(i)))
-                continue;
-            ItemTemplate const* proto = m_items[i]->GetTemplate();
-            if (!proto)
-                continue;
-
-            ApplyItemDependentAuras(m_items[i], false);
-            _ApplyItemBonuses(proto, i, false);
-
-            if (i == EQUIPMENT_SLOT_RANGED)
-                _ApplyAmmoBonuses();
-        }
-    }
-
-    TC_LOG_DEBUG("entities.player.items", "_RemoveAllItemMods complete.");
-}
-
-void Player::_ApplyAllItemMods()
-{
-    TC_LOG_DEBUG("entities.player.items", "_ApplyAllItemMods start.");
-
-    for (uint8 i = 0; i < INVENTORY_SLOT_BAG_END; ++i)
-    {
-        if (m_items[i])
-        {
-            if (m_items[i]->IsBroken() || !CanUseAttackType(GetAttackBySlot(i)))
-                continue;
-
-            ItemTemplate const* proto = m_items[i]->GetTemplate();
-            if (!proto)
-                continue;
-
-            ApplyItemDependentAuras(m_items[i], true);
-            _ApplyItemBonuses(proto, i, true);
-
-            WeaponAttackType const attackType = Player::GetAttackBySlot(i);
-            if (attackType != MAX_ATTACK)
-                UpdateWeaponDependentAuras(attackType);
-
-            if (i == EQUIPMENT_SLOT_RANGED)
-                _ApplyAmmoBonuses();
-        }
-    }
-
-    for (uint8 i = 0; i < INVENTORY_SLOT_BAG_END; ++i)
-    {
-        if (m_items[i])
-        {
-            ItemTemplate const* proto = m_items[i]->GetTemplate();
-            if (!proto)
-                continue;
-
-            // item set bonuses not dependent from item broken state
-            if (proto->ItemSet)
-                AddItemsSetItem(this, m_items[i]);
-
-            if (m_items[i]->IsBroken() || !CanUseAttackType(GetAttackBySlot(i)))
-                continue;
-
-            ApplyItemEquipSpell(m_items[i], true);
-            ApplyEnchantment(m_items[i], true);
-        }
-    }
-
-    TC_LOG_DEBUG("entities.player.items", "_ApplyAllItemMods complete.");
-}
 
 /*  If in a battleground a player dies, and an enemy removes the insignia, the player's bones is lootable
     Called by remove insignia spell effect    */
@@ -3848,6 +3768,13 @@ void Player::RemovePet(Pet* pet, PetSaveMode mode, bool returnreagent)
         if (GetGroup())
             SetGroupUpdateFlag(GROUP_UPDATE_PET);
     }
+}
+
+void Player::SendTameFailure(uint8 result)
+{
+    WorldPacket data(SMSG_PET_TAME_FAILURE, 1);
+    data << uint8(result);
+    SendDirectMessage(&data);
 }
 
 void Player::AddPetAura(PetAura const* petSpell)
@@ -5089,109 +5016,6 @@ void Player::SummonIfPossible(bool agree)
     TeleportTo(m_summon_location);
 }
 
-bool Player::HasItemFitToSpellRequirements(SpellInfo const* spellInfo, Item const* ignoreItem) const
-{
-    if (spellInfo->EquippedItemClass < 0)
-        return true;
-
-    // scan other equipped items for same requirements (mostly 2 daggers/etc)
-    // for optimize check 2 used cases only
-    switch (spellInfo->EquippedItemClass)
-    {
-        case ITEM_CLASS_WEAPON:
-        {
-            for (uint8 i = EQUIPMENT_SLOT_MAINHAND; i < EQUIPMENT_SLOT_TABARD; ++i)
-                if (Item* item = GetUseableItemByPos(INVENTORY_SLOT_BAG_0, i))
-                    if (item != ignoreItem && item->IsFitToSpellRequirements(spellInfo))
-                        return true;
-            break;
-        }
-        case ITEM_CLASS_ARMOR:
-        {
-            // most used check: shield only
-            if (spellInfo->EquippedItemSubClassMask & ((1 << ITEM_SUBCLASS_ARMOR_BUCKLER) | (1 << ITEM_SUBCLASS_ARMOR_SHIELD)))
-            {
-                if (Item* item = GetUseableItemByPos(INVENTORY_SLOT_BAG_0, EQUIPMENT_SLOT_OFFHAND))
-                    if (item != ignoreItem && item->IsFitToSpellRequirements(spellInfo))
-                        return true;
-
-                // special check to filter things like Shield Wall, the aura is not permanent and must stay even without required item
-                if (!spellInfo->IsPassive())
-                    for (SpellEffectInfo const& spellEffectInfo : spellInfo->GetEffects())
-                        if (spellEffectInfo.IsAura())
-                            return true;
-            }
-
-            // tabard not have dependent spells
-            for (uint8 i = EQUIPMENT_SLOT_START; i < EQUIPMENT_SLOT_MAINHAND; ++i)
-                if (Item* item = GetUseableItemByPos(INVENTORY_SLOT_BAG_0, i))
-                    if (item != ignoreItem && item->IsFitToSpellRequirements(spellInfo))
-                        return true;
-
-            // ranged slot can have some armor subclasses
-            if (Item* item = GetUseableItemByPos(INVENTORY_SLOT_BAG_0, EQUIPMENT_SLOT_RANGED))
-                if (item != ignoreItem && item->IsFitToSpellRequirements(spellInfo))
-                    return true;
-            break;
-        }
-        default:
-            TC_LOG_ERROR("entities.player", "Player::HasItemFitToSpellRequirements: Not handled spell requirement for item class {}", spellInfo->EquippedItemClass);
-            break;
-    }
-
-    return false;
-}
-
-bool Player::CanNoReagentCast(SpellInfo const* spellInfo) const
-{
-    // don't take reagents for spells with SPELL_ATTR5_NO_REAGENT_WHILE_PREP
-    if (spellInfo->HasAttribute(SPELL_ATTR5_NO_REAGENT_WHILE_PREP) &&
-        HasUnitFlag(UNIT_FLAG_PREPARATION))
-        return true;
-
-    // Check no reagent use mask
-    flag96 noReagentMask;
-    noReagentMask[0] = GetUInt32Value(PLAYER_NO_REAGENT_COST_1);
-    noReagentMask[1] = GetUInt32Value(PLAYER_NO_REAGENT_COST_1+1);
-    noReagentMask[2] = GetUInt32Value(PLAYER_NO_REAGENT_COST_1+2);
-    if (spellInfo->SpellFamilyFlags  & noReagentMask)
-        return true;
-
-    return false;
-}
-
-void Player::RemoveItemDependentAurasAndCasts(Item* pItem)
-{
-    for (AuraMap::iterator itr = m_ownedAuras.begin(); itr != m_ownedAuras.end();)
-    {
-        Aura* aura = itr->second;
-
-        // skip not self applied auras
-        SpellInfo const* spellInfo = aura->GetSpellInfo();
-        if (aura->GetCasterGUID() != GetGUID())
-        {
-            ++itr;
-            continue;
-        }
-
-        // skip if not item dependent or have alternative item
-        if (HasItemFitToSpellRequirements(spellInfo, pItem))
-        {
-            ++itr;
-            continue;
-        }
-
-        // no alt item, remove aura, restart check
-        RemoveOwnedAura(itr);
-    }
-
-    // currently cast spells can be dependent from item
-    for (uint32 i = 0; i < CURRENT_MAX_SPELL; ++i)
-        if (Spell* spell = GetCurrentSpell(CurrentSpellTypes(i)))
-            if (spell->getState() != SPELL_STATE_DELAYED && !HasItemFitToSpellRequirements(spell->m_spellInfo, pItem))
-                InterruptSpell(CurrentSpellTypes(i));
-}
-
 uint32 Player::GetResurrectionSpellId()
 {
     // search priceless resurrection possibilities
@@ -6299,30 +6123,17 @@ void Player::SetSelection(ObjectGuid guid) {
 }
 // @tswow-end
 
-// @epoch-start
-void Player::SetCanSeeTransmog(bool on)
+// PlayerCombat
+
+SpellSchoolMask Player::GetMeleeDamageSchoolMask(WeaponAttackType attackType /*= BASE_ATTACK*/, uint8 damageIndex /*= 0*/) const
 {
-    if (m_canSeeTransmog == on)
-        return;
-
-    m_canSeeTransmog = on;
-
-    // update own item display
-    for (uint8 slot = EQUIPMENT_SLOT_START; slot < EQUIPMENT_SLOT_END; ++slot)
-        ForceValuesUpdateAtIndex(PLAYER_VISIBLE_ITEM_1_ENTRYID + (slot * 2));
-
-    if (m_clientGUIDs.empty())
-        return;
-
-    for (auto itr = m_clientGUIDs.begin(); itr != m_clientGUIDs.end(); ++itr)
-    {
-        if (itr->GetTypeId() != TYPEID_PLAYER)
-            continue;
-
-        Player* pp = ObjectAccessor::FindPlayer(*itr);
-
-        for (uint8 slot = EQUIPMENT_SLOT_START; slot < EQUIPMENT_SLOT_END; ++slot)
-            pp->ForceValuesUpdateAtIndex(PLAYER_VISIBLE_ITEM_1_ENTRYID + (slot * 2));
-    }
+    return SpellSchoolMask(1 << GetMeleeDamageSchool(attackType, damageIndex));
 }
-//@epoch-end
+
+SpellSchools Player::GetMeleeDamageSchool(WeaponAttackType attackType /*= BASE_ATTACK*/, uint8 damageIndex /*= 0*/) const
+{
+    if (Item const* weapon = GetWeaponForAttack(attackType, true))
+        return SpellSchools(weapon->GetTemplate()->Damage[damageIndex].DamageType);
+
+    return SPELL_SCHOOL_NORMAL;
+}

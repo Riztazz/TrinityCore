@@ -127,6 +127,13 @@
 #include "AnticheatMgr.h"
 // @epoch-end
 
+void Player::SendProficiency(ItemClass itemClass, uint32 itemSubclassMask) const
+{
+    WorldPacket data(SMSG_SET_PROFICIENCY, 1 + 4);
+    data << uint8(itemClass) << uint32(itemSubclassMask);
+    SendDirectMessage(&data);
+}
+
 void Player::SendInitialSpells()
 {
     uint16 spellCooldowns = GetSpellHistory()->GetCooldownsSizeForPacket();
@@ -206,13 +213,6 @@ void Player::SendUnlearnSpells()
     SendDirectMessage(&data);
 }
 
-void Player::SendTameFailure(uint8 result)
-{
-    WorldPacket data(SMSG_PET_TAME_FAILURE, 1);
-    data << uint8(result);
-    SendDirectMessage(&data);
-}
-
 void Player::DeleteSpellFromAllPlayers(uint32 spellId)
 {
     CharacterDatabaseStatements stmts[2] = {CHAR_DEL_INVALID_SPELL_SPELLS, CHAR_DEL_INVALID_SPELL_TALENTS};
@@ -224,6 +224,31 @@ void Player::DeleteSpellFromAllPlayers(uint32 spellId)
 
         CharacterDatabase.Execute(stmt);
     }
+}
+
+void Player::AddTemporarySpell(uint32 spellId)
+{
+    PlayerSpellMap::iterator itr = m_spells.find(spellId);
+    // spell already added - do not do anything
+    if (itr != m_spells.end())
+        return;
+    PlayerSpell* newspell = &m_spells[spellId];
+    newspell->state     = PLAYERSPELL_TEMPORARY;
+    newspell->active    = true;
+    newspell->dependent = false;
+    newspell->disabled  = false;
+}
+
+void Player::RemoveTemporarySpell(uint32 spellId)
+{
+    PlayerSpellMap::iterator itr = m_spells.find(spellId);
+    // spell already not in list - do not do anything
+    if (itr == m_spells.end())
+        return;
+    // spell has other state than temporary - do not change it
+    if (itr->second.state != PLAYERSPELL_TEMPORARY)
+        return;
+    m_spells.erase(itr);
 }
 
 static bool IsUnlearnSpellsPacketNeededForSpell(uint32 spellId)
@@ -602,31 +627,6 @@ bool Player::AddSpell(uint32 spellId, bool active, bool learning, bool dependent
 
     // return true (for send learn packet) only if spell active (in case ranked spells) and not replace old spell
     return active && !disabled && !superceded_old;
-}
-
-void Player::AddTemporarySpell(uint32 spellId)
-{
-    PlayerSpellMap::iterator itr = m_spells.find(spellId);
-    // spell already added - do not do anything
-    if (itr != m_spells.end())
-        return;
-    PlayerSpell* newspell = &m_spells[spellId];
-    newspell->state     = PLAYERSPELL_TEMPORARY;
-    newspell->active    = true;
-    newspell->dependent = false;
-    newspell->disabled  = false;
-}
-
-void Player::RemoveTemporarySpell(uint32 spellId)
-{
-    PlayerSpellMap::iterator itr = m_spells.find(spellId);
-    // spell already not in list - do not do anything
-    if (itr == m_spells.end())
-        return;
-    // spell has other state than temporary - do not change it
-    if (itr->second.state != PLAYERSPELL_TEMPORARY)
-        return;
-    m_spells.erase(itr);
 }
 
 bool Player::HandlePassiveSpellLearn(SpellInfo const* spellInfo)
@@ -1262,11 +1262,6 @@ bool Player::CanExecutePendingSpellCastRequest(SpellInfo const* spellInfo, bool 
     return true;
 }
 
-bool Player::IsSpellQueueEnabled() const
-{
-    return true;
-}
-
 void Player::RequestSpellCast(PendingSpellCastRequest castRequest, SpellInfo const* spellInfo)
 {
     // We are overriding an already existing spell cast request so inform the client that the old cast is being replaced
@@ -1411,24 +1406,6 @@ void Player::ProcessPendingSpellCastRequest(uint32 category)
     }
 }
 
-void Player::RemoveSameTickQueueBlock(uint32 category)
-{
-    if (m_SameTickBlockList.size())
-    {
-        if (m_SameTickBlockList.find(category) != m_SameTickBlockList.end())
-        {
-            m_SameTickBlockList.erase(category);
-            TC_LOG_DEBUG("misc", "removing same tick block from category {} at {}", category, getMSTime());
-        }
-    }
-}
-
-void Player::AddSameTickQueueBlock(uint32 category)
-{
-    TC_LOG_DEBUG("misc", "adding same tick block to category {} at {}", category, getMSTime());
-    m_SameTickBlockList[category] = getMSTime();
-}
-
 bool Player::HasSameTickQueueBlock(uint32 category, bool ignore_time) const
 {
     if (m_SameTickBlockList.size())
@@ -1442,6 +1419,24 @@ bool Player::HasSameTickQueueBlock(uint32 category, bool ignore_time) const
         }
     }
     return false;
+}
+
+void Player::AddSameTickQueueBlock(uint32 category)
+{
+    TC_LOG_DEBUG("misc", "adding same tick block to category {} at {}", category, getMSTime());
+    m_SameTickBlockList[category] = getMSTime();
+}
+
+void Player::RemoveSameTickQueueBlock(uint32 category)
+{
+    if (m_SameTickBlockList.size())
+    {
+        if (m_SameTickBlockList.find(category) != m_SameTickBlockList.end())
+        {
+            m_SameTickBlockList.erase(category);
+            TC_LOG_DEBUG("misc", "removing same tick block from category {} at {}", category, getMSTime());
+        }
+    }
 }
 
 void Player::ExecuteSortedCastRequests()
@@ -1470,7 +1465,6 @@ void Player::ExecuteSortedCastRequests()
     }
 }
 
-// @tswow-begin
 void Player::ApplyAutolearnSpells(uint32 fromLevel)
 {
     uint32 level = GetLevel();
@@ -1491,37 +1485,6 @@ void Player::ApplyAutolearnSpells(uint32 fromLevel)
                 LearnSpell(sal.spell, false);
             }
         }
-    }
-}
-// @tswow-end
-
-void Player::ApplyItemEquipSpell(Item* item, bool apply, bool form_change)
-{
-    if (!item)
-        return;
-
-    ItemTemplate const* proto = item->GetTemplate();
-    if (!proto)
-        return;
-
-    for (uint8 i = 0; i < MAX_ITEM_PROTO_SPELLS; ++i)
-    {
-        _Spell const& spellData = proto->Spells[i];
-
-        // no spell
-        if (spellData.SpellId <= 0)
-            continue;
-
-        // wrong triggering type
-        if (apply && spellData.SpellTrigger != ITEM_SPELLTRIGGER_ON_EQUIP)
-            continue;
-
-        // check if it is valid spell
-        SpellInfo const* spellproto = sSpellMgr->GetSpellInfo(spellData.SpellId);
-        if (!spellproto)
-            continue;
-
-        ApplyEquipSpell(spellproto, item, apply, form_change);
     }
 }
 
@@ -1559,6 +1522,36 @@ void Player::ApplyEquipSpell(SpellInfo const* spellInfo, Item* item, bool apply,
             RemoveAurasDueToItemSpell(spellInfo->Id, item->GetGUID());  // un-apply all spells, not only at-equipped
         else
             RemoveAurasDueToSpell(spellInfo->Id);           // un-apply spell (item set case)
+    }
+}
+
+void Player::ApplyItemEquipSpell(Item* item, bool apply, bool form_change)
+{
+    if (!item)
+        return;
+
+    ItemTemplate const* proto = item->GetTemplate();
+    if (!proto)
+        return;
+
+    for (uint8 i = 0; i < MAX_ITEM_PROTO_SPELLS; ++i)
+    {
+        _Spell const& spellData = proto->Spells[i];
+
+        // no spell
+        if (spellData.SpellId <= 0)
+            continue;
+
+        // wrong triggering type
+        if (apply && spellData.SpellTrigger != ITEM_SPELLTRIGGER_ON_EQUIP)
+            continue;
+
+        // check if it is valid spell
+        SpellInfo const* spellproto = sSpellMgr->GetSpellInfo(spellData.SpellId);
+        if (!spellproto)
+            continue;
+
+        ApplyEquipSpell(spellproto, item, apply, form_change);
     }
 }
 
@@ -1617,6 +1610,155 @@ bool Player::IsSpellFitByClassAndRace(uint32 spell_id) const
 
         return true;
     }
+
+    return false;
+}
+
+bool Player::HasItemFitToSpellRequirements(SpellInfo const* spellInfo, Item const* ignoreItem) const
+{
+    if (spellInfo->EquippedItemClass < 0)
+        return true;
+
+    // scan other equipped items for same requirements (mostly 2 daggers/etc)
+    // for optimize check 2 used cases only
+    switch (spellInfo->EquippedItemClass)
+    {
+        case ITEM_CLASS_WEAPON:
+        {
+            for (uint8 i = EQUIPMENT_SLOT_MAINHAND; i < EQUIPMENT_SLOT_TABARD; ++i)
+                if (Item* item = GetUseableItemByPos(INVENTORY_SLOT_BAG_0, i))
+                    if (item != ignoreItem && item->IsFitToSpellRequirements(spellInfo))
+                        return true;
+            break;
+        }
+        case ITEM_CLASS_ARMOR:
+        {
+            // most used check: shield only
+            if (spellInfo->EquippedItemSubClassMask & ((1 << ITEM_SUBCLASS_ARMOR_BUCKLER) | (1 << ITEM_SUBCLASS_ARMOR_SHIELD)))
+            {
+                if (Item* item = GetUseableItemByPos(INVENTORY_SLOT_BAG_0, EQUIPMENT_SLOT_OFFHAND))
+                    if (item != ignoreItem && item->IsFitToSpellRequirements(spellInfo))
+                        return true;
+
+                // special check to filter things like Shield Wall, the aura is not permanent and must stay even without required item
+                if (!spellInfo->IsPassive())
+                    for (SpellEffectInfo const& spellEffectInfo : spellInfo->GetEffects())
+                        if (spellEffectInfo.IsAura())
+                            return true;
+            }
+
+            // tabard not have dependent spells
+            for (uint8 i = EQUIPMENT_SLOT_START; i < EQUIPMENT_SLOT_MAINHAND; ++i)
+                if (Item* item = GetUseableItemByPos(INVENTORY_SLOT_BAG_0, i))
+                    if (item != ignoreItem && item->IsFitToSpellRequirements(spellInfo))
+                        return true;
+
+            // ranged slot can have some armor subclasses
+            if (Item* item = GetUseableItemByPos(INVENTORY_SLOT_BAG_0, EQUIPMENT_SLOT_RANGED))
+                if (item != ignoreItem && item->IsFitToSpellRequirements(spellInfo))
+                    return true;
+            break;
+        }
+        default:
+            TC_LOG_ERROR("entities.player", "Player::HasItemFitToSpellRequirements: Not handled spell requirement for item class {}", spellInfo->EquippedItemClass);
+            break;
+    }
+
+    return false;
+}
+
+void Player::ApplyItemDependentAuras(Item* item, bool apply)
+{
+    if (apply)
+    {
+        PlayerSpellMap const& spells = GetSpellMap();
+        for (auto itr = spells.begin(); itr != spells.end(); ++itr)
+        {
+            if (itr->second.state == PLAYERSPELL_REMOVED || itr->second.disabled)
+                continue;
+
+            SpellInfo const* spellInfo = sSpellMgr->GetSpellInfo(itr->first);
+            if (!spellInfo || !spellInfo->IsPassive() || spellInfo->EquippedItemClass < 0)
+                continue;
+
+            if (!HasAura(itr->first) && HasItemFitToSpellRequirements(spellInfo))
+                AddAura(itr->first, this);  // no SMSG_SPELL_GO in sniff found
+        }
+    }
+    else
+        RemoveItemDependentAurasAndCasts(item);
+}
+
+void Player::RemoveItemDependentAurasAndCasts(Item* pItem)
+{
+    for (AuraMap::iterator itr = m_ownedAuras.begin(); itr != m_ownedAuras.end();)
+    {
+        Aura* aura = itr->second;
+
+        // skip not self applied auras
+        SpellInfo const* spellInfo = aura->GetSpellInfo();
+        if (aura->GetCasterGUID() != GetGUID())
+        {
+            ++itr;
+            continue;
+        }
+
+        // skip if not item dependent or have alternative item
+        if (HasItemFitToSpellRequirements(spellInfo, pItem))
+        {
+            ++itr;
+            continue;
+        }
+
+        // no alt item, remove aura, restart check
+        RemoveOwnedAura(itr);
+    }
+
+    // currently cast spells can be dependent from item
+    for (uint32 i = 0; i < CURRENT_MAX_SPELL; ++i)
+        if (Spell* spell = GetCurrentSpell(CurrentSpellTypes(i)))
+            if (spell->getState() != SPELL_STATE_DELAYED && !HasItemFitToSpellRequirements(spell->m_spellInfo, pItem))
+                InterruptSpell(CurrentSpellTypes(i));
+}
+
+void Player::SetCanTitanGrip(bool value, uint32 penaltySpellId /*= 0*/)
+{
+    if (value == m_canTitanGrip)
+        return;
+
+    m_canTitanGrip = value;
+    m_titanGripPenaltySpellId = penaltySpellId;
+}
+
+void Player::CheckTitanGripPenalty()
+{
+    if (!CanTitanGrip())
+        return;
+
+    bool apply = IsUsingTwoHandedWeaponInOneHand();
+    if (apply)
+    {
+        if (!HasAura(m_titanGripPenaltySpellId))
+            CastSpell((Unit*)nullptr, m_titanGripPenaltySpellId, true);
+    }
+    else
+        RemoveAurasDueToSpell(m_titanGripPenaltySpellId);
+}
+
+bool Player::CanNoReagentCast(SpellInfo const* spellInfo) const
+{
+    // don't take reagents for spells with SPELL_ATTR5_NO_REAGENT_WHILE_PREP
+    if (spellInfo->HasAttribute(SPELL_ATTR5_NO_REAGENT_WHILE_PREP) &&
+        HasUnitFlag(UNIT_FLAG_PREPARATION))
+        return true;
+
+    // Check no reagent use mask
+    flag96 noReagentMask;
+    noReagentMask[0] = GetUInt32Value(PLAYER_NO_REAGENT_COST_1);
+    noReagentMask[1] = GetUInt32Value(PLAYER_NO_REAGENT_COST_1+1);
+    noReagentMask[2] = GetUInt32Value(PLAYER_NO_REAGENT_COST_1+2);
+    if (spellInfo->SpellFamilyFlags  & noReagentMask)
+        return true;
 
     return false;
 }
@@ -1778,12 +1920,4 @@ void Player::SetSpellModTakingSpell(Spell* spell, bool apply)
         return;
 
     m_spellModTakingSpell = apply ? spell : nullptr;
-}
-
-// send Proficiency
-void Player::SendProficiency(ItemClass itemClass, uint32 itemSubclassMask) const
-{
-    WorldPacket data(SMSG_SET_PROFICIENCY, 1 + 4);
-    data << uint8(itemClass) << uint32(itemSubclassMask);
-    SendDirectMessage(&data);
 }

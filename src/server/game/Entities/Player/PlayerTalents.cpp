@@ -1061,3 +1061,41 @@ void Player::ResetPetTalents()
     pet->resetTalents();
     SendTalentsInfoData(true);
 }
+
+void Player::SetGlyph(uint8 slot, uint32 glyph)
+{
+    m_Glyphs[m_activeSpec][slot] = glyph;
+    SetUInt32Value(PLAYER_FIELD_GLYPHS_1 + slot, glyph);
+}
+
+void Player::InitGlyphsForLevel()
+{
+    for (uint32 i = 0; i < sGlyphSlotStore.GetNumRows(); ++i)
+        if (GlyphSlotEntry const* gs = sGlyphSlotStore.LookupEntry(i))
+            if (gs->Tooltip)
+                SetGlyphSlot(gs->Tooltip - 1, gs->ID);
+
+    uint8 level = GetLevel();
+    uint32 value = 0;
+
+    // 0x3F = 0x01 | 0x02 | 0x04 | 0x08 | 0x10 | 0x20 for 80 level
+    if (level >= 15)
+        value |= (0x01 | 0x02);
+    if (level >= 30)
+        value |= 0x08;
+    if (level >= 50)
+        value |= 0x04;
+    if (level >= 70)
+        value |= 0x10;
+    if (level >= 80)
+        value |= 0x20;
+
+    // @tswow-begin
+    FIRE(Player,OnGlyphInitForLevel
+        , TSPlayer(this)
+        , TSMutableNumber<uint32>(&value)
+    );
+    // @tswow-end
+
+    SetUInt32Value(PLAYER_GLYPHS_ENABLED, value);
+}

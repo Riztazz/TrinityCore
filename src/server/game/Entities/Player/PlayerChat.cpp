@@ -157,39 +157,6 @@ bool Player::CanJoinConstantChannelInZone(ChatChannelsEntry const* channel, Area
     return true;
 }
 
-// TODO move to player.h
-bool Player::IsInWhisperWhiteList(ObjectGuid guid)
-{
-    for (GuidList::const_iterator itr = WhisperList.begin(); itr != WhisperList.end(); ++itr)
-        if (*itr == guid)
-            return true;
-
-    return false;
-}
-
-void Player::JoinedChannel(Channel* c)
-{
-    m_channels.push_back(c);
-}
-
-void Player::LeftChannel(Channel* c)
-{
-    m_channels.remove(c);
-}
-
-// UNUSED
-void Player::LeaveLFGChannel()
-{
-    for (JoinedChannelsList::iterator i = m_channels.begin(); i != m_channels.end(); ++i)
-    {
-        if ((*i)->IsLFG())
-        {
-            (*i)->LeaveChannel(this);
-            break;
-        }
-    }
-}
-
 void Player::CleanupChannels()
 {
     while (!m_channels.empty())

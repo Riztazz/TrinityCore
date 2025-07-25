@@ -127,14 +127,6 @@
 #include "AnticheatMgr.h"
 // @epoch-end
 
-uint32 Player::GetGossipTextId(WorldObject* source)
-{
-    if (!source)
-        return DEFAULT_GOSSIP_MESSAGE;
-
-    return GetGossipTextId(GetDefaultGossipMenuForSource(source), source);
-}
-
 uint32 Player::GetGossipTextId(uint32 menuId, WorldObject* source)
 {
     uint32 textId = DEFAULT_GOSSIP_MESSAGE;
@@ -151,6 +143,14 @@ uint32 Player::GetGossipTextId(uint32 menuId, WorldObject* source)
     }
 
     return textId;
+}
+
+uint32 Player::GetGossipTextId(WorldObject* source)
+{
+    if (!source)
+        return DEFAULT_GOSSIP_MESSAGE;
+
+    return GetGossipTextId(GetDefaultGossipMenuForSource(source), source);
 }
 
 uint32 Player::GetDefaultGossipMenuForSource(WorldObject* source)
