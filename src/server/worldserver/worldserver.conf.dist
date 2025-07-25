@@ -770,6 +770,15 @@ CharacterCreating.Disabled.RaceMask = 0
 CharacterCreating.Disabled.ClassMask = 0
 
 #
+#    CharacterCreating.Disabled.FactionBalance
+#        Description: Disable character creation for players based on dominant online faction.
+#                     E.g. 5 = >55% of one faction online will disable it
+#        Default:     0 - (Disabled)
+#                     X - (Enabled, Increments of 1% Diff)
+
+CharacterCreating.Disabled.FactionBalance = 0
+
+#
 #    CharactersPerAccount
 #        Description: Limit number of characters per account on all realms on this realmlist.
 #        Important:   Number must be >= CharactersPerRealm
