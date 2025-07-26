@@ -25,8 +25,6 @@
 #include "SpellInfo.h"
 #include "UniqueTrackablePtr.h"
 
-class SpellInfo;
-struct SpellModifier;
 struct ProcTriggerSpell;
 struct SpellProcEntry;
 

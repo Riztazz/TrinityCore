@@ -40,7 +40,6 @@ struct Condition;
 struct SpellChainNode;
 struct SpellTargetPosition;
 struct SpellDurationEntry;
-struct SpellModifier;
 struct SpellRangeEntry;
 struct SpellRadiusEntry;
 struct SpellEntry;
@@ -203,6 +202,20 @@ enum SpellCustomAttributes1
     SPELL_ATTR0_CU_UNK22                 = 0x00400000, // Unused
     SPELL_ATTR0_CU_UNK23                 = 0x00800000, // Unused
     SPELL_ATTR0_CU_UNK24                 = 0x01000000  // Unused
+};
+
+// Spell modifier (used for modify other spells)
+struct SpellModifier
+{
+    SpellModifier(Aura* _ownerAura) : op(SPELLMOD_DAMAGE), type(SPELLMOD_FLAT), value(0), mask(), spellId(0), ownerAura(_ownerAura) { }
+
+    SpellModOp op;
+    SpellModType type;
+
+    int32 value;
+    flag96 mask;
+    uint32 spellId;
+    Aura* const ownerAura;
 };
 
 uint32 GetTargetFlagMask(SpellTargetObjectTypes objType);

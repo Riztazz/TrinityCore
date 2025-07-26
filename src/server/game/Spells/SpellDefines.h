@@ -127,6 +127,13 @@ enum SpellModOp : uint8
     MAX_SPELLMOD
 };
 
+// Note: SPELLMOD_* values is aura types in fact
+enum SpellModType : uint8
+{
+    SPELLMOD_FLAT         = SPELL_AURA_ADD_FLAT_MODIFIER,
+    SPELLMOD_PCT          = SPELL_AURA_ADD_PCT_MODIFIER
+};
+
 enum SpellValueMod : uint8
 {
     SPELLVALUE_BASE_POINT0,

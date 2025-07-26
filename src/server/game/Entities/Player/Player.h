@@ -112,13 +112,6 @@ typedef std::deque<Mail*> PlayerMails;
 #define PLAYER_MAX_DAILY_QUESTS     25
 #define PLAYER_EXPLORED_ZONES_SIZE  128
 
-// Note: SPELLMOD_* values is aura types in fact
-enum SpellModType : uint8
-{
-    SPELLMOD_FLAT         = SPELL_AURA_ADD_FLAT_MODIFIER,
-    SPELLMOD_PCT          = SPELL_AURA_ADD_PCT_MODIFIER
-};
-
 // 2^n values, Player::m_isunderwater is a bitmask. These are Trinity internal values, they are never send to any client
 enum PlayerUnderwaterState
 {
@@ -160,20 +153,6 @@ struct PlayerTalent
 {
     PlayerSpellState state;
     uint8 spec;
-};
-
-// Spell modifier (used for modify other spells)
-struct SpellModifier
-{
-    SpellModifier(Aura* _ownerAura) : op(SPELLMOD_DAMAGE), type(SPELLMOD_FLAT), value(0), mask(), spellId(0), ownerAura(_ownerAura) { }
-
-    SpellModOp op;
-    SpellModType type;
-
-    int32 value;
-    flag96 mask;
-    uint32 spellId;
-    Aura* const ownerAura;
 };
 
 // @tswow-begin (Using Rochet2/Transmog)
