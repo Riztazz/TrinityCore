@@ -37,6 +37,7 @@
 // @tswow-begin (Using Rochet2/Transmog)
 #include "Transmogrification.h"
 // @tswow-end
+#include "Item.h"
 #include <memory>
 #include <queue>
 #include <unordered_set>
