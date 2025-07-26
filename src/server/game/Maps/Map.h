@@ -814,7 +814,7 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
         ScriptScheduleMap m_scriptSchedule;
 
     public:
-        void ProcessRespawns();
+        void ProcessRespawns(uint32);
         void ApplyDynamicModeRespawnScaling(WorldObject const* obj, ObjectGuid::LowType spawnId, uint32& respawnDelay, uint32 mode) const;
 
     private:
