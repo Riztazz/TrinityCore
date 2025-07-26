@@ -1035,6 +1035,50 @@ void Player::RemoveRestFlag(RestFlag restFlag)
     }
 }
 
+uint32 Player::GetXPRestBonus(uint32 xp)
+{
+    uint32 rested_bonus = (uint32)GetRestBonus();           // xp for each rested bonus
+
+    if (rested_bonus > xp)                                   // max rested_bonus == xp or (r+x) = 200% xp
+        rested_bonus = xp;
+
+    SetRestBonus(GetRestBonus() - rested_bonus);
+
+    TC_LOG_DEBUG("entities.player", "Player::GetXPRestBonus: Player '{}' ({}) gain {} xp (+{} Rested Bonus). Rested points={}", GetGUID().ToString(), GetName(), xp + rested_bonus, rested_bonus, GetRestBonus());
+    return rested_bonus;
+}
+
+void Player::SetRestBonus(float rest_bonus_new)
+{
+    // Prevent resting on max level
+    if (IsMaxLevel())
+        rest_bonus_new = 0;
+
+    if (rest_bonus_new < 0)
+        rest_bonus_new = 0;
+
+    float rest_bonus_max = (float)GetUInt32Value(PLAYER_NEXT_LEVEL_XP)*1.5f/2;
+
+    if (rest_bonus_new > rest_bonus_max)
+        m_rest_bonus = rest_bonus_max;
+    else
+        m_rest_bonus = rest_bonus_new;
+
+    // update data for client
+    if ((GetsRecruitAFriendBonus(true) && (GetSession()->IsARecruiter() || GetSession()->GetRecruiterId() != 0)))
+        SetRestState(REST_STATE_RAF_LINKED);
+    else
+    {
+        if (m_rest_bonus > 10)
+            SetRestState(REST_STATE_RESTED);
+        else if (m_rest_bonus <= 1)
+            SetRestState(REST_STATE_NOT_RAF_LINKED);
+    }
+
+    //RestTickUpdate
+    SetUInt32Value(PLAYER_REST_STATE_EXPERIENCE, uint32(m_rest_bonus));
+}
+
 void Player::SetCanSeeTransmog(bool on)
 {
     if (m_canSeeTransmog == on)
