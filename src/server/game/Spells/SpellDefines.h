@@ -22,9 +22,8 @@
 #include "ObjectGuid.h"
 #include "Optional.h"
 #include "Position.h"
+#include "SpellAuraDefines.h"
 #include <vector>
-
-enum AuraType : uint32;
 
 class AuraEffect;
 class Corpse;
