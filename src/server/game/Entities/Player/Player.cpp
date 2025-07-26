@@ -1420,7 +1420,7 @@ void Player::Update(uint32 p_time)
         (guidOffset > lastOffset || guidOffset <= currentOffset);
     if (crossed)
     {
-        TC_LOG_DEBUG("testnotify", "SendNotify {}", GetGameTimeMS());
+        TC_LOG_DEBUG("testnotify", "SendNotify {}", currentTime);
         WorldObject const* viewPoint = m_seer;
         if (viewPoint->isNeedNotify(NOTIFY_VISIBILITY_CHANGED) && (this == viewPoint || viewPoint->IsPositionValid()))
         {
@@ -1436,7 +1436,7 @@ void Player::Update(uint32 p_time)
     }
     else
     {
-        TC_LOG_DEBUG("testnotify", "NOT SendNotify {}", GetGameTimeMS());
+        TC_LOG_DEBUG("testnotify", "NOT SendNotify {}", currentTime);
     }
 }
 
