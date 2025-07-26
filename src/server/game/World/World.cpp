@@ -340,9 +340,19 @@ void World::AddSession_(WorldSession* s)
         return;
     }
 
+    uint32 Sessions = GetActiveAndQueuedSessionCount();
+    uint32 pLimit = GetPlayerAmountLimit();
+    bool pLimitNoQueue = GetPlayerAmountLimitNoQueue();
+    // Kick player if passed limit and no queue
+    if (pLimitNoQueue && pLimit > 0 && Sessions >= pLimit && !s->HasPermission(rbac::RBAC_PERM_SKIP_QUEUE) && !HasRecentlyDisconnected(s))
+    {
+        s->KickPlayer("World::AddSession_ Player Limit Reached with NoQueue set");
+        delete s;                                           // session not added yet in session list, so not listed in queue
+        return;
+    }
+
     // decrease session counts only at not reconnection case
     bool decrease_session = true;
-
     // if session already exist, prepare to it deleting at next world update
     // NOTE - KickPlayer() should be called on "old" in RemoveSession()
     {
@@ -360,9 +370,7 @@ void World::AddSession_(WorldSession* s)
 
     m_sessions[s->GetAccountId()] = s;
 
-    uint32 Sessions = GetActiveAndQueuedSessionCount();
-    uint32 pLimit = GetPlayerAmountLimit();
-    bool pLimitNoQueue = GetPlayerAmountLimitNoQueue();
+    Sessions = GetActiveAndQueuedSessionCount();
     uint32 QueueSize = GetQueuedSessionCount(); //number of players in the queue
 
     //so we don't count the user trying to
@@ -372,13 +380,6 @@ void World::AddSession_(WorldSession* s)
 
     if (pLimit > 0 && Sessions >= pLimit && !s->HasPermission(rbac::RBAC_PERM_SKIP_QUEUE) && !HasRecentlyDisconnected(s))
     {
-        if (pLimitNoQueue)
-        {
-            s->KickPlayer("World::AddSession_ Player Limit Reached with NoQueue set");
-            delete s;                                           // session not added yet in session list, so not listed in queue
-            return;
-        }
-
         AddQueuedPlayer(s);
         UpdateMaxSessionCounters();
         TC_LOG_INFO("misc", "PlayerQueue: Account id {} is in Queue Position ({}).", s->GetAccountId(), ++QueueSize);
