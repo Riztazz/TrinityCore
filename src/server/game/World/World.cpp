@@ -362,6 +362,7 @@ void World::AddSession_(WorldSession* s)
 
     uint32 Sessions = GetActiveAndQueuedSessionCount();
     uint32 pLimit = GetPlayerAmountLimit();
+    bool pLimitNoQueue = GetPlayerAmountLimitNoQueue();
     uint32 QueueSize = GetQueuedSessionCount(); //number of players in the queue
 
     //so we don't count the user trying to
@@ -371,6 +372,13 @@ void World::AddSession_(WorldSession* s)
 
     if (pLimit > 0 && Sessions >= pLimit && !s->HasPermission(rbac::RBAC_PERM_SKIP_QUEUE) && !HasRecentlyDisconnected(s))
     {
+        if (pLimitNoQueue)
+        {
+            s->KickPlayer("World::AddSession_ Player Limit Reached with NoQueue set");
+            delete s;                                           // session not added yet in session list, so not listed in queue
+            return;
+        }
+
         AddQueuedPlayer(s);
         UpdateMaxSessionCounters();
         TC_LOG_INFO("misc", "PlayerQueue: Account id {} is in Queue Position ({}).", s->GetAccountId(), ++QueueSize);
@@ -507,6 +515,7 @@ void World::LoadConfigSettings(bool reload)
 
     ///- Read the player limit and the Message of the day from the config file
     SetPlayerAmountLimit(sConfigMgr->GetIntDefault("PlayerLimit", 100));
+    SetPlayerAmountLimitNoQueue(sConfigMgr->GetBoolDefault("PlayerLimit.NoQueue", false));
     Motd::SetMotd(sConfigMgr->GetStringDefault("Motd", "Welcome to a Trinity Core Server."));
 
     ///- Read ticket system setting from the config file
