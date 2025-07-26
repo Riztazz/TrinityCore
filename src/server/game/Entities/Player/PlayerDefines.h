@@ -877,13 +877,3 @@ typedef std::deque<Mail*> PlayerMails;
 
 
 typedef std::unordered_map<uint32 /*instanceId*/, time_t/*releaseTime*/> InstanceTimeMap;
-
-#ifdef PRESETS
-typedef std::map<uint8, uint32> PresetslotMapType;
-struct PresetData
-{
-    std::string name;
-    PresetslotMapType slotMap; // slotMap[slotId] = entry
-};
-typedef std::map<uint8, PresetData> PresetMapType;
-#endif
