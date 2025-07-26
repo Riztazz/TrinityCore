@@ -1110,11 +1110,11 @@ void Creature::Update(uint32 diff)
     // For now, do this at the end of the update
     // For now, do this at the end of the update 
     float baseLineDiff = 300.0f; // A normal diff for an active server
-    float scaleFactor = std::min(std::max(p_time / baseLineDiff, 1.0f), 5.0f); // Diff scale 1x->5x
+    float scaleFactor = std::min(std::max(diff / baseLineDiff, 1.0f), 5.0f); // Diff scale 1x->5x
     uint32 scaledPeriod = GetMap()->GetVisibilityNotifyPeriod() * scaleFactor; 
     uint32 currentTime = GameTime::GetGameTimeMS();
     uint32 currentOffset = currentTime % scaledPeriod;
-    uint32 lastOffset = (currentTime - p_time) % scaledPeriod;
+    uint32 lastOffset = (currentTime - diff) % scaledPeriod;
     uint32 guidOffset = GetGUID().GetCounter() % scaledPeriod;
     // Check if guidOffset was crossed during this frame
     bool crossed = (lastOffset < currentOffset) ?
