@@ -327,16 +327,6 @@ void WorldSession::HandleCharCreateOpcode(WorldPacket& recvData)
                 return;
             }
         }
-        else if (uint32 pct = sWorld->getIntConfig(CONFIG_CHARACTER_CREATING_DISABLED_FACTION_BALANCE))
-        {
-            uint32 playerCount = sWorld->GetPlayerCount();
-            uint32 teamCount = sWorld->GetTeamCount(Player::TeamForRace(createInfo->Race));
-            if (playerCount > 0 && 100.0f * teamCount / playerCount >= 50.0f + pct)
-            {
-                SendCharCreate(CHAR_CREATE_DISABLED);
-                return;
-            }
-        }
     }
 
     ChrClassesEntry const* classEntry = sChrClassesStore.LookupEntry(createInfo->Class);
@@ -797,8 +787,6 @@ void WorldSession::HandlePlayerLogin(LoginQueryHolder const& holder)
         m_playerLoading = false;
         return;
     }
-
-    sWorld->IncreasePlayerCount(pCurrChar->GetTeam());
 
     /** @epoch-start */
     pCurrChar->SetCanTeleport(true);

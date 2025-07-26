@@ -408,6 +408,8 @@ Player::Player(WorldSession* session): Unit(true)
 
     m_ControlledByPlayer = true;
 
+    sWorld->IncreasePlayerCount();
+
     m_ChampioningFaction = 0;
 
     for (uint8 i = 0; i < MAX_POWERS; ++i)
@@ -468,6 +470,8 @@ Player::~Player()
     delete m_achievementMgr;
     delete m_reputationMgr;
     delete _cinematicMgr;
+
+    sWorld->DecreasePlayerCount();
 }
 
 void Player::CleanupsBeforeDelete(bool finalCleanup)

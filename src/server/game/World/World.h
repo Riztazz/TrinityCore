@@ -285,7 +285,6 @@ enum WorldIntConfigs : uint32
     CONFIG_CHARACTER_CREATING_DISABLED,
     CONFIG_CHARACTER_CREATING_DISABLED_RACEMASK,
     CONFIG_CHARACTER_CREATING_DISABLED_CLASSMASK,
-    CONFIG_CHARACTER_CREATING_DISABLED_FACTION_BALANCE,
     CONFIG_CHARACTERS_PER_ACCOUNT,
     CONFIG_CHARACTERS_PER_REALM,
     CONFIG_DEATH_KNIGHTS_PER_REALM,
@@ -418,8 +417,6 @@ enum WorldIntConfigs : uint32
     CONFIG_ANTICHEAT_ALERT_FREQUENCY,
     CONFIG_MAX_RESPAWN_COUNT_ON_UPDATE,
     CONFIG_MUTE_DEFAULT_GUILD_BROADCASTS,
-    CONFIG_SLOW_MODE_CHANNEL_MASK,
-    CONFIG_SLOW_MODE_MUTE_TIME,
     // @epoch-end
     CONFIG_MAX_INSTANCES_PER_HOUR,
     CONFIG_XP_BOOST_DAYMASK,
@@ -659,25 +656,15 @@ class TC_GAME_API World
         uint32 GetMaxQueuedSessionCount() const { return m_maxQueuedSessionCount; }
         uint32 GetMaxActiveSessionCount() const { return m_maxActiveSessionCount; }
         /// Get number of players
-        uint32 GetPlayerCount() const { return m_PlayerCount; }
-        uint32 GetMaxPlayerCount() const { return m_MaxPlayerCount; }
-        uint32 GetTeamCount(uint32 team) const
-        {
-            auto it = m_TeamCount.find(team);
-            return it != m_TeamCount.end() ? it->second : 0;
-        }
+        inline uint32 GetPlayerCount() const { return m_PlayerCount; }
+        inline uint32 GetMaxPlayerCount() const { return m_MaxPlayerCount; }
         /// Increase/Decrease number of players
-        void IncreasePlayerCount(uint32 team)
+        inline void IncreasePlayerCount()
         {
-            ++m_PlayerCount;
+            m_PlayerCount++;
             m_MaxPlayerCount = std::max(m_MaxPlayerCount, m_PlayerCount);
-            ++m_TeamCount[team];
         }
-        void DecreasePlayerCount(uint32 team)
-        {
-            --m_PlayerCount;
-            --m_TeamCount[team];
-        }
+        inline void DecreasePlayerCount() { m_PlayerCount--; }
 
         Player* FindPlayerInZone(uint32 zone);
 
@@ -898,7 +885,6 @@ class TC_GAME_API World
         uint32 m_maxQueuedSessionCount;
         uint32 m_PlayerCount;
         uint32 m_MaxPlayerCount;
-        std::unordered_map<uint32,uint32> m_TeamCount;
 
         std::string m_newCharString;
 
