@@ -2713,13 +2713,19 @@ void SpellInfo::_LoadImmunityInfo()
                     {
                         if (!amount)
                         {
-                            mechanicImmunityMask |= IMMUNE_TO_MOVEMENT_IMPAIRMENT_AND_LOSS_CONTROL_MASK;
+                            mechanicImmunityMask |= (\
+                                (1 << MECHANIC_CHARM) | (1 << MECHANIC_DISORIENTED) | (1 << MECHANIC_FEAR) | \
+                                (1 << MECHANIC_ROOT) | (1 << MECHANIC_SLEEP) /** | (1 << MECHANIC_SNARE)*/ | \
+                                (1 << MECHANIC_STUN) | (1 << MECHANIC_FREEZE) | (1 << MECHANIC_KNOCKOUT) | \
+                                (1 << MECHANIC_POLYMORPH) | (1 << MECHANIC_BANISH) | (1 << MECHANIC_SHACKLE) | \
+                                (1 << MECHANIC_TURN) | (1 << MECHANIC_HORROR) /** | (1 << MECHANIC_DAZE)*/ | \
+                                (1 << MECHANIC_SAPPED));
 
                             immuneInfo.SpellEffectImmune.insert(SPELL_EFFECT_KNOCK_BACK);
                             immuneInfo.SpellEffectImmune.insert(SPELL_EFFECT_KNOCK_BACK_DEST);
 
                             immuneInfo.AuraTypeImmune.insert(SPELL_AURA_MOD_STUN);
-                            immuneInfo.AuraTypeImmune.insert(SPELL_AURA_MOD_DECREASE_SPEED);
+                            //immuneInfo.AuraTypeImmune.insert(SPELL_AURA_MOD_DECREASE_SPEED);
                             immuneInfo.AuraTypeImmune.insert(SPELL_AURA_MOD_ROOT);
                             immuneInfo.AuraTypeImmune.insert(SPELL_AURA_MOD_CONFUSE);
                             immuneInfo.AuraTypeImmune.insert(SPELL_AURA_MOD_FEAR);

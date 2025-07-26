@@ -1563,7 +1563,9 @@ void AnticheatMgr::SavePlayerDataDaily(Player* player)
 
 void AnticheatMgr::OnPlayerMove(Player* player, MovementInfo mi, uint32 opcode)
 {
-    if (!AccountMgr::IsAdminAccount(player->GetSession()->GetSecurity()) || sWorld->getBoolConfig(CONFIG_ANTICHEAT_ENABLE_ON_GM))
+    bool isPlayer = ! (player->GetSession()->GetSecurity() >= SEC_MODERATOR && player->GetSession()->GetSecurity() <= SEC_CONSOLE);
+
+    if (isPlayer || sWorld->getBoolConfig(CONFIG_ANTICHEAT_ENABLE_ON_GM))
         sAnticheatMgr->StartHackDetection(player, mi, opcode);
 }
 

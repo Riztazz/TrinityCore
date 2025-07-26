@@ -810,6 +810,8 @@ void World::LoadConfigSettings(bool reload)
     m_bool_configs[CONFIG_HIDE_GAMEOBJECT_SPARKLE] = sConfigMgr->GetBoolDefault("HideGameObjectSparkle", false);
     m_int_configs[CONFIG_MAX_RESPAWN_COUNT_ON_UPDATE] = sConfigMgr->GetIntDefault("MaxRespawnCountOnUpdate", 0);
     m_int_configs[CONFIG_MUTE_DEFAULT_GUILD_BROADCASTS] = sConfigMgr->GetIntDefault("MuteDefaultGuildBroadcasts", 0);
+    m_int_configs[CONFIG_SLOW_MODE_CHANNEL_MASK] = sConfigMgr->GetIntDefault("SlowMode.ChannelMask", 0);
+    m_int_configs[CONFIG_SLOW_MODE_MUTE_TIME] = sConfigMgr->GetIntDefault("SlowMode.MuteTime", 0);
     /** @epoch-end */
 
     m_int_configs[CONFIG_MIN_PLAYER_NAME]                     = sConfigMgr->GetIntDefault ("MinPlayerName",  2);
@@ -841,6 +843,7 @@ void World::LoadConfigSettings(bool reload)
     m_int_configs[CONFIG_CHARACTER_CREATING_DISABLED] = sConfigMgr->GetIntDefault("CharacterCreating.Disabled", 0);
     m_int_configs[CONFIG_CHARACTER_CREATING_DISABLED_RACEMASK] = sConfigMgr->GetIntDefault("CharacterCreating.Disabled.RaceMask", 0);
     m_int_configs[CONFIG_CHARACTER_CREATING_DISABLED_CLASSMASK] = sConfigMgr->GetIntDefault("CharacterCreating.Disabled.ClassMask", 0);
+    m_int_configs[CONFIG_CHARACTER_CREATING_DISABLED_FACTION_BALANCE] = sConfigMgr->GetIntDefault("CharacterCreating.Disabled.FactionBalance", 0);
 
     m_int_configs[CONFIG_CHARACTERS_PER_REALM] = sConfigMgr->GetIntDefault("CharactersPerRealm", MAX_CHARACTERS_PER_REALM);
     if (m_int_configs[CONFIG_CHARACTERS_PER_REALM] < 1 || m_int_configs[CONFIG_CHARACTERS_PER_REALM] > MAX_CHARACTERS_PER_REALM)
