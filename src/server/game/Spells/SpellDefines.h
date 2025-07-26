@@ -22,6 +22,7 @@
 #include "ObjectGuid.h"
 #include "Optional.h"
 #include "Position.h"
+#include "SpellAuraDefines.h"
 #include <vector>
 
 class AuraEffect;
