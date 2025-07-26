@@ -293,6 +293,8 @@ enum InstanceResetWarningType
     RAID_INSTANCE_EXPIRED           = 5
 };
 
+typedef std::unordered_map<uint32 /*instanceId*/, time_t/*releaseTime*/> InstanceTimeMap;
+
 enum BindExtensionState
 {
     EXTEND_STATE_EXPIRED  =   0,
@@ -335,6 +337,17 @@ enum PlayedTimeIndex
 };
 
 #define MAX_PLAYED_TIME_INDEX 2
+
+enum ReputationSource
+{
+    REPUTATION_SOURCE_KILL,
+    REPUTATION_SOURCE_QUEST,
+    REPUTATION_SOURCE_DAILY_QUEST,
+    REPUTATION_SOURCE_WEEKLY_QUEST,
+    REPUTATION_SOURCE_MONTHLY_QUEST,
+    REPUTATION_SOURCE_REPEATABLE_QUEST,
+    REPUTATION_SOURCE_SPELL
+};
 
 struct ResurrectionData
 {
@@ -598,6 +611,9 @@ enum TeleportToOptions
     TELE_REVIVE_AT_TELEPORT     = 0x40
 };
 
+// PlayerMail
+typedef std::deque<Mail*> PlayerMails;
+
 // PlayerPvP
 enum CurrencyItems
 {
@@ -857,23 +873,3 @@ struct Runes
             runeState &= ~(1 << index);                     // on cooldown
     }
 };
-
-
-
-
-
-enum ReputationSource
-{
-    REPUTATION_SOURCE_KILL,
-    REPUTATION_SOURCE_QUEST,
-    REPUTATION_SOURCE_DAILY_QUEST,
-    REPUTATION_SOURCE_WEEKLY_QUEST,
-    REPUTATION_SOURCE_MONTHLY_QUEST,
-    REPUTATION_SOURCE_REPEATABLE_QUEST,
-    REPUTATION_SOURCE_SPELL
-};
-
-typedef std::deque<Mail*> PlayerMails;
-
-
-typedef std::unordered_map<uint32 /*instanceId*/, time_t/*releaseTime*/> InstanceTimeMap;
