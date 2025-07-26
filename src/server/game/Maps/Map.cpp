@@ -2969,7 +2969,7 @@ void Map::ProcessRespawns(uint32 t_diff)
     time_t now = GameTime::GetGameTime();
     uint32 count = 0;
     float baseLineDiff = 300.0f; // A normal diff for an active server
-    uint32 scaleFactor = std::min(std::max(t_diff / baseLineDiff, 1U), 5U); // Diff scale 1x->5x
+    uint32 scaleFactor = (uint32)std::round(std::min(std::max(t_diff / baseLineDiff, 1.0f), 5.0f)); // Diff scale 1x->5x
     uint32 maxCount = sWorld->getIntConfig(CONFIG_MAX_RESPAWN_COUNT_ON_UPDATE) * scaleFactor;
     while (!_respawnTimes->empty())
     {
