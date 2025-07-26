@@ -141,6 +141,15 @@ WrongPass.Logging = 0
 StrictVersionCheck = 0
 
 #
+#    ForcedVersion
+#        Description: Force a Build Check.
+#        Default:     0 - (Disabled)
+#                     12341+ - (Enabled)
+#
+
+ForcedVersion = 12341
+
+#
 #    BanExpiryCheckInterval
 #        Description: Time (in seconds) between checks for expired bans
 #        Default:     60

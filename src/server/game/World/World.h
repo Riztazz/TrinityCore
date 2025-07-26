@@ -682,6 +682,8 @@ class TC_GAME_API World
         /// Active session server limit
         void SetPlayerAmountLimit(uint32 limit) { m_playerLimit = limit; }
         uint32 GetPlayerAmountLimit() const { return m_playerLimit; }
+        void SetPlayerAmountLimitNoQueue(bool noQueue) { m_playerLimitNoQueue = noQueue; }
+        bool GetPlayerAmountLimitNoQueue() const { return m_playerLimitNoQueue; }
 
         //player Queue
         typedef std::list<WorldSession*> Queue;
@@ -893,6 +895,7 @@ class TC_GAME_API World
         typedef std::map<uint32, uint64> WorldStatesMap;
         WorldStatesMap m_worldstates;
         uint32 m_playerLimit;
+        bool m_playerLimitNoQueue;
         AccountTypes m_allowedSecurityLevel;
         LocaleConstant m_defaultDbcLocale;                     // from config for one from loaded DBC locales
         uint32 m_availableDbcLocaleMask;                       // by loaded DBC

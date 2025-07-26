@@ -337,6 +337,13 @@ WorldSocket::ReadDataHandlerResult WorldSocket::ReadDataHandler()
                     TC_LOG_ERROR("network", "WorldSocket::ProcessIncoming: received duplicate CMSG_AUTH_SESSION from {}", _worldSession->GetPlayerInfo());
                 return ReadDataHandlerResult::Error;
             }
+            if (sWorld->GetPlayerAmountLimitNoQueue())
+            {
+                uint32 Sessions = sWorld->GetActiveAndQueuedSessionCount();
+                uint32 pLimit = sWorld->GetPlayerAmountLimit();
+                if (Sessions >= pLimit)
+                    return ReadDataHandlerResult::Error;
+            }
 
             try
             {

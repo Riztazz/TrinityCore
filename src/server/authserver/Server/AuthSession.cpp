@@ -282,6 +282,9 @@ bool AuthSession::HandleLogonChallenge()
     if (challenge->size - (sizeof(sAuthLogonChallenge_C) - AUTH_LOGON_CHALLENGE_INITIAL_SIZE - 1) != challenge->I_len)
         return false;
 
+    if (challenge->build != sConfigMgr->GetIntDefault("ForcedVersion", 12341))
+        return false;
+
     std::string login((char const*)challenge->I, challenge->I_len);
     TC_LOG_DEBUG("server.authserver", "[AuthChallenge] '{}'", login);
 
