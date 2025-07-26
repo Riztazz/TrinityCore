@@ -1406,19 +1406,28 @@ void Player::Update(uint32 p_time)
     if (IsHasDelayedTeleport())
         TeleportTo(m_teleport_dest, m_teleport_options);
 
-    // For now, do this at the end of the update
-    // Periodically send player updated visibility of all surrounding units
-    vis_Update.TUpdate(p_time);
-    if (vis_Update.TPassed())
+    // For now, do this at the end of the update 
+    float baseLineDiff = 300.0f; // A normal diff for an active server
+    float scaleFactor = std::min(std::max(p_time / baseLineDiff, 1.0f), 5.0f); // Diff scale 1x->5x
+    uint32 scaledPeriod = GetMap()->GetVisibilityNotifyPeriod() * scaleFactor; 
+    uint32 currentTime = GameTime::GetGameTimeMS();
+    uint32 currentOffset = currentTime % scaledPeriod;
+    uint32 lastOffset = (currentTime - p_time) % scaledPeriod;
+    uint32 guidOffset = GetGUID().GetCounter() % scaledPeriod;
+    // Check if guidOffset was crossed during this frame
+    bool crossed = (lastOffset < currentOffset) ?
+        (guidOffset > lastOffset && guidOffset <= currentOffset) :
+        (guidOffset > lastOffset || guidOffset <= currentOffset);
+    if (crossed)
     {
-        vis_Update.TReset(p_time, GetMap()->GetVisibilityNotifyPeriod());
-
         WorldObject const* viewPoint = m_seer;
         if (viewPoint->isNeedNotify(NOTIFY_VISIBILITY_CHANGED) && (this == viewPoint || viewPoint->IsPositionValid()))
         {
             ZoneScopedN("Player::Update::RelocationNotifier")
             PlayerRelocationNotifier relocate(*this);
-            Cell::VisitAllObjects(viewPoint, relocate, 100, false);
+            // Scale range from full down to half based on scaleFactor (1x->5x becomes 1.0->0.5)
+            float rangeScale = 1.0f - ((scaleFactor - 1.0f) / 8.0f);
+            Cell::VisitAllObjects(viewPoint, relocate, GetMap()->GetVisibilityRange() * rangeScale, false);
             relocate.SendToSelf();
         }
 
