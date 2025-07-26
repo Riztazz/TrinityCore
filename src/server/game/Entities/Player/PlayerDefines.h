@@ -18,6 +18,7 @@
 #ifndef PLAYER_DEFINES_H
 #define PLAYER_DEFINES_H
 
+#include "Define.h"
 #include <queue>
 
 #define ACTION_BUTTON_ACTION(X) (uint32(X) & 0x00FFFFFF)
