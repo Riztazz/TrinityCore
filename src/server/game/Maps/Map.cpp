@@ -2990,7 +2990,6 @@ void Map::ProcessRespawns(uint32 t_diff)
             RemoveRespawnTime(next->type, next->spawnId, nullptr, true);
             delete next;
 
-            TC_LOG_DEBUG("respawns", "spawning count {} maxcount {}", count, maxCount);
             if (++count >= maxCount)
                 break;
         }
@@ -3007,7 +3006,6 @@ void Map::ProcessRespawns(uint32 t_diff)
             RemoveRespawnTime(next->type, next->spawnId, nullptr, true);
             delete next;
 
-            TC_LOG_DEBUG("respawns", "spawning count {} maxcount {}", count, maxCount);
             if (++count >= maxCount)
                 break;
         }
