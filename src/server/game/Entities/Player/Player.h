@@ -15,8 +15,8 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _PLAYER_H
-#define _PLAYER_H
+#ifndef PLAYER_H
+#define PLAYER_H
 
 #include "TSCustomPacket.h"
 #include "TSDBJson.h"
@@ -1724,4 +1724,4 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
 TC_GAME_API void AddItemsSetItem(Player* player, Item* item);
 TC_GAME_API void RemoveItemsSetItem(Player* player, ItemTemplate const* proto);
 
-#endif
+#endif // PLAYER_H

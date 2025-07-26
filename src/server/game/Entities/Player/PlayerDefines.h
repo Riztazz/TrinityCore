@@ -15,6 +15,9 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#ifndef PLAYER_DEFINES_H
+#define PLAYER_DEFINES_H
+
 #include <queue>
 
 #define ACTION_BUTTON_ACTION(X) (uint32(X) & 0x00FFFFFF)
@@ -873,3 +876,5 @@ struct Runes
             runeState &= ~(1 << index);                     // on cooldown
     }
 };
+
+#endif // PLAYER_DEFINES_H
