@@ -266,6 +266,14 @@ Compression = 1
 PlayerLimit = 0
 
 #
+#    PlayerLimit.NoQueue
+#        Description: Kick players over limit rather than add to queue
+#            Default: 0   - (Overflow to Queue)
+#                     1+  - (No Queue)
+
+PlayerLimit.NoQueue = 0
+
+#
 #    MaxOverspeedPings
 #        Description: Maximum overspeed ping count before character is disconnected.
 #        Default:     2  - (Enabled, Minimum value)
