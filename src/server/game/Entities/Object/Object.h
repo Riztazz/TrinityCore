@@ -534,12 +534,6 @@ class TC_GAME_API WorldObject : public Object, public WorldLocation
         bool AddToObjectUpdate() override;
         void RemoveFromObjectUpdate() override;
 
-        //relocation and visibility system functions
-        void AddToNotify(uint16 f) { m_notifyflags |= f;}
-        bool isNeedNotify(uint16 f) const { return (m_notifyflags & f) != 0; }
-        uint16 GetNotifyFlags() const { return m_notifyflags; }
-        void ResetAllNotifies() { m_notifyflags = 0; }
-
         bool isActiveObject() const { return m_isActive; }
         void setActive(bool isActiveObject);
         bool IsFarVisible() const { return m_isFarVisible; }

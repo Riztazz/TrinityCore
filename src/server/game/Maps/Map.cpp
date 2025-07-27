@@ -247,7 +247,6 @@ void Map::LoadAllCells()
 Map::Map(uint32 id, uint32 instanceOrPartitionId):
 i_mapEntry(sMapStore.LookupEntry(id)),
 m_unloadTimer(0), m_VisibleDistance(DEFAULT_VISIBILITY_DISTANCE),
-m_VisibilityNotifyPeriod(DEFAULT_VISIBILITY_NOTIFY_PERIOD),
 m_activeNonPlayersIter(m_activeNonPlayers.end()), m_waypointCreaturesIter(m_waypointCreatures.end()), _transportsUpdateIter(_transports.end()),
 i_scriptLock(false), _respawnTimes(std::make_unique<RespawnListContainer>())
 {
@@ -307,7 +306,6 @@ void Map::InitVisibilityDistance()
 {
     //init visibility for continents
     m_VisibleDistance = World::GetMaxVisibleDistanceOnContinents();
-    m_VisibilityNotifyPeriod = World::GetVisibilityNotifyPeriodOnContinents();
 }
 
 // Template specialization of utility methods
@@ -560,7 +558,7 @@ bool Map::AddPlayerToMap(Player* player)
     SendInitTransports(player);
 
     player->m_clientGUIDs.clear();
-    player->UpdateObjectVisibility(false);
+    player->UpdateObjectVisibility(); // FIXME TEST
 
     if (player->IsAlive())
         ConvertCorpseToBones(player->GetGUID());
@@ -597,7 +595,7 @@ bool Map::AddPlayerToPartition(Player* player)
     SendInitTransports(player);
 
     player->m_clientGUIDs.clear();
-    player->UpdateObjectVisibility(false);
+    player->UpdateObjectVisibility(); // FIXME TEST
 
     if (player->IsAlive())
         ConvertCorpseToBones(player->GetGUID());
@@ -619,7 +617,7 @@ bool Map::AddToMap(T* obj)
     {
         TC_LOG_ERROR("maps", "Map::AddToMap called on Object that is already in world, map {}, obj {}", GetId(), obj->GetDebugInfo());
         ASSERT(obj->IsInGrid());
-        obj->UpdateObjectVisibility(true);
+        obj->UpdateObjectVisibility();
         return true;
     }
 
@@ -702,7 +700,7 @@ bool Map::AddToPartition(T* obj)
     if (obj->IsInWorld())
     {
         ASSERT(obj->IsInGrid());
-        obj->UpdateObjectVisibility(true);
+        obj->UpdateObjectVisibility();
         return true;
     }
 
@@ -1021,7 +1019,7 @@ void Map::Update(uint32 t_diff)
 
     // We must delay grid relocation until after entities are updated to avoid updating multiple times (by moving to an unmarked cell)
     {
-        ZoneScopedN("Map::Update::GridRelocations::Creatures")
+        ZoneScopedN("CellRelocations::Creatures")
 
         for (Creature* creature : _relocatedCreatures)
         {
@@ -1037,8 +1035,10 @@ void Map::Update(uint32 t_diff)
                 AddToGrid(creature, new_cell);
             }
             creature->UpdatePositionData();
-            creature->UpdateObjectVisibility(false);
+            //creature->UpdateObjectVisibility(false); FIXME TEST before remove
 
+            if (creature->ShouldRelocateUpdateVisibility())
+                _updateVisibilityCreatures.insert(creature);
             if (creature->ShouldRelocateUpdateMapPartition())
                 _updateMapPartitionCreatures.insert(creature);
         }
@@ -1047,7 +1047,7 @@ void Map::Update(uint32 t_diff)
     }
 
     {
-        ZoneScopedN("Map::Update::GridRelocations::GameObjects")
+        ZoneScopedN("CellRelocations::GameObjects")
 
         for (GameObject* go : _relocatedGameObjects)
         {
@@ -1064,14 +1064,14 @@ void Map::Update(uint32 t_diff)
             }
             go->UpdateModelPosition();
             go->UpdatePositionData();
-            go->UpdateObjectVisibility(false);
+            go->UpdateObjectVisibility(); // FIXME vmangos doesn't have an equivalent, but this is for elevator game objects, not very performant
         }
 
         _relocatedGameObjects.clear();
     }
 
     {
-        ZoneScopedN("Map::Update::GridRelocations::DynamicObjects")
+        ZoneScopedN("CellRelocations::DynamicObjects")
 
         for (DynamicObject* dynObj : _relocatedDynamicObjects)
         {
@@ -1087,13 +1087,15 @@ void Map::Update(uint32 t_diff)
                 AddToGrid(dynObj, new_cell);
             }
             dynObj->UpdatePositionData();
-            dynObj->UpdateObjectVisibility(false);
+            dynObj->UpdateObjectVisibility(); // FIXME vmangos doesn't have an equivalent, but this is for elevator game objects, not very performant
         }
 
         _relocatedDynamicObjects.clear();
     }
 
-    SendObjectUpdates();
+    ProcessVisibilityUpdates();
+
+    ProcessObjectUpdates();
 
     ///- Process necessary scripts
     if (!m_scriptSchedule.empty())
@@ -1124,6 +1126,52 @@ void Map::Update(uint32 t_diff)
         TC_METRIC_TAG("map_instanceid", std::to_string(GetInstanceId())));
 }
 // @tswow-end tracy
+
+void Map::ProcessVisibilityUpdates()
+{
+    ZoneScopedN("Map::ProcessVisibilityUpdates")
+
+    {
+        ZoneScopedN("PlayerVisibilityUpdates")
+
+        for (Player* player : _updateVisibilityPlayers)
+            player->ProcessRelocateVisibilityUpdates();
+
+        _updateVisibilityPlayers.clear();
+    }
+
+    {
+        ZoneScopedN("CreatureVisibilityUpdates")
+
+        for (Creature* creature : _updateVisibilityCreatures)
+            creature->ProcessRelocateVisibilityUpdates();
+
+        _updateVisibilityCreatures.clear();
+    }
+}
+
+void Map::ProcessObjectUpdates()
+{
+    ZoneScopedN("Map::ProcessObjectUpdates")
+
+    UpdateDataMapType update_players;
+    while (!_updateObjects.empty())
+    {
+        Object* obj = *_updateObjects.begin();
+        ASSERT(obj->IsInWorld());
+
+        _updateObjects.erase(_updateObjects.begin());
+        obj->BuildUpdate(update_players);
+    }
+
+    WorldPacket packet; // here we allocate a std::vector with a size of 0x10000
+    for (UpdateDataMapType::iterator iter = update_players.begin(); iter != update_players.end(); ++iter)
+    {
+        iter->second.BuildPacket(&packet);
+        iter->first->SendDirectMessage(&packet);
+        packet.clear(); // clean the string
+    }
+}
 
 // Partitions should override this and do nothing, only the base map
 // updates the weather and partitions will get their weather from the base map
@@ -1210,8 +1258,16 @@ void Map::RemoveFromMap(T *obj, bool remove)
     if (obj->isActiveObject())
         RemoveFromActive(obj);
 
-    if (obj->IsCreature() && obj->ToCreature()->GetWaypointPath() != 0)
-        RemoveFromWaypointCreatures(obj->ToCreature());
+    if (obj->IsCreature())
+    {
+        Creature* c = obj->ToCreature();
+         if (c->GetWaypointPath() != 0)
+            RemoveFromWaypointCreatures(c);
+
+        // RemoveFromMap is called from the delayed update so _relocatedCreatures is empty,
+        // but before we iterate the _updateMapPartitionCreatures, so lets remove that here
+        _updateMapPartitionCreatures.erase(c);
+    }
 
     // note: RemoveFromWorld does this for inWorld objects
     if (!inWorld) // if was in world, RemoveFromWorld() called DestroyForNearbyPlayers()
@@ -1273,8 +1329,15 @@ void Map::RemoveFromPartition(T *obj)
     if (obj->isActiveObject())
         RemoveFromActive(obj);
 
-    if (obj->IsCreature() && obj->ToCreature()->GetWaypointPath() != 0)
-        RemoveFromWaypointCreatures(obj->ToCreature());
+    if (obj->IsCreature())
+    {
+        Creature* c = obj->ToCreature();
+        if (c->GetWaypointPath() != 0)
+            RemoveFromWaypointCreatures(c);
+
+        // this is called from delayedUpdate, so _relocatedCreatures is always empty, and _updateMapPartitionCreatures
+        // is cleared immediately afterwards (this is called from iterating that)
+    }
 
     // note: RemoveFromWorld does this for inWorld objects
     if (!inWorld) // if was in world, RemoveFromWorld() called DestroyForNearbyPlayers()
@@ -1306,8 +1369,10 @@ void Map::PlayerRelocation(Player* player, float x, float y, float z, float orie
     }
 
     player->UpdatePositionData();
-    player->UpdateObjectVisibility(false);
+    //player->UpdateObjectVisibility(false); FIXME TEST before remove
 
+    if (player->ShouldRelocateUpdateVisibility())
+        _updateVisibilityPlayers.insert(player);
     if (player->ShouldRelocateUpdateMapPartition())
         _updateMapPartitionPlayers.insert(player);
 }
@@ -1327,8 +1392,10 @@ void Map::CreatureRelocation(Creature* creature, float x, float y, float z, floa
     else
     {
         creature->UpdatePositionData();
-        creature->UpdateObjectVisibility(false);
+        //creature->UpdateObjectVisibility(false); FIXME TEST before remove
 
+        if (creature->ShouldRelocateUpdateVisibility())
+            _updateVisibilityCreatures.insert(player);
         if (creature->ShouldRelocateUpdateMapPartition())
             _updateMapPartitionCreatures.insert(creature);
     }
@@ -1348,7 +1415,7 @@ void Map::GameObjectRelocation(GameObject* go, float x, float y, float z, float 
     {
         go->UpdateModelPosition();
         go->UpdatePositionData();
-        go->UpdateObjectVisibility(false);
+        go->UpdateObjectVisibility(); // FIXME vmangos doesn't have an equivalent, but this is for elevator game objects, not very performant
     }
 }
 
@@ -1365,7 +1432,7 @@ void Map::DynamicObjectRelocation(DynamicObject* dynObj, float x, float y, float
     else
     {
         dynObj->UpdatePositionData();
-        dynObj->UpdateObjectVisibility(false);
+        dynObj->UpdateObjectVisibility(); // FIXME vmangos doesn't have an equivalent, but this is for elevator game objects, not very performant
     }
 }
 
@@ -2709,29 +2776,6 @@ inline void Map::setNGrid(NGridType *grid, uint32 x, uint32 y)
     i_grids[x][y] = grid;
 }
 
-void Map::SendObjectUpdates()
-{
-    ZoneScopedN("Map::SendObjectUpdates")
-
-    UpdateDataMapType update_players;
-    while (!_updateObjects.empty())
-    {
-        Object* obj = *_updateObjects.begin();
-        ASSERT(obj->IsInWorld());
-
-        _updateObjects.erase(_updateObjects.begin());
-        obj->BuildUpdate(update_players);
-    }
-
-    WorldPacket packet;                                     // here we allocate a std::vector with a size of 0x10000
-    for (UpdateDataMapType::iterator iter = update_players.begin(); iter != update_players.end(); ++iter)
-    {
-        iter->second.BuildPacket(&packet);
-        iter->first->SendDirectMessage(&packet);
-        packet.clear();                                     // clean the string
-    }
-}
-
 // CheckRespawn MUST do one of the following:
 //  -) return true
 //  -) set info->respawnTime to zero, which indicates the respawn time should be deleted (and will never be processed again without outside intervention)
@@ -3757,7 +3801,6 @@ void InstanceMap::InitVisibilityDistance()
 {
     //init visibility distance for instances
     m_VisibleDistance = World::GetMaxVisibleDistanceInInstances();
-    m_VisibilityNotifyPeriod = World::GetVisibilityNotifyPeriodInInstances();
 }
 
 /*
@@ -4279,7 +4322,6 @@ void BattlegroundMap::InitVisibilityDistance()
 {
     //init visibility distance for BG/Arenas
     m_VisibleDistance        = IsBattleArena() ? World::GetMaxVisibleDistanceInArenas() : World::GetMaxVisibleDistanceInBG();
-    m_VisibilityNotifyPeriod = IsBattleArena() ? World::GetVisibilityNotifyPeriodInArenas() : World::GetVisibilityNotifyPeriodInBG();
 }
 
 Map::EnterState BattlegroundMap::CannotEnter(Player* player)

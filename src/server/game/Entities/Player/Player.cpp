@@ -1401,30 +1401,17 @@ void Player::Update(uint32 p_time)
 
     if (IsHasDelayedTeleport())
         TeleportTo(m_teleport_dest, m_teleport_options);
+}
 
-    // For now, do this at the end of the update 
-    uint32 scaledPeriod = GetMap()->GetVisibilityNotifyPeriod();
-    uint32 currentTime = GameTime::GetGameTimeMS();
-    uint32 currentOffset = currentTime % scaledPeriod;
-    uint32 lastOffset = (currentTime - p_time) % scaledPeriod;
-    uint32 guidOffset = GetGUID().GetCounter() % scaledPeriod;
-    // Check if guidOffset was crossed during this frame
-    bool crossed = (lastOffset < currentOffset) ?
-        (guidOffset > lastOffset && guidOffset <= currentOffset) :
-        (guidOffset > lastOffset || guidOffset <= currentOffset);
-    if (crossed)
-    {
-        WorldObject const* viewPoint = m_seer;
-        if (viewPoint->isNeedNotify(NOTIFY_VISIBILITY_CHANGED) && (this == viewPoint || viewPoint->IsPositionValid()))
-        {
-            ZoneScopedN("Player::Update::RelocationNotifier")
-            PlayerRelocationNotifier relocate(*this);
-            Cell::VisitAllObjects(viewPoint, relocate, GetMap()->GetVisibilityRange(), false);
-            relocate.SendToSelf();
-        }
+void Unit::ProcessRelocateVisibilityUpdates()
+{
+    if (!IsInWorld())
+        return;
 
-        ResetAllNotifies();
-    }
+    ZoneScopedN("PlayerRelocateVisibilityUpdates")
+    PlayerRelocationNotifier relocate(*this);
+    Cell::VisitAllObjects(viewPoint, relocate, GetMap()->GetVisibilityRange(), false);
+    relocate.SendToSelf();
 }
 
 void Player::setDeathState(DeathState s)
@@ -23293,19 +23280,14 @@ template void Player::UpdateVisibilityOf(Corpse*        target, UpdateData& data
 template void Player::UpdateVisibilityOf(GameObject*    target, UpdateData& data, std::set<Unit*>& visibleNow);
 template void Player::UpdateVisibilityOf(DynamicObject* target, UpdateData& data, std::set<Unit*>& visibleNow);
 
-void Player::UpdateObjectVisibility(bool forced)
+void Player::UpdateObjectVisibility()
 {
     // Prevent updating visibility if player is not in world (example: LoadFromDB sets drunkstate which updates invisibility while player is not in map)
     if (!IsInWorld())
         return;
 
-    if (!forced)
-        AddToNotify(NOTIFY_VISIBILITY_CHANGED);
-    else
-    {
-        Unit::UpdateObjectVisibility(true);
-        UpdateVisibilityForPlayer();
-    }
+    Unit::UpdateObjectVisibility(true);
+    UpdateVisibilityForPlayer();
 }
 
 void Player::UpdateVisibilityForPlayer()
@@ -23401,7 +23383,7 @@ void Player::SetGroup(Group* group, int8 subgroup)
         m_group.setSubGroup((uint8)subgroup);
     }
 
-    UpdateObjectVisibility(false);
+    UpdateObjectVisibility(); // FIXME test, there is no notify period so we need to force
 }
 
 void Player::SendInitialPacketsBeforeAddToMap()

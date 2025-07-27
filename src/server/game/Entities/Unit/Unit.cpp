@@ -10292,6 +10292,7 @@ void Unit::AddToWorld()
     WorldObject::AddToWorld();
     i_motionMaster->AddToWorld();
 
+    _lastNotifiedPosition = GetPosition();
     _lastCheckedPartitionPosition = GetPosition();
 }
 
@@ -10352,6 +10353,7 @@ void Unit::AddToPartition()
     WorldObject::AddToPartition();
     //i_motionMaster->AddToWorld();
 
+    _lastNotifiedPosition = GetPosition();
     _lastCheckedPartitionPosition = GetPosition();
 }
 
@@ -10430,7 +10432,7 @@ bool Unit::ShouldRelocateUpdateMapPartition()
 {
     // Sanity checks
     if (!IsInWorld())
-        return false;
+    return false;
 
     if (!GetMap()->IsWorldMap())
         return false;
@@ -10441,7 +10443,11 @@ bool Unit::ShouldRelocateUpdateMapPartition()
         return false;
 
     // Partition calculation is expensive, so only check again if we have moved a consequential amount
-    if (GetPosition().GetExactDist(_lastCheckedPartitionPosition) < 0.25f)
+    float dx = _lastCheckedPartitionPosition.x - GetPositionX();
+    float dy = _lastCheckedPartitionPosition.y - GetPositionY();
+    float dz = _lastCheckedPartitionPosition.z - GetPositionZ();
+    float distsq = dx * dx + dy * dy + dz * dz;
+    if (distsq < 0.5f)
         return false;
 
     _lastCheckedPartitionPosition = GetPosition();
@@ -13145,17 +13151,30 @@ void Unit::SetPhaseMask(uint32 newPhaseMask, bool update, uint64 newPhaseId)
 }
 // @tswow-end
 
-void Unit::UpdateObjectVisibility(bool forced)
+bool Unit::ShouldRelocateUpdateVisibility()
 {
-    if (!forced)
-        AddToNotify(NOTIFY_VISIBILITY_CHANGED);
-    else
-    {
-        WorldObject::UpdateObjectVisibility(true);
-        // call MoveInLineOfSight for nearby creatures
-        Trinity::AIRelocationNotifier notifier(*this);
-        Cell::VisitAllObjects(this, notifier, GetVisibilityRange());
-    }
+    // Sanity checks
+    if (!IsInWorld())
+        return false;
+
+    float dx = _lastNotifiedPosition.x - GetPositionX();
+    float dy = _lastNotifiedPosition.y - GetPositionY();
+    float dz = _lastNotifiedPosition.z - GetPositionZ();
+    float distsq = dx * dx + dy * dy + dz * dz;
+    if (distsq < World::GetRelocationLowerLimitSq())
+        return false;
+
+    _lastNotifiedPosition = GetPosition();
+    return true;
+}
+
+void Unit::UpdateObjectVisibility()
+{
+
+    WorldObject::UpdateObjectVisibility(true);
+    // call MoveInLineOfSight for nearby creatures
+    Trinity::AIRelocationNotifier notifier(*this);
+    Cell::VisitAllObjects(this, notifier, GetVisibilityRange());
 }
 
 void Unit::KnockbackFrom(float x, float y, float speedXY, float speedZ)

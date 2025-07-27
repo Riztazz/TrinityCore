@@ -822,10 +822,8 @@ class TC_GAME_API World
         static float GetMaxVisibleDistanceInBG()            { return m_MaxVisibleDistanceInBG;         }
         static float GetMaxVisibleDistanceInArenas()        { return m_MaxVisibleDistanceInArenas;     }
 
-        static int32 GetVisibilityNotifyPeriodOnContinents(){ return m_visibility_notify_periodOnContinents; }
-        static int32 GetVisibilityNotifyPeriodInInstances() { return m_visibility_notify_periodInInstances;  }
-        static int32 GetVisibilityNotifyPeriodInBG()        { return m_visibility_notify_periodInBG;         }
-        static int32 GetVisibilityNotifyPeriodInArenas()    { return m_visibility_notify_periodInArenas;     }
+        static float GetRelocationLowerLimitSq()            { return m_relocation_lower_limit_sq; }
+        static uint32 GetRelocationAINotifyDelay()          { return m_relocation_ai_notify_delay; } // TODO implement
 
         void ProcessCliCommands();
         void QueueCliCommand(CliCommandHolder* commandHolder) { cliCmdQueue.add(commandHolder); }
@@ -923,10 +921,8 @@ class TC_GAME_API World
         static float m_MaxVisibleDistanceInBG;
         static float m_MaxVisibleDistanceInArenas;
 
-        static int32 m_visibility_notify_periodOnContinents;
-        static int32 m_visibility_notify_periodInInstances;
-        static int32 m_visibility_notify_periodInBG;
-        static int32 m_visibility_notify_periodInArenas;
+        static float  m_relocation_lower_limit_sq;
+        static uint32 m_relocation_ai_notify_delay; // TODO implement
 
         // CLI command holder to be thread safe
         LockedQueue<CliCommandHolder*> cliCmdQueue;

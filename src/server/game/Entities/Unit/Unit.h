@@ -898,7 +898,7 @@ class TC_GAME_API Unit : public WorldObject
         void AddToPartition() override;
         void RemoveFromPartition() override;
         virtual void UpdateMapPartition(Map* forcedMap = nullptr) { };
-        virtual bool ShouldRelocateUpdateMapPartition();
+        virtual bool ShouldRelocateUpdateMapPartition() override;
 
         void CleanupBeforeRemoveFromMap(bool finalCleanup);
         void CleanupsBeforeDelete(bool finalCleanup = true) override;                        // used in ~Creature/~Player (or before mass creature delete to remove cross-references to already deleted units)
@@ -1675,6 +1675,8 @@ class TC_GAME_API Unit : public WorldObject
         // @tswow-begin
         void SetPhaseMask(uint32 newPhaseMask, bool update, uint64 newPhaseId = 0) override;// overwrite Unit::SetPhaseMask
         // @tswow-end
+        bool ShouldRelocateUpdateVisibility();
+        virtual void ProcessRelocateVisibilityUpdates();
         void UpdateObjectVisibility(bool forced = true) override;
 
         SpellImmuneContainer m_spellImmune[MAX_SPELL_IMMUNITY];
@@ -2060,7 +2062,6 @@ class TC_GAME_API Unit : public WorldObject
         uint32 m_rootTimes;
 
     private:
-
         uint32 m_state;                                     // Even derived shouldn't modify
         uint32 m_lastManaUse;                               // msecs
         TimeTracker m_splineSyncTimer;
@@ -2100,6 +2101,7 @@ class TC_GAME_API Unit : public WorldObject
         SpellHistory* _spellHistory;
 
         PositionUpdateInfo _positionUpdateInfo;
+        Position _lastNotifiedPosition;
         Position _lastCheckedPartitionPosition;
 
         bool _isCombatDisallowed;

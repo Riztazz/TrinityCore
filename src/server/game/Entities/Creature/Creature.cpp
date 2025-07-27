@@ -1106,27 +1106,16 @@ void Creature::Update(uint32 diff)
         default:
             break;
     }
+}
 
-    // For now, do this at the end of the update
-    uint32 scaledPeriod = GetMap()->GetVisibilityNotifyPeriod();
-    uint32 currentTime = GameTime::GetGameTimeMS();
-    uint32 currentOffset = currentTime % scaledPeriod;
-    uint32 lastOffset = (currentTime - diff) % scaledPeriod;
-    uint32 guidOffset = GetGUID().GetCounter() % scaledPeriod;
-    // Check if guidOffset was crossed during this frame
-    bool crossed = (lastOffset < currentOffset) ?
-        (guidOffset > lastOffset && guidOffset <= currentOffset) :
-        (guidOffset > lastOffset || guidOffset <= currentOffset);
-    if (crossed)
-    {
-        if (isNeedNotify(NOTIFY_VISIBILITY_CHANGED))
-        {
-            CreatureRelocationNotifier relocate(*this);
-            Cell::VisitAllObjects(this, relocate, GetMap()->GetVisibilityRange(), false);
-        }
+void Unit::ProcessRelocateVisibilityUpdates()
+{
+    if (!IsInWorld())
+        return;
 
-        ResetAllNotifies();
-    }
+    ZoneScopedN("CreatureRelocateVisibilityUpdates")
+    CreatureRelocationNotifier relocate(*this);
+    Cell::VisitAllObjects(this, relocate, GetMap()->GetVisibilityRange(), false);
 }
 
 void Creature::RegenerateAll(uint32 diff)

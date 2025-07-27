@@ -762,8 +762,8 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
         void setNGrid(NGridType* grid, uint32 x, uint32 y);
         void ScriptsProcess();
 
-        void SendObjectUpdates();
-        void UpdateMapPartitions();
+        void ProcessVisibilityUpdates();
+        void ProcessObjectUpdates();
 
     protected:
         std::mutex _mapLock;
@@ -928,6 +928,8 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
         std::unordered_set<Creature*> _relocatedCreatures;
         std::unordered_set<GameObject*> _relocatedGameObjects;
         std::unordered_set<DynamicObject*> _relocatedDynamicObjects;
+        std::unordered_set<Player*> _updateVisibilityPlayers;
+        std::unordered_set<Creature*> _updateVisibilityCreatures;
         std::unordered_set<Player*> _updateMapPartitionPlayers;
         std::unordered_set<Creature*> _updateMapPartitionCreatures;
         MPSCQueue<FarSpellCallback> _farSpellCallbacks;
