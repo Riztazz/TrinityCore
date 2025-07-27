@@ -1395,7 +1395,7 @@ void Map::CreatureRelocation(Creature* creature, float x, float y, float z, floa
         //creature->UpdateObjectVisibility(); FIXME TEST before remove
 
         if (creature->ShouldRelocateUpdateVisibility())
-            _updateVisibilityCreatures.insert(player);
+            _updateVisibilityCreatures.insert(creature);
         if (creature->ShouldRelocateUpdateMapPartition())
             _updateMapPartitionCreatures.insert(creature);
     }
