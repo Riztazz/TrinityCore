@@ -49,7 +49,8 @@ void VisibleNotifier::SendToSelf()
                         break;
                     case TYPEID_PLAYER:
                         i_player.UpdateVisibilityOf((*itr)->ToPlayer(), i_data, i_visibleNow);
-                        (*itr)->ToPlayer()->UpdateVisibilityOf(&i_player);
+                        if (!(*itr)->GetMap()->IsNeedNotify((*itr)))
+                            (*itr)->ToPlayer()->UpdateVisibilityOf(&i_player);
                         break;
                     case TYPEID_UNIT:
                         i_player.UpdateVisibilityOf((*itr)->ToCreature(), i_data, i_visibleNow);
@@ -156,6 +157,9 @@ void PlayerRelocationNotifier::Visit(PlayerMapType &m)
 
         i_player.UpdateVisibilityOf(player, i_data, i_visibleNow);
 
+        if (player->m_seer->GetMap()->IsNeedNotify(player->m_seer))
+            continue;
+
         player->UpdateVisibilityOf(&i_player);
     }
 }
@@ -172,7 +176,7 @@ void PlayerRelocationNotifier::Visit(CreatureMapType &m)
 
         i_player.UpdateVisibilityOf(c, i_data, i_visibleNow);
 
-        if (relocated_for_ai)
+        if (relocated_for_ai && !c->GetMap()->IsNeedNotify(c))
             CreatureUnitRelocationWorker(c, &i_player);
     }
 }
@@ -183,7 +187,8 @@ void CreatureRelocationNotifier::Visit(PlayerMapType &m)
     {
         Player* player = iter->GetSource();
 
-        player->UpdateVisibilityOf(&i_creature);
+        if (!player->m_seer->GetMap()->IsNeedNotify(player->m_seer))
+            player->UpdateVisibilityOf(&i_creature);
 
         CreatureUnitRelocationWorker(&i_creature, player);
     }
@@ -199,7 +204,8 @@ void CreatureRelocationNotifier::Visit(CreatureMapType &m)
         Creature* c = iter->GetSource();
         CreatureUnitRelocationWorker(&i_creature, c);
 
-        CreatureUnitRelocationWorker(c, &i_creature);
+        if (!c->GetMap()->IsNeedNotify(c))
+            CreatureUnitRelocationWorker(c, &i_creature);
     }
 }
 

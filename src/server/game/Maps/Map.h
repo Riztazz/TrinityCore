@@ -396,10 +396,23 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
 
         float GetDiffScaleFactor() const;
         float GetVisibilityRange() const;
-        float GetVisibilityNotifyPeriod() const;
-        
+
         //function for setting up visibility distance for maps on per-type/per-Id basis
         virtual void InitVisibilityDistance();
+
+        template<typename T>
+        bool IsNeedNotify(T* unit) const
+        {
+            if constexpr (std::is_same_v<T, Player>)
+            {
+                return _updateVisibilityPlayers.find(unit) != _updateVisibilityPlayers.end();
+            }
+            else if constexpr (std::is_same_v<T, Creature>)
+            {
+                return _updateVisibilityCreatures.find(unit) != _updateVisibilityCreatures.end();
+            }
+            return true;
+        }
 
         void PlayerRelocation(Player*, float x, float y, float z, float orientation);
         void CreatureRelocation(Creature* creature, float x, float y, float z, float orientation);
@@ -773,7 +786,6 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
         Trinity::unique_weak_ptr<Map> m_weakRef;
         uint32 m_unloadTimer;
         float m_VisibleDistance;
-        int32 m_VisibilityNotifyPeriod;
         DynamicMapTree _dynamicTree;
 
         MapRefManager m_mapRefManager;

@@ -297,11 +297,6 @@ float Map::GetVisibilityRange() const
     return m_VisibleDistance * rangeScale;
 }
 
-float Map::GetVisibilityNotifyPeriod() const
-{
-    return m_VisibilityNotifyPeriod * GetDiffScaleFactor();
-}
-
 void Map::InitVisibilityDistance()
 {
     //init visibility for continents
