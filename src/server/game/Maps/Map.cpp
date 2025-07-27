@@ -1269,7 +1269,7 @@ void Map::ProcessObjectUpdates()
     std::atomic<int> ait(0);
     Trinity::ThreadPool& threadPool = GetUpdateThreadPool();
 
-    auto f = [this, &t, &ait]() {
+    auto processObjects = [this, &t, &ait]() {
         UpdateDataMapType update_players;
         int idx;
         while ((idx = ait.fetch_add(1)) < static_cast<int>(t.size() - 1))
@@ -1299,12 +1299,12 @@ void Map::ProcessObjectUpdates()
         futures.push_back(promise->get_future());
         
         threadPool.PostWork([f, promise]() {
-            f();
+            processObjects();
             promise->set_value();
         });
     }
 
-    f(); // Main thread processes a portion of the work
+    processObjects(); // Main thread processes a portion of the work
 
     // Wait for all tasks to complete
     for (auto& future : futures)
