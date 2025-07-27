@@ -52,6 +52,8 @@
 #include "World.h"
 #include "WorldSession.h"
 
+#include <chrono>
+
 // temporary hack until includes are sorted out (don't want to pull in Windows.h)
 #ifdef GetClassName
 #undef GetClassName
@@ -125,6 +127,7 @@ public:
             { "unstuck",          HandleUnstuckCommand,          rbac::RBAC_PERM_COMMAND_UNSTUCK,          Console::Yes },
             { "wchange",          HandleChangeWeather,           rbac::RBAC_PERM_COMMAND_WCHANGE,          Console::No },
             { "mailbox",          HandleMailBoxCommand,          rbac::RBAC_PERM_COMMAND_MAILBOX,          Console::No },
+            { "log_player_locations",          HandleLogPlayerLocationsCommand,          rbac::RBAC_PERM_COMMAND_ADDITEM,          Console::Yes },
         };
         return commandTable;
     }
@@ -2663,6 +2666,35 @@ public:
         Player* player = handler->GetSession()->GetPlayer();
 
         handler->GetSession()->SendShowMailBox(player->GetGUID());
+        return true;
+    }
+
+    static bool HandleLogPlayerLocationsCommand(ChatHandler* handler)
+    {
+#pragma pack(push,1)
+struct PlayerPosition
+{
+    float x;
+    float y;
+    float z;
+    uint32 mapId;
+};
+#pragma pack(pop)
+        std::vector<PlayerPosition> positions;
+        std::shared_lock<std::shared_mutex> lock(*HashMapHolder<Player>::GetLock());
+        HashMapHolder<Player>::MapType const& m = ObjectAccessor::GetPlayers();
+        for (HashMapHolder<Player>::MapType::const_iterator itr = m.begin(); itr != m.end(); ++itr) {
+            Player* player = itr->second;
+            positions.push_back(PlayerPosition{player->GetPosition().m_positionX, player->GetPosition().m_positionY,
+                                               player->GetPosition().m_positionZ, player->GetMapId()});
+        }
+        // Get current unix timestamp
+        auto now = std::chrono::system_clock::now();
+        auto timestamp = std::chrono::duration_cast<std::chrono::seconds>(
+            now.time_since_epoch()).count();
+
+        std::ofstream ofs(fmt::format("player_location_dump_{}", timestamp), std::ios::binary);
+        ofs.write(reinterpret_cast<char*>(positions.data()), positions.size() * sizeof(PlayerPosition));
         return true;
     }
 };

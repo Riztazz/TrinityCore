@@ -26,6 +26,7 @@
 // @tswow-begin
 #include "TSUnit.h"
 #include "TSCreature.h"
+#include "Tracy.hpp"
 // @tswow-end
 
 using namespace Trinity;
@@ -149,6 +150,7 @@ inline void CreatureUnitRelocationWorker(Creature* c, Unit* u)
 
 void PlayerRelocationNotifier::Visit(PlayerMapType &m)
 {
+    ZoneScopedN("Player::Update::RelocationNotifier::VisitPlayer");
     for (PlayerMapType::iterator iter = m.begin(); iter != m.end(); ++iter)
     {
         Player* player = iter->GetSource();
@@ -166,6 +168,7 @@ void PlayerRelocationNotifier::Visit(PlayerMapType &m)
 
 void PlayerRelocationNotifier::Visit(CreatureMapType &m)
 {
+    ZoneScopedN("Player::Update::RelocationNotifier::VisitCreature");
     bool relocated_for_ai = (&i_player == i_player.m_seer);
 
     for (CreatureMapType::iterator iter=m.begin(); iter != m.end(); ++iter)

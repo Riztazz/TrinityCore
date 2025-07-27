@@ -878,12 +878,15 @@ void Map::Update(uint32 t_diff)
             VisitNearbyCellsOf(player, grid_object_update, world_object_update);
 
             // If player is using far sight or mind vision, visit that object too
-            if (WorldObject* viewPoint = player->GetViewpoint())
+            if (WorldObject* viewPoint = player->GetViewpoint()) {
+                ZoneScopedN("Map::Update::Players::VisitNearbyCellsOf")
                 VisitNearbyCellsOf(viewPoint, grid_object_update, world_object_update);
+            }
 
             // Handle updates for creatures in combat with player and are more than 60 yards away
             if (player->IsInCombat())
             {
+                ZoneScopedN("Map::Update::Players::Combat")
                 std::vector<Unit*> toVisit;
                 for (auto const& pair : player->GetCombatManager().GetPvECombatRefs())
                     if (Creature* unit = pair.second->GetOther(player)->ToCreature())
@@ -894,6 +897,7 @@ void Map::Update(uint32 t_diff)
             }
 
             { // Update any creatures that own auras the player has applications of
+                ZoneScopedN("Map::Update::Players::Auras")
                 std::unordered_set<Unit*> toVisit;
                 for (std::pair<uint32, AuraApplication*> pair : player->GetAppliedAuras())
                 {
@@ -906,6 +910,7 @@ void Map::Update(uint32 t_diff)
             }
 
             { // Update player's summons
+                ZoneScopedN("Map::Update::Players::Summons")
                 std::vector<Unit*> toVisit;
 
                 // Totems
