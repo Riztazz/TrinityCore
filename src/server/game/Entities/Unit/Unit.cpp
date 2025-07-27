@@ -10432,7 +10432,7 @@ bool Unit::ShouldRelocateUpdateMapPartition()
 {
     // Sanity checks
     if (!IsInWorld())
-    return false;
+        return false;
 
     if (!GetMap()->IsWorldMap())
         return false;
