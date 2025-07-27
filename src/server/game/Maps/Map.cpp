@@ -43,6 +43,7 @@
 #include "PoolMgr.h"
 #include "ScriptMgr.h"
 #include "Transport.h"
+#include "UpdateTime.h"
 #include "Vehicle.h"
 #include "VMapFactory.h"
 #include "VMapManager2.h"
@@ -288,6 +289,18 @@ float Map::GetDiffScaleFactor() const
 {
     float baseLineDiff = 300.0f; // A normal diff for an active server
     return std::min(std::max(sWorldUpdateTime.GetLastUpdateTime() / baseLineDiff, 1.0f), 5.0f); // Diff scale 1x->5x
+}
+
+float Map::GetVisibilityRange() const
+{
+    // Scale range from full down to half based on scaleFactor (1x->5x becomes 1.0->0.5)
+    float rangeScale = 1.0f - ((GetDiffScaleFactor() - 1.0f) / 8.0f);
+    return m_VisibleDistance * rangeScale;
+}
+
+float Map::GetVisibilityNotifyPeriod() const
+{
+    return m_VisibilityNotifyPeriod * GetDiffScaleFactor();
 }
 
 void Map::InitVisibilityDistance()
