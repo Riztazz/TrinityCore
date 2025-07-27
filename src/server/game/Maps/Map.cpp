@@ -1149,22 +1149,63 @@ void Map::ProcessObjectUpdates()
 {
     ZoneScopedN("Map::ProcessObjectUpdates")
 
-    UpdateDataMapType update_players;
-    while (!_updateObjects.empty())
-    {
-        Object* obj = *_updateObjects.begin();
-        ASSERT(obj->IsInWorld());
+    // Static thread pool to avoid creation overhead every frame
+    static Trinity::ThreadPool objectPool(4);
 
-        _updateObjects.erase(_updateObjects.begin());
-        obj->BuildUpdate(update_players);
-    }
-
-    WorldPacket packet; // here we allocate a std::vector with a size of 0x10000
-    for (UpdateDataMapType::iterator iter = update_players.begin(); iter != update_players.end(); ++iter)
+    if (!_updateObjects.empty())
     {
-        iter->second.BuildPacket(&packet);
-        iter->first->SendDirectMessage(&packet);
-        packet.clear(); // clean the string
+        // Phase 1: Extract all objects to process (single-threaded)
+        std::vector<Object*> objects;
+        objects.reserve(_updateObjects.size());
+        
+        while (!_updateObjects.empty())
+        {
+            Object* obj = *_updateObjects.begin();
+            ASSERT(obj->IsInWorld());
+            _updateObjects.erase(_updateObjects.begin());
+            objects.push_back(obj);
+        }
+
+        // Phase 2: Parallel BuildUpdate calls
+        const size_t objectCount = objects.size();
+        const size_t threadCount = 4;
+        const size_t objectsPerThread = (objectCount + threadCount - 1) / threadCount;
+        
+        std::vector<UpdateDataMapType> threadResults(threadCount);
+
+        for (size_t t = 0; t < threadCount && t * objectsPerThread < objectCount; ++t)
+        {
+            size_t startIdx = t * objectsPerThread;
+            size_t endIdx = std::min(startIdx + objectsPerThread, objectCount);
+            
+            objectPool.PostWork([&objects, &threadResults, t, startIdx, endIdx]()
+            {
+                for (size_t i = startIdx; i < endIdx; ++i)
+                    objects[i]->BuildUpdate(threadResults[t]);
+            });
+        }
+        
+        objectPool.Join();
+
+        // Phase 3: Send packets in parallel
+        for (size_t t = 0; t < threadCount; ++t)
+        {
+            if (!threadResults[t].empty())
+            {
+                objectPool.PostWork([&threadResults, t]()
+                {
+                    WorldPacket packet; // thread-local packet buffer
+                    for (auto iter = threadResults[t].begin(); iter != threadResults[t].end(); ++iter)
+                    {
+                        iter->second.BuildPacket(&packet);
+                        iter->first->SendDirectMessage(&packet);
+                        packet.clear(); // clean the string
+                    }
+                });
+            }
+        }
+        
+        objectPool.Join();
     }
 }
 
