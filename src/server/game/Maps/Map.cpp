@@ -1173,7 +1173,7 @@ void Map::ProcessObjectUpdates()
 
     std::atomic<int> ait(0);
 
-    auto f = [&t, &ait]() {
+    auto f = [this, &t, &ait]() {
         UpdateDataMapType update_players;
         int idx;
         while ((idx = ait.fetch_add(1)) < static_cast<int>(t.size() - 1))
