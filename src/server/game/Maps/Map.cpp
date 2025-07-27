@@ -1140,8 +1140,50 @@ void Map::ProcessVisibilityUpdates()
     {
         ZoneScopedN("PlayerVisibilityUpdates")
 
-        for (Player* player : _updateVisibilityPlayers)
-            player->ProcessRelocateVisibilityUpdates();
+        if (!_updateVisibilityPlayers.empty())
+        {
+            // Build vector for parallel processing
+            std::vector<Player*> players(_updateVisibilityPlayers.begin(), _updateVisibilityPlayers.end());
+            
+            uint32 playerCount = players.size();
+            uint32 maxTasks = std::min(playerCount, std::thread::hardware_concurrency());
+            if (maxTasks < 1)
+                maxTasks = 1;
+
+            std::atomic<uint32> playerIndex(0);
+            Trinity::ThreadPool& threadPool = GetUpdateThreadPool();
+
+            auto processPlayers = [&players, &playerIndex]() {
+                uint32 idx;
+                while ((idx = playerIndex.fetch_add(1)) < players.size())
+                {
+                    players[idx]->ProcessRelocateVisibilityUpdates();
+                }
+            };
+
+            // Submit tasks to thread pool and track with futures
+            std::vector<std::future<void>> futures;
+            futures.reserve(maxTasks - 1);
+
+            for (uint32 i = 1; i < maxTasks; ++i)
+            {
+                auto promise = std::make_shared<std::promise<void>>();
+                futures.push_back(promise->get_future());
+                
+                threadPool.PostWork([processPlayers, promise]() {
+                    processPlayers();
+                    promise->set_value();
+                });
+            }
+
+            processPlayers(); // Main thread processes a portion
+
+            // Wait for all tasks to complete
+            for (auto& future : futures)
+            {
+                future.wait();
+            }
+        }
 
         _updateVisibilityPlayers.clear();
     }
@@ -1149,8 +1191,50 @@ void Map::ProcessVisibilityUpdates()
     {
         ZoneScopedN("CreatureVisibilityUpdates")
 
-        for (Creature* creature : _updateVisibilityCreatures)
-            creature->ProcessRelocateVisibilityUpdates();
+        if (!_updateVisibilityCreatures.empty())
+        {
+            // Build vector for parallel processing
+            std::vector<Creature*> creatures(_updateVisibilityCreatures.begin(), _updateVisibilityCreatures.end());
+            
+            uint32 creatureCount = creatures.size();
+            uint32 maxTasks = std::min(creatureCount, std::thread::hardware_concurrency());
+            if (maxTasks < 1)
+                maxTasks = 1;
+
+            std::atomic<uint32> creatureIndex(0);
+            Trinity::ThreadPool& threadPool = GetUpdateThreadPool();
+
+            auto processCreatures = [&creatures, &creatureIndex]() {
+                uint32 idx;
+                while ((idx = creatureIndex.fetch_add(1)) < creatures.size())
+                {
+                    creatures[idx]->ProcessRelocateVisibilityUpdates();
+                }
+            };
+
+            // Submit tasks to thread pool and track with futures
+            std::vector<std::future<void>> futures;
+            futures.reserve(maxTasks - 1);
+
+            for (uint32 i = 1; i < maxTasks; ++i)
+            {
+                auto promise = std::make_shared<std::promise<void>>();
+                futures.push_back(promise->get_future());
+                
+                threadPool.PostWork([processCreatures, promise]() {
+                    processCreatures();
+                    promise->set_value();
+                });
+            }
+
+            processCreatures(); // Main thread processes a portion
+
+            // Wait for all tasks to complete
+            for (auto& future : futures)
+            {
+                future.wait();
+            }
+        }
 
         _updateVisibilityCreatures.clear();
     }
