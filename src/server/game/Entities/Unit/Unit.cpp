@@ -10443,9 +10443,9 @@ bool Unit::ShouldRelocateUpdateMapPartition()
         return false;
 
     // Partition calculation is expensive, so only check again if we have moved a consequential amount
-    float dx = _lastCheckedPartitionPosition.x - GetPositionX();
-    float dy = _lastCheckedPartitionPosition.y - GetPositionY();
-    float dz = _lastCheckedPartitionPosition.z - GetPositionZ();
+    float dx = _lastCheckedPartitionPosition.GetPositionX() - GetPositionX();
+    float dy = _lastCheckedPartitionPosition.GetPositionY() - GetPositionY();
+    float dz = _lastCheckedPartitionPosition.GetPositionZ() - GetPositionZ();
     float distsq = dx * dx + dy * dy + dz * dz;
     if (distsq < 0.5f)
         return false;
