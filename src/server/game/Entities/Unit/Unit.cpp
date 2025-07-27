@@ -13157,9 +13157,9 @@ bool Unit::ShouldRelocateUpdateVisibility()
     if (!IsInWorld())
         return false;
 
-    float dx = _lastNotifiedPosition.x - GetPositionX();
-    float dy = _lastNotifiedPosition.y - GetPositionY();
-    float dz = _lastNotifiedPosition.z - GetPositionZ();
+    float dx = _lastNotifiedPosition.GetPositionX() - GetPositionX();
+    float dy = _lastNotifiedPosition.GetPositionY() - GetPositionY();
+    float dz = _lastNotifiedPosition.GetPositionZ() - GetPositionZ();
     float distsq = dx * dx + dy * dy + dz * dz;
     if (distsq < World::GetRelocationLowerLimitSq())
         return false;
