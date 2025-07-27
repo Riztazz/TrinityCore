@@ -1155,52 +1155,35 @@ void Map::ProcessObjectUpdates()
 
     if (!_updateObjects.empty())
     {
-        // Phase 1: Extract all objects to process (single-threaded)
-        std::vector<Object*> objects;
-        objects.reserve(_updateObjects.size());
-        
-        while (!_updateObjects.empty())
-        {
-            Object* obj = *_updateObjects.begin();
-            ASSERT(obj->IsInWorld());
-            _updateObjects.erase(_updateObjects.begin());
-            objects.push_back(obj);
-        }
+        // Phase 1: Extract objects (single-threaded)
+        std::vector<Object*> objects(_updateObjects.begin(), _updateObjects.end());
+        _updateObjects.clear();
 
-        // Phase 2: Parallel BuildUpdate calls
+        // Phase 2: Parallel processing with thread-local UpdateDataMapType
         const size_t objectCount = objects.size();
-        const size_t threadCount = 4;
+        const size_t threadCount = std::min(size_t(4), objectCount);
         const size_t objectsPerThread = (objectCount + threadCount - 1) / threadCount;
-        
-        std::vector<UpdateDataMapType> threadResults(threadCount);
 
-        for (size_t t = 0; t < threadCount && t * objectsPerThread < objectCount; ++t)
+        for (size_t t = 0; t < threadCount; ++t)
         {
             size_t startIdx = t * objectsPerThread;
             size_t endIdx = std::min(startIdx + objectsPerThread, objectCount);
             
-            objectPool.PostWork([&objects, &threadResults, t, startIdx, endIdx]()
+            if (startIdx < objectCount)
             {
-                for (size_t i = startIdx; i < endIdx; ++i)
-                    objects[i]->BuildUpdate(threadResults[t]);
-            });
-        }
-        
-        objectPool.Join();
-
-        // Phase 3: Send packets in parallel
-        for (size_t t = 0; t < threadCount; ++t)
-        {
-            if (!threadResults[t].empty())
-            {
-                objectPool.PostWork([&threadResults, t]()
+                objectPool.PostWork([&objects, startIdx, endIdx]()
                 {
-                    WorldPacket packet; // thread-local packet buffer
-                    for (auto iter = threadResults[t].begin(); iter != threadResults[t].end(); ++iter)
+                    UpdateDataMapType update_players; // Thread-local
+                    for (size_t i = startIdx; i < endIdx; ++i)
+                        objects[i]->BuildUpdate(update_players);
+
+                    // Send packets immediately in same thread
+                    WorldPacket packet;
+                    for (auto& pair : update_players)
                     {
-                        iter->second.BuildPacket(&packet);
-                        iter->first->SendDirectMessage(&packet);
-                        packet.clear(); // clean the string
+                        pair.second.BuildPacket(&packet);
+                        pair.first->SendDirectMessage(&packet);
+                        packet.clear();
                     }
                 });
             }
