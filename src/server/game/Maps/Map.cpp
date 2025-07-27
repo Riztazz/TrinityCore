@@ -54,6 +54,7 @@
 #include "World.h"
 #include <atomic>
 #include <boost/heap/fibonacci_heap.hpp>
+#include <future>
 #include <thread>
 #include <unordered_set>
 #include <vector>
@@ -1198,16 +1199,30 @@ void Map::ProcessObjectUpdates()
         }
     };
 
-    // Submit tasks to thread pool (excluding main thread)
+    // Submit tasks to thread pool and track with futures
+    Trinity::ThreadPool& threadPool = GetUpdateThreadPool();
+    std::vector<std::future<void>> futures;
+    futures.reserve(maxTasks - 1);
+
+    // Submit tasks to thread pool (excluding main thread) 
     for (uint32 i = 1; i < maxTasks; ++i)
     {
-        threadPool.PostWork(f);
+        auto promise = std::make_shared<std::promise<void>>();
+        futures.push_back(promise->get_future());
+        
+        threadPool.PostWork([f, promise]() {
+            f();
+            promise->set_value();
+        });
     }
 
     f(); // Main thread processes a portion of the work
 
-    // Wait for all tasks to complete by joining the thread pool
-    threadPool.Join();
+    // Wait for all tasks to complete
+    for (auto& future : futures)
+    {
+        future.wait();
+    }
 
     _updateObjects.clear();
 }
