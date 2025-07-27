@@ -28,6 +28,7 @@
 #include "GridNotifiers.h"
 #include "GridNotifiersImpl.h"
 #include "Group.h"
+#include "Threading/ThreadPool.h"
 #include "InstanceScript.h"
 #include "Log.h"
 #include "MapInstanced.h"
@@ -1130,12 +1131,34 @@ void Map::Update(uint32 t_diff)
 void Map::ProcessVisibilityUpdates()
 {
     ZoneScopedN("Map::ProcessVisibilityUpdates")
-
+    
+    // Static thread pool to avoid creation overhead every frame
+    static Trinity::ThreadPool visibilityPool(4);
+    
     {
         ZoneScopedN("PlayerVisibilityUpdates")
 
-        for (Player* player : _updateVisibilityPlayers)
-            player->ProcessRelocateVisibilityUpdates();
+        if (!_updateVisibilityPlayers.empty())
+        {
+            std::vector<Player*> players(_updateVisibilityPlayers.begin(), _updateVisibilityPlayers.end());
+            const size_t playerCount = players.size();
+            const size_t threadCount = 4;
+            const size_t playersPerThread = (playerCount + threadCount - 1) / threadCount;
+
+            for (size_t t = 0; t < threadCount && t * playersPerThread < playerCount; ++t)
+            {
+                size_t startIdx = t * playersPerThread;
+                size_t endIdx = std::min(startIdx + playersPerThread, playerCount);
+                
+                visibilityPool.PostWork([&players, startIdx, endIdx]()
+                {
+                    for (size_t i = startIdx; i < endIdx; ++i)
+                        players[i]->ProcessRelocateVisibilityUpdates();
+                });
+            }
+            
+            visibilityPool.Join();
+        }
 
         _updateVisibilityPlayers.clear();
     }
@@ -1143,8 +1166,27 @@ void Map::ProcessVisibilityUpdates()
     {
         ZoneScopedN("CreatureVisibilityUpdates")
 
-        for (Creature* creature : _updateVisibilityCreatures)
-            creature->ProcessRelocateVisibilityUpdates();
+        if (!_updateVisibilityCreatures.empty())
+        {
+            std::vector<Creature*> creatures(_updateVisibilityCreatures.begin(), _updateVisibilityCreatures.end());
+            const size_t creatureCount = creatures.size();
+            const size_t threadCount = 4;
+            const size_t creaturesPerThread = (creatureCount + threadCount - 1) / threadCount;
+
+            for (size_t t = 0; t < threadCount && t * creaturesPerThread < creatureCount; ++t)
+            {
+                size_t startIdx = t * creaturesPerThread;
+                size_t endIdx = std::min(startIdx + creaturesPerThread, creatureCount);
+                
+                visibilityPool.PostWork([&creatures, startIdx, endIdx]()
+                {
+                    for (size_t i = startIdx; i < endIdx; ++i)
+                        creatures[i]->ProcessRelocateVisibilityUpdates();
+                });
+            }
+            
+            visibilityPool.Join();
+        }
 
         _updateVisibilityCreatures.clear();
     }
