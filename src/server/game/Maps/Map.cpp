@@ -42,6 +42,7 @@
 #include "Pet.h"
 #include "PoolMgr.h"
 #include "ScriptMgr.h"
+#include "ThreadPool.h"
 #include "Transport.h"
 #include "UpdateTime.h"
 #include "Vehicle.h"
