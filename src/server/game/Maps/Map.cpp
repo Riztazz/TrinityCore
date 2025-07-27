@@ -51,7 +51,9 @@
 #include "Weather.h"
 #include "WeatherMgr.h"
 #include "World.h"
+#include <atomic>
 #include <boost/heap/fibonacci_heap.hpp>
+#include <thread>
 #include <unordered_set>
 #include <vector>
 // @tswow-begin
@@ -1150,23 +1152,60 @@ void Map::ProcessObjectUpdates()
 {
     ZoneScopedN("Map::ProcessObjectUpdates")
 
-    UpdateDataMapType update_players;
-    while (!_updateObjects.empty())
-    {
-        Object* obj = *_updateObjects.begin();
-        ASSERT(obj->IsInWorld());
+    if (_updateObjects.empty())
+        return;
 
-        _updateObjects.erase(_updateObjects.begin());
-        obj->BuildUpdate(update_players);
+    // Build a vector of iterators to the objects for safe multi-threaded access
+    std::vector<std::unordered_set<Object*>::iterator> t;
+    t.reserve(_updateObjects.size() + 1);
+    for (auto it = _updateObjects.begin(); it != _updateObjects.end(); ++it)
+        t.push_back(it);
+    t.push_back(_updateObjects.end());
+
+    uint32 objectsCount = t.size() - 1;
+
+    // Determine the number of threads (main thread + additional threads)
+    int threads = std::thread::hardware_concurrency();
+    if (threads > static_cast<int>(objectsCount))
+        threads = objectsCount;
+    if (threads < 1)
+        threads = 1;
+
+    std::atomic<int> ait(0);
+
+    auto f = [&t, &ait]() {
+        UpdateDataMapType update_players;
+        int idx;
+        while ((idx = ait.fetch_add(1)) < static_cast<int>(t.size() - 1))
+        {
+            Object* obj = *t[idx];
+            ASSERT(obj->IsInWorld());
+            obj->BuildUpdate(update_players);
+        }
+
+        WorldPacket packet; // Each thread has its own packet to avoid sharing
+        for (UpdateDataMapType::iterator iter = update_players.begin(); iter != update_players.end(); ++iter)
+        {
+            iter->second.BuildPacket(&packet);
+            iter->first->SendDirectMessage(&packet);
+            packet.clear();
+        }
+    };
+
+    std::vector<std::thread> thread_list;
+    for (int i = 1; i < threads; ++i)
+    {
+        thread_list.emplace_back(f);
     }
 
-    WorldPacket packet; // here we allocate a std::vector with a size of 0x10000
-    for (UpdateDataMapType::iterator iter = update_players.begin(); iter != update_players.end(); ++iter)
+    f(); // Main thread processes a portion of the work
+
+    for (auto& th : thread_list)
     {
-        iter->second.BuildPacket(&packet);
-        iter->first->SendDirectMessage(&packet);
-        packet.clear(); // clean the string
+        th.join();
     }
+
+    _updateObjects.clear();
 }
 
 // Partitions should override this and do nothing, only the base map
