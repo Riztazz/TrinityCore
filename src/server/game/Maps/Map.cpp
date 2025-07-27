@@ -1150,64 +1150,22 @@ void Map::ProcessObjectUpdates()
 {
     ZoneScopedN("Map::ProcessObjectUpdates")
 
-    // Static thread pool to avoid creation overhead every frame
-    static Trinity::ThreadPool objectPool(4);
-
-    if (!_updateObjects.empty())
+    UpdateDataMapType update_players;
+    while (!_updateObjects.empty())
     {
-        // Phase 1: Extract objects with safety checks (single-threaded)
-        std::vector<Object*> objects;
-        objects.reserve(_updateObjects.size());
-        
-        while (!_updateObjects.empty())
-        {
-            Object* obj = *_updateObjects.begin();
-            _updateObjects.erase(_updateObjects.begin());
-            
-            // Safety check - ensure object is still valid
-            if (obj && obj->IsInWorld())
-                objects.push_back(obj);
-        }
+        Object* obj = *_updateObjects.begin();
+        ASSERT(obj->IsInWorld());
 
-        // Phase 2: Parallel processing with thread-local UpdateDataMapType
-        const size_t objectCount = objects.size();
-        if (objectCount > 0)
-        {
-            const size_t threadCount = std::min(size_t(4), objectCount);
-            const size_t objectsPerThread = (objectCount + threadCount - 1) / threadCount;
+        _updateObjects.erase(_updateObjects.begin());
+        obj->BuildUpdate(update_players);
+    }
 
-            for (size_t t = 0; t < threadCount; ++t)
-            {
-                size_t startIdx = t * objectsPerThread;
-                size_t endIdx = std::min(startIdx + objectsPerThread, objectCount);
-                
-                if (startIdx < objectCount)
-                {
-                    objectPool.PostWork([&objects, startIdx, endIdx]()
-                    {
-                        UpdateDataMapType update_players; // Thread-local
-                        for (size_t i = startIdx; i < endIdx; ++i)
-                        {
-                            Object* obj = objects[i];
-                            // Double-check object is still valid before processing
-                            if (obj && obj->IsInWorld())
-                                obj->BuildUpdate(update_players);
-                        }
-
-                        // Send packets immediately in same thread
-                        WorldPacket packet;
-                        for (auto& pair : update_players)
-                        {
-                            pair.second.BuildPacket(&packet);
-                            pair.first->SendDirectMessage(&packet);
-                            packet.clear();
-                        }
-                    });
-                }
-            }
-        }
-        
-        objectPool.Join();
+    WorldPacket packet; // here we allocate a std::vector with a size of 0x10000
+    for (UpdateDataMapType::iterator iter = update_players.begin(); iter != update_players.end(); ++iter)
+    {
+        iter->second.BuildPacket(&packet);
+        iter->first->SendDirectMessage(&packet);
+        packet.clear(); // clean the string
     }
 }
 
