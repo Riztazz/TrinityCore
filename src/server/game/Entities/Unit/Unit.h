@@ -1676,7 +1676,7 @@ class TC_GAME_API Unit : public WorldObject
         void SetPhaseMask(uint32 newPhaseMask, bool update, uint64 newPhaseId = 0) override;// overwrite Unit::SetPhaseMask
         // @tswow-end
         bool ShouldRelocateUpdateVisibility();
-        virtual void ProcessRelocateVisibilityUpdates();
+        virtual void ProcessRelocateVisibilityUpdates() { }
         void UpdateObjectVisibility() override;
 
         SpellImmuneContainer m_spellImmune[MAX_SPELL_IMMUNITY];
