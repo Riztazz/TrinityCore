@@ -1408,10 +1408,14 @@ void Player::ProcessRelocateVisibilityUpdates()
     if (!IsInWorld())
         return;
 
-    ZoneScopedN("PlayerRelocateVisibilityUpdates")
-    PlayerRelocationNotifier relocate(*this);
-    Cell::VisitAllObjects(viewPoint, relocate, GetMap()->GetVisibilityRange(), false);
-    relocate.SendToSelf();
+    WorldObject const* viewPoint = m_seer;
+    if (this == viewPoint || viewPoint->IsPositionValid())
+    {
+        ZoneScopedN("PlayerRelocateVisibilityUpdates")
+        PlayerRelocationNotifier relocate(*this);
+        Cell::VisitAllObjects(viewPoint, relocate, GetMap()->GetVisibilityRange(), false);
+        relocate.SendToSelf();
+    }
 }
 
 void Player::setDeathState(DeathState s)
