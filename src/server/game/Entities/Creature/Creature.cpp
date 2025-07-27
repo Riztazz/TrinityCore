@@ -1108,7 +1108,7 @@ void Creature::Update(uint32 diff)
     }
 }
 
-void Unit::ProcessRelocateVisibilityUpdates()
+void Creature::ProcessRelocateVisibilityUpdates()
 {
     if (!IsInWorld())
         return;

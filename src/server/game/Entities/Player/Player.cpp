@@ -1403,7 +1403,7 @@ void Player::Update(uint32 p_time)
         TeleportTo(m_teleport_dest, m_teleport_options);
 }
 
-void Unit::ProcessRelocateVisibilityUpdates()
+void Player::ProcessRelocateVisibilityUpdates()
 {
     if (!IsInWorld())
         return;
