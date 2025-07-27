@@ -28,6 +28,7 @@
 #include "GridNotifiers.h"
 #include "GridNotifiersImpl.h"
 #include "Group.h"
+#include "Threading/ThreadPool.h"
 #include "InstanceScript.h"
 #include "Log.h"
 #include "MapInstanced.h"
@@ -170,6 +171,12 @@ bool Map::ExistVMap(uint32 mapId, int gx, int gy)
     }
 
     return true;
+}
+
+Trinity::ThreadPool& Map::GetUpdateThreadPool()
+{
+    static Trinity::ThreadPool updateThreadPool(std::max(1u, std::thread::hardware_concurrency() / 2));
+    return updateThreadPool;
 }
 
 void Map::LoadMMap(int gx, int gy)
@@ -1164,14 +1171,13 @@ void Map::ProcessObjectUpdates()
 
     uint32 objectsCount = t.size() - 1;
 
-    // Determine the number of threads (main thread + additional threads)
-    int threads = std::thread::hardware_concurrency();
-    if (threads > static_cast<int>(objectsCount))
-        threads = objectsCount;
-    if (threads < 1)
-        threads = 1;
+    // Determine work distribution based on object count
+    uint32 maxTasks = std::min(objectsCount, std::thread::hardware_concurrency());
+    if (maxTasks < 1)
+        maxTasks = 1;
 
     std::atomic<int> ait(0);
+    Trinity::ThreadPool& threadPool = GetUpdateThreadPool();
 
     auto f = [this, &t, &ait]() {
         UpdateDataMapType update_players;
@@ -1192,18 +1198,16 @@ void Map::ProcessObjectUpdates()
         }
     };
 
-    std::vector<std::thread> thread_list;
-    for (int i = 1; i < threads; ++i)
+    // Submit tasks to thread pool (excluding main thread)
+    for (uint32 i = 1; i < maxTasks; ++i)
     {
-        thread_list.emplace_back(f);
+        threadPool.PostWork(f);
     }
 
     f(); // Main thread processes a portion of the work
 
-    for (auto& th : thread_list)
-    {
-        th.join();
-    }
+    // Wait for all tasks to complete by joining the thread pool
+    threadPool.Join();
 
     _updateObjects.clear();
 }
