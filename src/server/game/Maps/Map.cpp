@@ -1298,7 +1298,7 @@ void Map::ProcessObjectUpdates()
         auto promise = std::make_shared<std::promise<void>>();
         futures.push_back(promise->get_future());
         
-        threadPool.PostWork([f, promise]() {
+        threadPool.PostWork([processObjects, promise]() {
             processObjects();
             promise->set_value();
         });
