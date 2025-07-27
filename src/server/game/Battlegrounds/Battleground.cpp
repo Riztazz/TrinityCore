@@ -1601,7 +1601,7 @@ void Battleground::SpawnBGObject(uint32 type, uint32 respawntime)
                 obj->SetLootState(GO_READY);
             }
             obj->SetRespawnTime(respawntime);
-            obj->UpdateObjectVisibility(true); // Copied from previous duplicate AddToMap() call, can remove if unnecessary
+            obj->UpdateObjectVisibility(); // Copied from previous duplicate AddToMap() call, can remove if unnecessary
         }
 }
 

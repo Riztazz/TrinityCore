@@ -1035,7 +1035,7 @@ void Map::Update(uint32 t_diff)
                 AddToGrid(creature, new_cell);
             }
             creature->UpdatePositionData();
-            //creature->UpdateObjectVisibility(false); FIXME TEST before remove
+            //creature->UpdateObjectVisibility(); FIXME TEST before remove
 
             if (creature->ShouldRelocateUpdateVisibility())
                 _updateVisibilityCreatures.insert(creature);
@@ -1210,7 +1210,7 @@ void Map::RemovePlayerFromMap(Player* player, bool remove)
 
     // note: RemoveFromWorld does this for inWorld objects
     if (!inWorld) // if was in world, RemoveFromWorld() called DestroyForNearbyPlayers()
-        player->DestroyForNearbyPlayers(); // previous player->UpdateObjectVisibility(true)
+        player->DestroyForNearbyPlayers(); // previous player->UpdateObjectVisibility()
 
     if (player->IsInGrid())
         player->RemoveFromGrid();
@@ -1241,7 +1241,7 @@ void Map::RemovePlayerFromPartition(Player* player)
 
     // note: RemoveFromWorld does this for inWorld objects
     //if (!inWorld) // if was in world, RemoveFromWorld() called DestroyForNearbyPlayers()
-    //    player->DestroyForNearbyPlayers(); // previous player->UpdateObjectVisibility(true)
+    //    player->DestroyForNearbyPlayers(); // previous player->UpdateObjectVisibility()
 
     if (player->IsInGrid())
         player->RemoveFromGrid();
@@ -1271,7 +1271,7 @@ void Map::RemoveFromMap(T *obj, bool remove)
 
     // note: RemoveFromWorld does this for inWorld objects
     if (!inWorld) // if was in world, RemoveFromWorld() called DestroyForNearbyPlayers()
-        obj->DestroyForNearbyPlayers(); // previous obj->UpdateObjectVisibility(true)
+        obj->DestroyForNearbyPlayers(); // previous obj->UpdateObjectVisibility()
 
     obj->RemoveFromGrid();
 
@@ -1341,7 +1341,7 @@ void Map::RemoveFromPartition(T *obj)
 
     // note: RemoveFromWorld does this for inWorld objects
     if (!inWorld) // if was in world, RemoveFromWorld() called DestroyForNearbyPlayers()
-        obj->DestroyForNearbyPlayers(); // previous obj->UpdateObjectVisibility(true)
+        obj->DestroyForNearbyPlayers(); // previous obj->UpdateObjectVisibility()
 
     obj->RemoveFromGrid();  
 
@@ -1369,7 +1369,7 @@ void Map::PlayerRelocation(Player* player, float x, float y, float z, float orie
     }
 
     player->UpdatePositionData();
-    //player->UpdateObjectVisibility(false); FIXME TEST before remove
+    //player->UpdateObjectVisibility(); FIXME TEST before remove
 
     if (player->ShouldRelocateUpdateVisibility())
         _updateVisibilityPlayers.insert(player);
@@ -1392,7 +1392,7 @@ void Map::CreatureRelocation(Creature* creature, float x, float y, float z, floa
     else
     {
         creature->UpdatePositionData();
-        //creature->UpdateObjectVisibility(false); FIXME TEST before remove
+        //creature->UpdateObjectVisibility(); FIXME TEST before remove
 
         if (creature->ShouldRelocateUpdateVisibility())
             _updateVisibilityCreatures.insert(player);

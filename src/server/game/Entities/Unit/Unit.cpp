@@ -13171,7 +13171,7 @@ bool Unit::ShouldRelocateUpdateVisibility()
 void Unit::UpdateObjectVisibility()
 {
 
-    WorldObject::UpdateObjectVisibility(true);
+    WorldObject::UpdateObjectVisibility();
     // call MoveInLineOfSight for nearby creatures
     Trinity::AIRelocationNotifier notifier(*this);
     Cell::VisitAllObjects(this, notifier, GetVisibilityRange());

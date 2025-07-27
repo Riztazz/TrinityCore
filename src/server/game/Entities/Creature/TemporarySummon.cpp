@@ -278,7 +278,7 @@ void TempSummon::InitSummon()
 
 void TempSummon::UpdateObjectVisibilityOnCreate()
 {
-    WorldObject::UpdateObjectVisibility(true);
+    WorldObject::UpdateObjectVisibility();
 }
 
 void TempSummon::SetTempSummonType(TempSummonType type)

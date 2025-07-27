@@ -526,8 +526,8 @@ class TC_GAME_API WorldObject : public Object, public WorldLocation
         void GetPlayerListInGrid(Container& playerContainer, float maxSearchRange, bool alive = true) const;
 
         void DestroyForNearbyPlayers();
-        virtual void UpdateObjectVisibility(bool forced = true);
-        virtual void UpdateObjectVisibilityOnCreate() { UpdateObjectVisibility(true); }
+        virtual void UpdateObjectVisibility();
+        virtual void UpdateObjectVisibilityOnCreate() { UpdateObjectVisibility(); }
         void UpdatePositionData();
 
         void BuildUpdate(UpdateDataMapType&) override;

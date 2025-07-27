@@ -1677,7 +1677,7 @@ class TC_GAME_API Unit : public WorldObject
         // @tswow-end
         bool ShouldRelocateUpdateVisibility();
         virtual void ProcessRelocateVisibilityUpdates();
-        void UpdateObjectVisibility(bool forced = true) override;
+        void UpdateObjectVisibility() override;
 
         SpellImmuneContainer m_spellImmune[MAX_SPELL_IMMUNITY];
         uint32 m_lastSanctuaryTime;

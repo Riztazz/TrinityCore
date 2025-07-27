@@ -92,7 +92,7 @@ struct boss_marli : public BossAI
         for (GameObject* egg : eggs)
         {
             egg->Respawn();
-            egg->UpdateObjectVisibility(true);
+            egg->UpdateObjectVisibility();
         }
 
         summons.DespawnAll();

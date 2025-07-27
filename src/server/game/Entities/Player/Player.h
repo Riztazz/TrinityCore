@@ -2128,7 +2128,7 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
         bool IsVisibleGloballyFor(Player const* player) const;
 
         void SendInitialVisiblePackets(Unit* target) const;
-        void UpdateObjectVisibility(bool forced = true) override;
+        void UpdateObjectVisibility() override;
         void ProcessRelocateVisibilityUpdates() override;
         void UpdateVisibilityForPlayer();
         void UpdateVisibilityOf(WorldObject* target);

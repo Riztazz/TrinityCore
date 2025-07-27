@@ -501,7 +501,7 @@ class spell_ulduar_squeezed_lifeless : public SpellScriptLoader
                 pos.SetOrientation(float(M_PI));
                 GetHitPlayer()->DestroyForNearbyPlayers();
                 GetHitPlayer()->ExitVehicle(&pos);
-                GetHitPlayer()->UpdateObjectVisibility(false);
+                GetHitPlayer()->UpdateObjectVisibility();
             }
 
             void Register() override

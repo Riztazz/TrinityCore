@@ -3631,7 +3631,7 @@ void WorldObject::DestroyForNearbyPlayers()
     }
 }
 
-void WorldObject::UpdateObjectVisibility(bool /*forced*/)
+void WorldObject::UpdateObjectVisibility()
 {
     //updates object's visibility for nearby players
     Trinity::VisibleChangesNotifier notifier(*this);

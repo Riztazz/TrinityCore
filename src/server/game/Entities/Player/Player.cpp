@@ -23290,7 +23290,7 @@ void Player::UpdateObjectVisibility()
     if (!IsInWorld())
         return;
 
-    Unit::UpdateObjectVisibility(true);
+    Unit::UpdateObjectVisibility();
     UpdateVisibilityForPlayer();
 }
 
