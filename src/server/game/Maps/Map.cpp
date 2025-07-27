@@ -284,6 +284,12 @@ i_scriptLock(false), _respawnTimes(std::make_unique<RespawnListContainer>())
     MMAP::MMapFactory::createOrGetMMapManager()->loadMapInstance(sWorld->GetDataPath(), GetId(), instanceOrPartitionId);
 }
 
+float Map::GetDiffScaleFactor() const
+{
+    float baseLineDiff = 300.0f; // A normal diff for an active server
+    return std::min(std::max(sWorldUpdateTime.GetLastUpdateTime() / baseLineDiff, 1.0f), 5.0f); // Diff scale 1x->5x
+}
+
 void Map::InitVisibilityDistance()
 {
     //init visibility for continents

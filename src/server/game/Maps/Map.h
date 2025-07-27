@@ -404,11 +404,7 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
         {
             return m_VisibilityNotifyPeriod * GetDiffScaleFactor();
         }
-        float GetDiffScaleFactor() const
-        {
-            float baseLineDiff = 300.0f; // A normal diff for an active server
-            return std::min(std::max((float)sWorldUpdateTime.GetLastUpdateTime() / baseLineDiff, 1.0f), 5.0f); // Diff scale 1x->5x
-        }
+        float GetDiffScaleFactor() const;
         //function for setting up visibility distance for maps on per-type/per-Id basis
         virtual void InitVisibilityDistance();
 
