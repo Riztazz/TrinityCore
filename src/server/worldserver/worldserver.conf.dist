@@ -174,6 +174,17 @@ BindIP = "0.0.0.0"
 ThreadPool = 2
 
 #
+#    MapUpdateThreadPool
+#        Description: Number of threads to be used for map update operations
+#                     Controls parallelization of:
+#                      - Object updates (BuildUpdate, SendDirectMessage)
+#                      - Visibility updates (Player and Creature relocate updates)
+#                     Set to 0 to use hardware_concurrency() / 2
+#        Default:     0
+#
+MapUpdateThreadPool = 0
+
+#
 #    CMakeCommand
 #        Description: The path to your CMake binary.
 #                     If the path is left empty, the built-in CMAKE_COMMAND is used.

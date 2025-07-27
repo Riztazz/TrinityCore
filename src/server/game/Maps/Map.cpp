@@ -176,7 +176,12 @@ bool Map::ExistVMap(uint32 mapId, int gx, int gy)
 
 Trinity::ThreadPool& Map::GetUpdateThreadPool()
 {
-    static Trinity::ThreadPool updateThreadPool(std::max(1u, std::thread::hardware_concurrency() / 2));
+    static Trinity::ThreadPool updateThreadPool([]() -> uint32 {
+        uint32 configThreads = sWorld->getIntConfig(CONFIG_MAP_UPDATE_THREAD_POOL);
+        if (configThreads == 0)
+            return std::max(1u, std::thread::hardware_concurrency() / 2);
+        return std::max(1u, configThreads);
+    }());
     return updateThreadPool;
 }
 
