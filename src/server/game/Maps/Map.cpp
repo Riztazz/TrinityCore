@@ -1200,7 +1200,6 @@ void Map::ProcessObjectUpdates()
     };
 
     // Submit tasks to thread pool and track with futures
-    Trinity::ThreadPool& threadPool = GetUpdateThreadPool();
     std::vector<std::future<void>> futures;
     futures.reserve(maxTasks - 1);
 
