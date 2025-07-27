@@ -1403,9 +1403,7 @@ void Player::Update(uint32 p_time)
         TeleportTo(m_teleport_dest, m_teleport_options);
 
     // For now, do this at the end of the update 
-    float baseLineDiff = 300.0f; // A normal diff for an active server
-    float scaleFactor = std::min(std::max(p_time / baseLineDiff, 1.0f), 5.0f); // Diff scale 1x->5x
-    uint32 scaledPeriod = GetMap()->GetVisibilityNotifyPeriod() * scaleFactor; 
+    uint32 scaledPeriod = GetMap()->GetVisibilityNotifyPeriod();
     uint32 currentTime = GameTime::GetGameTimeMS();
     uint32 currentOffset = currentTime % scaledPeriod;
     uint32 lastOffset = (currentTime - p_time) % scaledPeriod;
@@ -1421,9 +1419,7 @@ void Player::Update(uint32 p_time)
         {
             ZoneScopedN("Player::Update::RelocationNotifier")
             PlayerRelocationNotifier relocate(*this);
-            // Scale range from full down to half based on scaleFactor (1x->5x becomes 1.0->0.5)
-            float rangeScale = 1.0f - ((scaleFactor - 1.0f) / 8.0f);
-            Cell::VisitAllObjects(viewPoint, relocate, GetMap()->GetVisibilityRange() * rangeScale, false);
+            Cell::VisitAllObjects(viewPoint, relocate, GetMap()->GetVisibilityRange(), false);
             relocate.SendToSelf();
         }
 

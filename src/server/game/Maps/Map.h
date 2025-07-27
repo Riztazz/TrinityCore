@@ -394,8 +394,21 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
         void VisitNearbyCellsOf(WorldObject* obj, TypeContainerVisitor<Trinity::ObjectUpdater, GridTypeMapContainer> &gridVisitor, TypeContainerVisitor<Trinity::ObjectUpdater, WorldTypeMapContainer> &worldVisitor);
         virtual void Update(uint32);
 
-        float GetVisibilityRange() const { return m_VisibleDistance; }
-        float GetVisibilityNotifyPeriod() const { return m_VisibilityNotifyPeriod; }
+        float GetVisibilityRange() const
+        {
+            // Scale range from full down to half based on scaleFactor (1x->5x becomes 1.0->0.5)
+            float rangeScale = 1.0f - ((GetDiffScaleFactor() - 1.0f) / 8.0f);
+            return m_VisibleDistance * rangeScale;
+        }
+        float GetVisibilityNotifyPeriod() const
+        {
+            return m_VisibilityNotifyPeriod * GetDiffScaleFactor();
+        }
+        float GetDiffScaleFactor() const
+        {
+            float baseLineDiff = 300.0f; // A normal diff for an active server
+            return std::min(std::max(sWorldUpdateTime.GetLastUpdateTime() / baseLineDiff, 1.0f), 5.0f); // Diff scale 1x->5x
+        }
         //function for setting up visibility distance for maps on per-type/per-Id basis
         virtual void InitVisibilityDistance();
 
