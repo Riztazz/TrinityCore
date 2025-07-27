@@ -28,6 +28,7 @@
 #include "GridNotifiers.h"
 #include "GridNotifiersImpl.h"
 #include "Group.h"
+#include "Threading/ThreadPool.h"
 #include "InstanceScript.h"
 #include "Log.h"
 #include "MapInstanced.h"
@@ -51,7 +52,10 @@
 #include "Weather.h"
 #include "WeatherMgr.h"
 #include "World.h"
+#include <atomic>
 #include <boost/heap/fibonacci_heap.hpp>
+#include <future>
+#include <thread>
 #include <unordered_set>
 #include <vector>
 // @tswow-begin
@@ -168,6 +172,12 @@ bool Map::ExistVMap(uint32 mapId, int gx, int gy)
     }
 
     return true;
+}
+
+Trinity::ThreadPool& Map::GetUpdateThreadPool()
+{
+    static Trinity::ThreadPool updateThreadPool(std::max(1u, std::thread::hardware_concurrency() / 2));
+    return updateThreadPool;
 }
 
 void Map::LoadMMap(int gx, int gy)
@@ -1135,8 +1145,50 @@ void Map::ProcessVisibilityUpdates()
     {
         ZoneScopedN("PlayerVisibilityUpdates")
 
-        for (Player* player : _updateVisibilityPlayers)
-            player->ProcessRelocateVisibilityUpdates();
+        if (!_updateVisibilityPlayers.empty())
+        {
+            // Build vector for parallel processing
+            std::vector<Player*> players(_updateVisibilityPlayers.begin(), _updateVisibilityPlayers.end());
+            
+            uint32 playerCount = players.size();
+            uint32 maxTasks = std::min(playerCount, std::thread::hardware_concurrency());
+            if (maxTasks < 1)
+                maxTasks = 1;
+
+            std::atomic<uint32> playerIndex(0);
+            Trinity::ThreadPool& threadPool = GetUpdateThreadPool();
+
+            auto processPlayers = [&players, &playerIndex]() {
+                uint32 idx;
+                while ((idx = playerIndex.fetch_add(1)) < players.size())
+                {
+                    players[idx]->ProcessRelocateVisibilityUpdates();
+                }
+            };
+
+            // Submit tasks to thread pool and track with futures
+            std::vector<std::future<void>> futures;
+            futures.reserve(maxTasks - 1);
+
+            for (uint32 i = 1; i < maxTasks; ++i)
+            {
+                auto promise = std::make_shared<std::promise<void>>();
+                futures.push_back(promise->get_future());
+                
+                threadPool.PostWork([processPlayers, promise]() {
+                    processPlayers();
+                    promise->set_value();
+                });
+            }
+
+            processPlayers(); // Main thread processes a portion
+
+            // Wait for all tasks to complete
+            for (auto& future : futures)
+            {
+                future.wait();
+            }
+        }
 
         _updateVisibilityPlayers.clear();
     }
@@ -1144,8 +1196,50 @@ void Map::ProcessVisibilityUpdates()
     {
         ZoneScopedN("CreatureVisibilityUpdates")
 
-        for (Creature* creature : _updateVisibilityCreatures)
-            creature->ProcessRelocateVisibilityUpdates();
+        if (!_updateVisibilityCreatures.empty())
+        {
+            // Build vector for parallel processing
+            std::vector<Creature*> creatures(_updateVisibilityCreatures.begin(), _updateVisibilityCreatures.end());
+            
+            uint32 creatureCount = creatures.size();
+            uint32 maxTasks = std::min(creatureCount, std::thread::hardware_concurrency());
+            if (maxTasks < 1)
+                maxTasks = 1;
+
+            std::atomic<uint32> creatureIndex(0);
+            Trinity::ThreadPool& threadPool = GetUpdateThreadPool();
+
+            auto processCreatures = [&creatures, &creatureIndex]() {
+                uint32 idx;
+                while ((idx = creatureIndex.fetch_add(1)) < creatures.size())
+                {
+                    creatures[idx]->ProcessRelocateVisibilityUpdates();
+                }
+            };
+
+            // Submit tasks to thread pool and track with futures
+            std::vector<std::future<void>> futures;
+            futures.reserve(maxTasks - 1);
+
+            for (uint32 i = 1; i < maxTasks; ++i)
+            {
+                auto promise = std::make_shared<std::promise<void>>();
+                futures.push_back(promise->get_future());
+                
+                threadPool.PostWork([processCreatures, promise]() {
+                    processCreatures();
+                    promise->set_value();
+                });
+            }
+
+            processCreatures(); // Main thread processes a portion
+
+            // Wait for all tasks to complete
+            for (auto& future : futures)
+            {
+                future.wait();
+            }
+        }
 
         _updateVisibilityCreatures.clear();
     }
@@ -1155,23 +1249,70 @@ void Map::ProcessObjectUpdates()
 {
     ZoneScopedN("Map::ProcessObjectUpdates")
 
-    UpdateDataMapType update_players;
-    while (!_updateObjects.empty())
-    {
-        Object* obj = *_updateObjects.begin();
-        ASSERT(obj->IsInWorld());
+    if (_updateObjects.empty())
+        return;
 
-        _updateObjects.erase(_updateObjects.begin());
-        obj->BuildUpdate(update_players);
+    // Build a vector of iterators to the objects for safe multi-threaded access
+    std::vector<std::unordered_set<Object*>::iterator> t;
+    t.reserve(_updateObjects.size() + 1);
+    for (auto it = _updateObjects.begin(); it != _updateObjects.end(); ++it)
+        t.push_back(it);
+    t.push_back(_updateObjects.end());
+
+    uint32 objectsCount = t.size() - 1;
+
+    // Determine work distribution based on object count
+    uint32 maxTasks = std::min(objectsCount, std::thread::hardware_concurrency());
+    if (maxTasks < 1)
+        maxTasks = 1;
+
+    std::atomic<int> ait(0);
+    Trinity::ThreadPool& threadPool = GetUpdateThreadPool();
+
+    auto f = [this, &t, &ait]() {
+        UpdateDataMapType update_players;
+        int idx;
+        while ((idx = ait.fetch_add(1)) < static_cast<int>(t.size() - 1))
+        {
+            Object* obj = *t[idx];
+            ASSERT(obj->IsInWorld());
+            obj->BuildUpdate(update_players);
+        }
+
+        WorldPacket packet; // Each thread has its own packet to avoid sharing
+        for (UpdateDataMapType::iterator iter = update_players.begin(); iter != update_players.end(); ++iter)
+        {
+            iter->second.BuildPacket(&packet);
+            iter->first->SendDirectMessage(&packet);
+            packet.clear();
+        }
+    };
+
+    // Submit tasks to thread pool and track with futures
+    std::vector<std::future<void>> futures;
+    futures.reserve(maxTasks - 1);
+
+    // Submit tasks to thread pool (excluding main thread) 
+    for (uint32 i = 1; i < maxTasks; ++i)
+    {
+        auto promise = std::make_shared<std::promise<void>>();
+        futures.push_back(promise->get_future());
+        
+        threadPool.PostWork([f, promise]() {
+            f();
+            promise->set_value();
+        });
     }
 
-    WorldPacket packet; // here we allocate a std::vector with a size of 0x10000
-    for (UpdateDataMapType::iterator iter = update_players.begin(); iter != update_players.end(); ++iter)
+    f(); // Main thread processes a portion of the work
+
+    // Wait for all tasks to complete
+    for (auto& future : futures)
     {
-        iter->second.BuildPacket(&packet);
-        iter->first->SendDirectMessage(&packet);
-        packet.clear(); // clean the string
+        future.wait();
     }
+
+    _updateObjects.clear();
 }
 
 // Partitions should override this and do nothing, only the base map
