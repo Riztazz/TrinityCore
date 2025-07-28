@@ -759,16 +759,7 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
 
         void AddUpdateObject(Object* obj)
         {
-            auto currentThread = std::this_thread::get_id();
-            auto ownerThread = _updateObjectsOwnerThread.load();
-            
-            if (ownerThread != std::thread::id{} && currentThread != ownerThread)
-            {
-                TC_LOG_ERROR("concurrency", "Cross-thread AddUpdateObject detected! Owner: 0x{:x} Current: 0x{:x}", 
-                             std::hash<std::thread::id>{}(ownerThread), std::hash<std::thread::id>{}(currentThread));
-            }
-            
-            if (m_processingObjectUpdates)
+             if (m_processingObjectUpdates)
                 return;
             std::lock_guard<std::mutex> lock(m_processingObjectUpdatesLock);
             _updateObjects.insert(obj);
@@ -817,7 +808,6 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
         uint32 GetMaxTasks(uint32 numElements);
         bool m_processingObjectUpdates = false;
         mutable std::mutex m_processingObjectUpdatesLock;
-        std::atomic<std::thread::id> _updateObjectsOwnerThread{std::thread::id{}};
 
     protected:
         std::mutex _mapLock;

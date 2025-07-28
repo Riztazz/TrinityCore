@@ -270,15 +270,6 @@ void Map::LoadAllCells()
 
 void Map::RemoveUpdateObject(Object* obj)
 {
-    auto currentThread = std::this_thread::get_id();
-    auto ownerThread = _updateObjectsOwnerThread.load();
-    
-    if (ownerThread != std::thread::id{} && currentThread != ownerThread)
-    {
-        TC_LOG_ERROR("concurrency", "Cross-thread RemoveUpdateObject detected! Owner: 0x{:x} Current: 0x{:x}", 
-                     std::hash<std::thread::id>{}(ownerThread), std::hash<std::thread::id>{}(currentThread));
-    }
-    
     std::lock_guard<std::mutex> lock(m_processingObjectUpdatesLock);
     
     if (m_processingObjectUpdates)
@@ -1302,7 +1293,6 @@ void Map::ProcessObjectUpdates()
         return;
 
     m_processingObjectUpdates = true;
-    _updateObjectsOwnerThread = std::this_thread::get_id();
 
     uint32 maxTasks = GetMaxTasks(_updateObjects.size());
     if (maxTasks == 1)
@@ -1392,7 +1382,6 @@ void Map::ProcessObjectUpdates()
         }
         _pendingObjectRemovals.clear();
         m_processingObjectUpdates = false;
-        _updateObjectsOwnerThread = std::thread::id{};
     }
 }
 
