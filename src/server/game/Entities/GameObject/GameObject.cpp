@@ -670,7 +670,7 @@ void GameObject::Update(uint32 diff)
                         if (poolid)
                             sPoolMgr->UpdatePool<GameObject>(poolid, GetSpawnId());
                         else
-                            GetMap()->AddToMap(this);
+                            GetMap()->AddToMapDelayed(this);
                     }
                 }
             }
@@ -952,7 +952,7 @@ void GameObject::Refresh()
         return;
 
     if (isSpawned())
-        GetMap()->AddToMap(this);
+        GetMap()->AddToMapDelayed(this);
 }
 
 void GameObject::AddUniqueUse(Player* player)
