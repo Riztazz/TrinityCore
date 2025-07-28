@@ -357,14 +357,14 @@ void MapManager::Update(uint32 diff)
         for (auto& [id, mapPtr] : _baseMaps)
         {
             uint32 playerCount = mapPtr->GetPlayersCountExceptGMs();
-            mapsToUpdate.push_back({mapPtr, playerCount});
+            mapsToUpdate.push_back({mapPtr.get(), playerCount});
             
             if (MapPartitioned* mapPartitioned = mapPtr->ToMapPartitioned())
             {
                 for (auto& [_, partitionPtr] : mapPartitioned->GetPartitions())
                 {
                     uint32 partitionPlayerCount = partitionPtr->GetPlayersCountExceptGMs();
-                    mapsToUpdate.push_back({partitionPtr, partitionPlayerCount});
+                    mapsToUpdate.push_back({partitionPtr.get(), partitionPlayerCount});
                 }
             }
             
@@ -376,7 +376,7 @@ void MapManager::Update(uint32 diff)
                     if (!instancePtr->CanUnload(uint32(i_timer.GetCurrent())))
                     {
                         uint32 instancePlayerCount = instancePtr->GetPlayersCountExceptGMs();
-                        mapsToUpdate.push_back({instancePtr, instancePlayerCount});
+                        mapsToUpdate.push_back({instancePtr.get(), instancePlayerCount});
                     }
                 }
             }
