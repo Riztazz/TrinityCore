@@ -2054,6 +2054,7 @@ void ScriptMgr::OnGossipSelectCode(Player* player, uint32 menu_id, uint32 sender
 // @epoch-begin
 void ScriptMgr::OnPlayerUpdate(Player* player, uint32 p_time)
 {
+    ZoneScopedN("ScriptMgr::OnPlayerUpdate")
     FOREACH_SCRIPT(PlayerScript)->OnUpdate(player, p_time);
 }
 // @epoch-end

@@ -1062,6 +1062,7 @@ void Player::Update(uint32 p_time)
     // undelivered mail
     if (m_nextMailDelivereTime && m_nextMailDelivereTime <= GameTime::GetGameTime())
     {
+        ZoneScopedN("Player::Update(SendNewMail)")
         SendNewMail();
         ++unReadMails;
 
@@ -1080,11 +1081,14 @@ void Player::Update(uint32 p_time)
     //used to implement delayed far teleports
     SetCanDelayTeleport(true);
     ExecuteSortedCastRequests();
-    Unit::Update(p_time);
+    {
+        ZoneScopedN("Player::Update(Unit::Update)")
+        Unit::Update(p_time);
+    }
     SetCanDelayTeleport(false);
 
     time_t now = GameTime::GetGameTime();
-
+    
     UpdatePvPFlag(now);
 
     UpdateContestedPvP(p_time);
@@ -1107,6 +1111,7 @@ void Player::Update(uint32 p_time)
     // If mute expired, remove it from the DB
     if (GetSession()->m_muteTime && GetSession()->m_muteTime < now)
     {
+        ZoneScopedN("Player::Update::(Mute)")
         GetSession()->m_muteTime = 0;
         LoginDatabasePreparedStatement* stmt = LoginDatabase.GetPreparedStatement(LOGIN_UPD_MUTE_TIME);
         stmt->setInt64(0, 0); // Set the mute time to 0
@@ -1118,6 +1123,7 @@ void Player::Update(uint32 p_time)
 
     if (!m_timedquests.empty())
     {
+        ZoneScopedN("Player::Update::(Quests)")
         QuestSet::iterator iter = m_timedquests.begin();
         while (iter != m_timedquests.end())
         {
@@ -1141,6 +1147,7 @@ void Player::Update(uint32 p_time)
 
     if (HasUnitState(UNIT_STATE_MELEE_ATTACKING) && !HasUnitState(UNIT_STATE_CASTING | UNIT_STATE_CHARGING))
     {
+        ZoneScopedN("Player::Update::(Attacking)")
         if (Unit* victim = GetVictim())
         {
             // default combat reach 10
@@ -1212,6 +1219,7 @@ void Player::Update(uint32 p_time)
 
     if (HasFlag(PLAYER_FLAGS, PLAYER_FLAGS_RESTING))
     {
+        ZoneScopedN("Player::Update::(Resting)")
         if (roll_chance_i(3) && _restTime > 0)      // freeze update
         {
             time_t currTime = GameTime::GetGameTime();
@@ -1242,6 +1250,7 @@ void Player::Update(uint32 p_time)
     {
         if (p_time >= m_zoneUpdateTimer)
         {
+            ZoneScopedN("Player::Update::(ZoneUpdate)")
             // On zone update tick check if we are still in an inn if we are supposed to be in one
             if (HasRestFlag(REST_FLAG_IN_TAVERN))
             {
@@ -1288,6 +1297,7 @@ void Player::Update(uint32 p_time)
     {
         if (p_time >= m_nextSave)
         {
+            ZoneScopedN("Player::Update::(SaveToDB)")
             // m_nextSave reset in SaveToDB call
             SaveToDB();
             TC_LOG_DEBUG("entities.player", "Player::Update: Player '{}' ({}) saved", GetName(), GetGUID().ToString());
@@ -1341,6 +1351,8 @@ void Player::Update(uint32 p_time)
             m_deathTimer -= p_time;
     }
 
+    ZoneScopedN("Player::Update(1)")
+
     UpdateEnchantTime(p_time);
     UpdateHomebindTime(p_time);
 
@@ -1380,6 +1392,7 @@ void Player::Update(uint32 p_time)
     m_groupUpdateTimer.Update(p_time);
     if (m_groupUpdateTimer.Passed())
     {
+        ZoneScopedN("Player::Update::(SendUpdateToOutOfRangeGroupMembers)")
         SendUpdateToOutOfRangeGroupMembers();
         m_groupUpdateTimer.Reset(5000);
     }
@@ -1695,6 +1708,7 @@ uint8 Player::GetChatTag() const
 
 bool Player::TeleportTo(uint32 mapid, float x, float y, float z, float orientation, uint32 options)
 {
+    ZoneScopedN("Player::TeleportTo")
     if (!MapManager::IsValidMapCoord(mapid, x, y, z, orientation))
     {
         TC_LOG_ERROR("maps", "Player::TeleportTo: Invalid map ({}) or invalid coordinates (X: {}, Y: {}, Z: {}, O: {}) given when teleporting player '{}' ({}, MapID: {}, X: {}, Y: {}, Z: {}, O: {}).",

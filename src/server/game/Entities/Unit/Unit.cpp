@@ -454,6 +454,7 @@ Unit::~Unit()
 void Unit::Update(uint32 p_time)
 {
     // @tswow-begin
+    ZoneScopedN("Unit::Update")
     m_tsWorldEntity.tick(TSWorldObject(this));
     m_tsCollisions.Tick(TSWorldObject(this));
     // @tswow-end
@@ -461,7 +462,10 @@ void Unit::Update(uint32 p_time)
     // WARNING! Order of execution here is important, do not change.
     // Spells must be processed with event system BEFORE they go to _UpdateSpells.
     // Or else we may have some SPELL_STATE_FINISHED spells stalled in pointers, that is bad.
-    m_Events.Update(p_time);
+    {
+        ZoneScopedN("Unit::Update(EventProcessor::Update)")
+        m_Events.Update(p_time);
+    }
 
     CheckPendingMovementAcks();
 
@@ -492,6 +496,7 @@ void Unit::Update(uint32 p_time)
         _lastExtraAttackSpell = 0;
     }
 
+    ZoneScopedN("Unit::Update(1)")
     // not implemented before 3.0.2
     if (uint32 base_att = getAttackTimer(BASE_ATTACK))
         setAttackTimer(BASE_ATTACK, (p_time >= base_att ? 0 : base_att - p_time));
@@ -10191,6 +10196,8 @@ uint32 Unit::GetCreatePowerValue(Powers power) const
 
 void Unit::AIUpdateTick(uint32 diff)
 {
+    ZoneScopedN("Unit::AIUpdateTick")
+
     // @tswow-begin
     if(Creature* c = ToCreature())
     {

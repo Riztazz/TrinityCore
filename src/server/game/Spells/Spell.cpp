@@ -8146,12 +8146,15 @@ void Spell::CallScriptBeforeCastHandlers()
 
     // @tswow-begin
     bool cancel = false;
+    {
+    ZoneScopedN("Spell::CallScriptBeforeCastHandlers::TSWoW")
     FIRE_ID(
         m_spellInfo->events.id
         , Spell,OnBeforeCast
         , TSSpell(this)
         , TSMutable<bool,bool>(&cancel)
     );
+    }
     if (cancel) return;
     // @tswow-end
 
@@ -8189,12 +8192,15 @@ void Spell::CallScriptAfterCastHandlers()
 
     // @tswow-begin
     bool cancel = false;
+    {
+    ZoneScopedN("Spell::CallScriptAfterCastHandlers::TSWoW")
     FIRE_ID(
           m_spellInfo->events.id
         , Spell,OnAfterCast
         , TSSpell(this)
         , TSMutable<bool,bool>(&cancel)
     );
+    }
     if (cancel) return;
     // @tswow-end
 
@@ -8229,12 +8235,15 @@ SpellCastResult Spell::CallScriptCheckCastHandlers()
     }
 
     uint32 custom_result = 0;
+    {
+    ZoneScopedN("Spell::CallScriptCheckCastHandlers::TSWoW")
     FIRE_ID(m_spellInfo->events.id
         , Spell,OnCheckCast
         , TSSpell(this)
         , TSMutableNumber<uint8>(reinterpret_cast<uint8_t*>(&retVal))
         , TSMutableNumber<uint32>(&custom_result)
     );
+    }
 
     if (retVal == SPELL_FAILED_CUSTOM_ERROR && custom_result)
         m_customError = static_cast<SpellCustomErrors>(custom_result);
@@ -8316,6 +8325,8 @@ void Spell::CallScriptBeforeHitHandlers(SpellMissInfo missInfo)
 
     // @tswow-begin
     bool cancel = false;
+    {
+    ZoneScopedN("Spell::CallScriptBeforeHitHandlers::TSWoW")
     FIRE_ID(
         m_spellInfo->events.id
         , Spell,OnBeforeHit
@@ -8323,6 +8334,7 @@ void Spell::CallScriptBeforeHitHandlers(SpellMissInfo missInfo)
         , static_cast<uint32>(missInfo)
         , TSMutable<bool,bool>(&cancel)
     );
+    }
     if (cancel) return;
     // @tswow-end
 
@@ -8343,7 +8355,10 @@ void Spell::CallScriptOnHitHandlers()
     ZoneScopedN("Spell::CallScriptOnHitHandlers")
 
     // @tswow-begin
+    {
+    ZoneScopedN("Spell::CallScriptOnHitHandlers::TSWoW")
     FIRE_ID(m_spellInfo->events.id,Spell,OnHit,TSSpell(this)); // @tswow-line
+    }
     for (auto scritr = m_loadedScripts.begin(); scritr != m_loadedScripts.end(); ++scritr)
     {
         (*scritr)->_PrepareScriptCall(SPELL_SCRIPT_HOOK_HIT);
@@ -8361,12 +8376,15 @@ void Spell::CallScriptAfterHitHandlers()
 
     // @tswow-begin
     bool cancel = false;
+    {
+    ZoneScopedN("Spell::CallScriptAfterHitHandlers::TSWoW")
     FIRE_ID(
         m_spellInfo->events.id
         , Spell,OnAfterHit
         , TSSpell(this)
         , TSMutable<bool,bool>(&cancel)
     );
+    }
     if (cancel) return;
     // @tswow-end
 
