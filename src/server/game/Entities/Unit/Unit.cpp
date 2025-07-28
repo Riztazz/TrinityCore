@@ -334,6 +334,7 @@ Unit::Unit(bool isWorldObject) :
 
     m_rootTimes = 0;
 
+    m_lastTickTime = 0;
     m_state = 0;
     m_deathState = ALIVE;
 
@@ -453,6 +454,10 @@ Unit::~Unit()
 
 void Unit::Update(uint32 p_time)
 {
+    uint32 tickTime = GameTime::GetGameTimeMS();
+    ASSERT(tickTime != m_lastTickTime);
+    m_lastTickTime = tickTime;
+
     // @tswow-begin
     m_tsWorldEntity.tick(TSWorldObject(this));
     m_tsCollisions.Tick(TSWorldObject(this));

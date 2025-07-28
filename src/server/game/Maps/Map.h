@@ -445,7 +445,6 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
         static bool ExistVMap(uint32 mapId, int gx, int gy);
 
         static Trinity::ThreadPool& GetUpdateThreadPool();
-        static uint32 GetUpdateThreadPoolSize();
 
         void GetFullTerrainStatusForPosition(uint32 phaseMask, float x, float y, float z, PositionFullTerrainStatus& data, Optional<uint8> reqLiquidType = {}, float collisionHeight = 2.03128f) const; // DEFAULT_COLLISION_HEIGHT in Object.h
         ZLiquidStatus GetLiquidStatus(uint32 phaseMask, float x, float y, float z, Optional<uint8> ReqLiquidType, LiquidData* data = nullptr, float collisionHeight = 2.03128f) const; // DEFAULT_COLLISION_HEIGHT in Object.h

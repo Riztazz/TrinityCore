@@ -176,19 +176,8 @@ bool Map::ExistVMap(uint32 mapId, int gx, int gy)
 
 Trinity::ThreadPool& Map::GetUpdateThreadPool()
 {
-    static Trinity::ThreadPool updateThreadPool(GetUpdateThreadPoolSize());
+    static Trinity::ThreadPool updateThreadPool(std::max(1u, sWorld->getIntConfig(CONFIG_MAP_UPDATE_THREAD_POOL)));
     return updateThreadPool;
-}
-
-uint32 Map::GetUpdateThreadPoolSize()
-{
-    static uint32 poolSize = []() -> uint32 {
-        uint32 configThreads = sWorld->getIntConfig(CONFIG_MAP_UPDATE_THREAD_POOL);
-        if (configThreads == 0)
-            return std::max(1u, std::thread::hardware_concurrency() / 2);
-        return std::max(1u, configThreads);
-    }();
-    return poolSize;
 }
 
 void Map::LoadMMap(int gx, int gy)
@@ -628,22 +617,15 @@ bool Map::AddPlayerToPartition(Player* player)
 template<class T>
 bool Map::AddToMap(T* obj)
 {
-    ZoneScopedN("Map::AddToMap")
-
-    /// @todo Needs clean up. An object should not be added to map twice.
-    if (obj->IsInWorld())
-    {
-        TC_LOG_ERROR("maps", "Map::AddToMap called on Object that is already in world, map {}, obj {}", GetId(), obj->GetDebugInfo());
-        ASSERT(obj->IsInGrid());
-        obj->UpdateObjectVisibility();
-        return true;
-    }
+    ASSERT(!obj->IsInWorld());
 
     CellCoord cellCoord = Trinity::ComputeCellCoord(obj->GetPositionX(), obj->GetPositionY());
     //It will create many problems (including crashes) if an object is not added to grid after creation
     //The correct way to fix it is to make AddToMap return false and delete the object if it is not added to grid
     //But now AddToMap is used in too many places, I will just see how many ASSERT failures it will cause
     ASSERT(cellCoord.IsCoordValid());
+
+    ZoneScopedN("Map::AddToMap")
 
     Cell cell(cellCoord);
     EnsureGridLoaded(cell);
@@ -674,11 +656,9 @@ bool Map::AddToMap(T* obj)
 template<>
 bool Map::AddToMap(Transport* obj)
 {
-    ZoneScopedN("Map::AddToMap::Transport")
+    ASSERT(!obj->IsInWorld());
 
-    //TODO: Needs clean up. An object should not be added to map twice.
-    if (obj->IsInWorld())
-        return true;
+    ZoneScopedN("Map::AddToMap::Transport")
 
     CellCoord cellCoord = Trinity::ComputeCellCoord(obj->GetPositionX(), obj->GetPositionY());
     if (!cellCoord.IsCoordValid())
@@ -712,26 +692,15 @@ bool Map::AddToMap(Transport* obj)
 template<class T>
 bool Map::AddToPartition(T* obj)
 {
-    ZoneScopedN("Map::AddToPartition")
+    ASSERT(!obj->IsInWorld());
 
-    /// @todo Needs clean up. An object should not be added to map twice.
-    if (obj->IsInWorld())
-    {
-        ASSERT(obj->IsInGrid());
-        obj->UpdateObjectVisibility();
-        return true;
-    }
-
-    CellCoord cellCoord = Trinity::ComputeCellCoord(obj->GetPositionX(), obj->GetPositionY());
+     CellCoord cellCoord = Trinity::ComputeCellCoord(obj->GetPositionX(), obj->GetPositionY());
     //It will create many problems (including crashes) if an object is not added to grid after creation
     //The correct way to fix it is to make AddToMap return false and delete the object if it is not added to grid
     //But now AddToMap is used in too many places, I will just see how many ASSERT failures it will cause
     ASSERT(cellCoord.IsCoordValid());
-    if (!cellCoord.IsCoordValid())
-    {
-        TC_LOG_ERROR("maps", "Map::Add: Object {} has invalid coordinates X:{} Y:{} grid cell [{}:{}]", obj->GetGUID().ToString(), obj->GetPositionX(), obj->GetPositionY(), cellCoord.x_coord, cellCoord.y_coord);
-        return false; //Should delete object
-    }
+
+    ZoneScopedN("Map::AddToPartition")
 
     Cell cell(cellCoord);
     EnsureGridLoaded(cell);
@@ -1159,7 +1128,7 @@ void Map::ProcessVisibilityUpdates()
 
         if (!_updateVisibilityPlayers.empty())
         {
-            if (Instanceable())
+            if (Instanceable() || sWorld->getIntConfig(CONFIG_MAP_UPDATE_THREAD_POOL) < 4)
             {
                 // Process players inline for instanceable maps
                 for (Player* player : _updateVisibilityPlayers)
@@ -1171,7 +1140,7 @@ void Map::ProcessVisibilityUpdates()
                 std::vector<Player*> players(_updateVisibilityPlayers.begin(), _updateVisibilityPlayers.end());
                 
                 uint32 playerCount = players.size();
-                uint32 maxTasks = std::min(playerCount, GetUpdateThreadPoolSize() / 4);
+                uint32 maxTasks = std::min(playerCount, sWorld->getIntConfig(CONFIG_MAP_UPDATE_THREAD_POOL) / 4);
                 if (maxTasks < 1)
                     maxTasks = 1;
 
@@ -1218,7 +1187,7 @@ void Map::ProcessVisibilityUpdates()
 
         if (!_updateVisibilityCreatures.empty())
         {
-            if (Instanceable())
+            if (Instanceable() sWorld->getIntConfig(CONFIG_MAP_UPDATE_THREAD_POOL) < 4)
             {
                 // Process creatures inline for instanceable maps
                 for (Creature* creature : _updateVisibilityCreatures)
@@ -1230,7 +1199,7 @@ void Map::ProcessVisibilityUpdates()
                 std::vector<Creature*> creatures(_updateVisibilityCreatures.begin(), _updateVisibilityCreatures.end());
                 
                 uint32 creatureCount = creatures.size();
-                uint32 maxTasks = std::min(creatureCount, GetUpdateThreadPoolSize() / 4);
+                uint32 maxTasks = std::min(creatureCount, sWorld->getIntConfig(CONFIG_MAP_UPDATE_THREAD_POOL) / 4);
                 if (maxTasks < 1)
                     maxTasks = 1;
 
@@ -1280,7 +1249,7 @@ void Map::ProcessObjectUpdates()
     if (_updateObjects.empty())
         return;
 
-    if (Instanceable())
+    if (Instanceable() || sWorld->getIntConfig(CONFIG_MAP_UPDATE_THREAD_POOL) < 4)
     {
         // Process object updates inline for instanceable maps
         UpdateDataMapType update_players;
@@ -1311,7 +1280,7 @@ void Map::ProcessObjectUpdates()
         uint32 objectsCount = t.size() - 1;
 
         // Determine work distribution based on object count
-        uint32 maxTasks = std::min(objectsCount, GetUpdateThreadPoolSize() / 4);
+        uint32 maxTasks = std::min(objectsCount, sWorld->getIntConfig(CONFIG_MAP_UPDATE_THREAD_POOL) / 4);
         if (maxTasks < 1)
             maxTasks = 1;
 
@@ -1449,14 +1418,12 @@ void Map::RemoveFromMap(T *obj, bool remove)
     bool const inWorld = obj->IsInWorld() && obj->GetTypeId() >= TYPEID_UNIT && obj->GetTypeId() <= TYPEID_GAMEOBJECT;
     obj->RemoveFromWorld();
 
-    if (obj->isActiveObject())
-        RemoveFromActive(obj);
+    RemoveFromActive(obj);
 
     if (obj->IsCreature())
     {
         Creature* c = obj->ToCreature();
-         if (c->GetWaypointPath() != 0)
-            RemoveFromWaypointCreatures(c);
+        RemoveFromWaypointCreatures(c);
 
         // RemoveFromMap is called from the delayed update so _relocatedCreatures is empty,
         // but before we iterate the _updateMapPartitionCreatures, so lets remove that here
@@ -1520,14 +1487,12 @@ void Map::RemoveFromPartition(T *obj)
     bool const inWorld = obj->IsInWorld() && obj->GetTypeId() >= TYPEID_UNIT && obj->GetTypeId() <= TYPEID_GAMEOBJECT;
     obj->RemoveFromPartition();
 
-    if (obj->isActiveObject())
-        RemoveFromActive(obj);
+    RemoveFromActive(obj);
 
     if (obj->IsCreature())
     {
         Creature* c = obj->ToCreature();
-        if (c->GetWaypointPath() != 0)
-            RemoveFromWaypointCreatures(c);
+        RemoveFromWaypointCreatures(c);
 
         // this is called from delayedUpdate, so _relocatedCreatures is always empty, and _updateMapPartitionCreatures
         // is cleared immediately afterwards (this is called from iterating that)
