@@ -823,6 +823,7 @@ class TC_GAME_API World
         static float GetMaxVisibleDistanceInBG()            { return m_MaxVisibleDistanceInBG;         }
         static float GetMaxVisibleDistanceInArenas()        { return m_MaxVisibleDistanceInArenas;     }
 
+        static float GetRelocationLowerLimit()              { return m_relocation_lower_limit; }
         static float GetRelocationLowerLimitSq()            { return m_relocation_lower_limit_sq; }
         static uint32 GetRelocationAINotifyDelay()          { return m_relocation_ai_notify_delay; } // TODO implement
 
@@ -922,7 +923,8 @@ class TC_GAME_API World
         static float m_MaxVisibleDistanceInBG;
         static float m_MaxVisibleDistanceInArenas;
 
-        static float  m_relocation_lower_limit_sq;
+        static float m_relocation_lower_limit;
+        static float m_relocation_lower_limit_sq;
         static uint32 m_relocation_ai_notify_delay; // TODO implement
 
         // CLI command holder to be thread safe

@@ -115,7 +115,8 @@ TC_GAME_API float World::m_MaxVisibleDistanceInInstances  = DEFAULT_VISIBILITY_I
 TC_GAME_API float World::m_MaxVisibleDistanceInBG         = DEFAULT_VISIBILITY_BGARENAS;
 TC_GAME_API float World::m_MaxVisibleDistanceInArenas     = DEFAULT_VISIBILITY_BGARENAS;
 
-TC_GAME_API float  World::m_relocation_lower_limit_sq     = 10.f * 10.f;
+TC_GAME_API float  World::m_relocation_lower_limit        = 10.f;
+TC_GAME_API float  World::m_relocation_lower_limit_sq     = m_relocation_lower_limit * m_relocation_lower_limit;
 TC_GAME_API uint32 World::m_relocation_ai_notify_delay    = 1000u; // TODO implement
 
 /// World constructor
@@ -1259,7 +1260,8 @@ void World::LoadConfigSettings(bool reload)
         m_int_configs[CONFIG_GUILD_BANK_EVENT_LOG_COUNT] = GUILD_BANKLOG_MAX_RECORDS;
 
     m_relocation_ai_notify_delay = sConfigMgr->GetIntDefault("Visibility.AIRelocationNotifyDelay", 1000u);
-    m_relocation_lower_limit_sq  = pow(sConfigMgr->GetFloatDefault("Visibility.RelocationLowerLimit", 10), 2);
+    m_relocation_lower_limit     = sConfigMgr->GetFloatDefault("Visibility.RelocationLowerLimit", 10);
+    m_relocation_lower_limit_sq  = m_relocation_lower_limit_sq * m_relocation_lower_limit_sq;
 
     // visibility on continents
     m_MaxVisibleDistanceOnContinents = sConfigMgr->GetFloatDefault("Visibility.Distance.Continents", DEFAULT_VISIBILITY_DISTANCE);
