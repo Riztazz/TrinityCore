@@ -805,6 +805,7 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
 
         void ProcessVisibilityUpdates();
         void ProcessObjectUpdates();
+        uint32 GetMaxTasks(uint32 numElements);
 
     protected:
         std::mutex _mapLock;

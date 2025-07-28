@@ -1152,9 +1152,9 @@ void Map::ProcessVisibilityUpdates()
 
         if (!_updateVisibilityPlayers.empty())
         {
-            if (Instanceable() || sWorld->getIntConfig(CONFIG_MAP_UPDATE_THREAD_POOL) < 4)
+            uint32 maxTasks = GetMaxTasks(_updateVisibilityPlayers.size());
+            if (maxTasks == 1)
             {
-                // Process players inline for instanceable maps
                 for (Player* player : _updateVisibilityPlayers)
                     player->ProcessRelocateVisibilityUpdates();
             }
@@ -1162,12 +1162,6 @@ void Map::ProcessVisibilityUpdates()
             {
                 // Build vector for parallel processing
                 std::vector<Player*> players(_updateVisibilityPlayers.begin(), _updateVisibilityPlayers.end());
-                
-                uint32 playerCount = players.size();
-                uint32 maxTasks = std::min(playerCount, sWorld->getIntConfig(CONFIG_MAP_UPDATE_THREAD_POOL) / 4);
-                if (maxTasks < 1)
-                    maxTasks = 1;
-
                 std::atomic<uint32> playerIndex(0);
                 Trinity::ThreadPool& threadPool = GetUpdateThreadPool();
 
@@ -1181,9 +1175,9 @@ void Map::ProcessVisibilityUpdates()
 
                 // Submit tasks to thread pool with proper future tracking
                 std::vector<std::future<void>> futures;
-                futures.reserve(maxTasks - 1);
+                futures.reserve(maxTasks);
 
-                for (uint32 i = 1; i < maxTasks; ++i)
+                for (uint32 i = 0; i < maxTasks; ++i)
                 {
                     auto task = std::make_shared<std::packaged_task<void()>>(processPlayers);
                     futures.push_back(task->get_future());
@@ -1211,9 +1205,9 @@ void Map::ProcessVisibilityUpdates()
 
         if (!_updateVisibilityCreatures.empty())
         {
-            if (Instanceable() || sWorld->getIntConfig(CONFIG_MAP_UPDATE_THREAD_POOL) < 4)
+            uint32 maxTasks = GetMaxTasks(_updateVisibilityCreatures.size());
+            if (maxTasks == 1)
             {
-                // Process creatures inline for instanceable maps
                 for (Creature* creature : _updateVisibilityCreatures)
                     creature->ProcessRelocateVisibilityUpdates();
             }
@@ -1221,12 +1215,6 @@ void Map::ProcessVisibilityUpdates()
             {
                 // Build vector for parallel processing
                 std::vector<Creature*> creatures(_updateVisibilityCreatures.begin(), _updateVisibilityCreatures.end());
-                
-                uint32 creatureCount = creatures.size();
-                uint32 maxTasks = std::min(creatureCount, sWorld->getIntConfig(CONFIG_MAP_UPDATE_THREAD_POOL) / 4);
-                if (maxTasks < 1)
-                    maxTasks = 1;
-
                 std::atomic<uint32> creatureIndex(0);
                 Trinity::ThreadPool& threadPool = GetUpdateThreadPool();
 
@@ -1240,9 +1228,9 @@ void Map::ProcessVisibilityUpdates()
 
                 // Submit tasks to thread pool with proper future tracking
                 std::vector<std::future<void>> futures;
-                futures.reserve(maxTasks - 1);
+                futures.reserve(maxTasks);
 
-                for (uint32 i = 1; i < maxTasks; ++i)
+                for (uint32 i = 0; i < maxTasks; ++i)
                 {
                     auto task = std::make_shared<std::packaged_task<void()>>(processCreatures);
                     futures.push_back(task->get_future());
@@ -1273,9 +1261,9 @@ void Map::ProcessObjectUpdates()
     if (_updateObjects.empty())
         return;
 
-    if (Instanceable() || sWorld->getIntConfig(CONFIG_MAP_UPDATE_THREAD_POOL) < 4)
+    uint32 maxTasks = GetMaxTasks(_updateObjects.size());
+    if (maxTasks == 1)
     {
-        // Process object updates inline for instanceable maps
         UpdateDataMapType update_players;
         for (auto it = _updateObjects.begin(); it != _updateObjects.end(); ++it)
         {
@@ -1300,13 +1288,6 @@ void Map::ProcessObjectUpdates()
         for (auto it = _updateObjects.begin(); it != _updateObjects.end(); ++it)
             t.push_back(it);
         t.push_back(_updateObjects.end());
-
-        uint32 objectsCount = t.size() - 1;
-
-        // Determine work distribution based on object count
-        uint32 maxTasks = std::min(objectsCount, sWorld->getIntConfig(CONFIG_MAP_UPDATE_THREAD_POOL) / 4);
-        if (maxTasks < 1)
-            maxTasks = 1;
 
         std::atomic<int> ait(0);
         Trinity::ThreadPool& threadPool = GetUpdateThreadPool();
@@ -1335,10 +1316,10 @@ void Map::ProcessObjectUpdates()
 
         // Submit tasks to thread pool with proper future tracking
         std::vector<std::future<void>> futures;
-        futures.reserve(maxTasks - 1);
+        futures.reserve(maxTasks);
 
-        // Submit tasks to thread pool (excluding main thread) 
-        for (uint32 i = 1; i < maxTasks; ++i)
+        // Submit tasks to thread pool
+        for (uint32 i = 0; i < maxTasks; ++i)
         {
             auto task = std::make_shared<std::packaged_task<void()>>(processObjects);
             futures.push_back(task->get_future());
@@ -1358,6 +1339,18 @@ void Map::ProcessObjectUpdates()
     }
 
     _updateObjects.clear();
+}
+
+uint32 Map::GetMaxTasks(uint32 numElements)
+{
+    uint32 maxTasks = 1;
+    if (!Instanceable() && sWorld->getIntConfig(CONFIG_MAP_UPDATE_THREAD_POOL) >= 8 && numElements > 1)
+    {
+        maxTasks = std::min(numElements - 1, sWorld->getIntConfig(CONFIG_MAP_UPDATE_THREAD_POOL) / 4);
+        if (maxTasks < 1)
+            maxTasks = 1;
+    }
+    return maxTasks;
 }
 
 // Partitions should override this and do nothing, only the base map
