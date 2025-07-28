@@ -570,6 +570,7 @@ bool Map::AddPlayerToMap(Player* player)
 
     player->m_clientGUIDs.clear();
     player->UpdateObjectVisibility(); // FIXME TEST
+    _updateVisibilityPlayers.insert(player); // Update Visibility for other players
 
     if (player->IsAlive())
         ConvertCorpseToBones(player->GetGUID());
@@ -607,6 +608,7 @@ bool Map::AddPlayerToPartition(Player* player)
 
     player->m_clientGUIDs.clear();
     player->UpdateObjectVisibility(); // FIXME TEST
+    _updateVisibilityPlayers.insert(player); // Update Visibility for other players
 
     if (player->IsAlive())
         ConvertCorpseToBones(player->GetGUID());
@@ -1352,6 +1354,8 @@ void Map::RemovePlayerFromMap(Player* player, bool remove)
     player->RemoveFromWorld();
     SendRemoveTransports(player);
 
+    _updateVisibilityPlayers.erase(player); // Update Visibility for other players
+
     // note: RemoveFromWorld does this for inWorld objects
     if (!inWorld) // if was in world, RemoveFromWorld() called DestroyForNearbyPlayers()
         player->DestroyForNearbyPlayers(); // previous player->UpdateObjectVisibility()
@@ -1382,6 +1386,8 @@ void Map::RemovePlayerFromPartition(Player* player)
     //bool const inWorld = player->IsInWorld();
     player->RemoveFromPartition();
     SendRemoveTransports(player);
+
+    _updateVisibilityPlayers.erase(player); // Update Visibility for other players
 
     // note: RemoveFromWorld does this for inWorld objects
     //if (!inWorld) // if was in world, RemoveFromWorld() called DestroyForNearbyPlayers()
