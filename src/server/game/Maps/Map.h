@@ -759,20 +759,29 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
 
         void AddUpdateObject(Object* obj)
         {
-            if (m_processingObjectUpdates)
-            {
-                TC_LOG_ERROR("objectupdates", "RemoveUpdateObject called during ProcessObjectUpdates! Stack trace:\n{}", GetStackTrace());
-                ABORT();
-            }
-            // if (m_processingObjectUpdates)
-            //     return;
+             if (m_processingObjectUpdates)
+                return;
             std::lock_guard<std::mutex> lock(m_processingObjectUpdatesLock);
             _updateObjects.insert(obj);
         }
 
         void RemoveUpdateObject(Object* obj)
         {
-            ASSERT(!m_processingObjectUpdates);
+            if (m_processingObjectUpdates)
+            {
+#ifdef WIN32
+                void* stack[20];
+                WORD frames = CaptureStackBackTrace(1, 20, stack, NULL);
+                TC_LOG_ERROR("objectupdates", "RemoveUpdateObject called during ProcessObjectUpdates!");
+                for (WORD i = 0; i < frames; ++i)
+                {
+                    TC_LOG_ERROR("objectupdates", "Frame {}: 0x{:x}", i, reinterpret_cast<uintptr_t>(stack[i]));
+                }
+#else
+                TC_LOG_ERROR("objectupdates", "RemoveUpdateObject called during ProcessObjectUpdates!");
+#endif
+                ABORT();
+            }
             std::lock_guard<std::mutex> lock(m_processingObjectUpdatesLock);
             _updateObjects.erase(obj);
         }
