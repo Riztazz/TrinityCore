@@ -3821,7 +3821,7 @@ void Map::RemoveAllObjectsInRemoveList()
         }
     }
 
-    if (m_objectsToRemove.empty())
+    if (i_objectsToRemove.empty())
         return;
 
     {
