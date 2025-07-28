@@ -1010,9 +1010,9 @@ void Map::Update(uint32 t_diff)
     {
         ZoneScopedN("Map::Update::SetNewCreatureGroupLeader")
 
-        for (CreatureGroup& group : m_creatureGroupUpdates)
+        for (CreatureGroup* group : m_creatureGroupUpdates)
         {
-            Creature* newLeader = group.UpdateLeadership();
+            Creature* newLeader = group->UpdateLeadership();
             
             if (newLeader && newLeader->GetWaypointPath() != 0)
                 AddToWaypointCreatures(newLeader);
