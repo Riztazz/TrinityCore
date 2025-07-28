@@ -455,7 +455,11 @@ Unit::~Unit()
 void Unit::Update(uint32 p_time)
 {
     uint32 tickTime = GameTime::GetGameTimeMS();
-    ASSERT(tickTime != m_lastTickTime);
+    if (tickTime != m_lastTickTime)
+    {
+        TC_LOG_ERROR("entities.unit", "Double tick detected for {}", GetGUID.ToString());
+        return;
+    }
     m_lastTickTime = tickTime;
 
     // @tswow-begin
