@@ -275,7 +275,7 @@ void CreatureGroup::RemoveMember(Creature* member)
     if (!_leader || member != _leader)
         return;
 
-    _leader->GetMap()->AddToCreatureGroupUpdates(*this);
+    _leader->GetMap()->AddToCreatureGroupUpdates(this);
 }
 
 Creature* CreatureGroup::UpdateLeadership()
