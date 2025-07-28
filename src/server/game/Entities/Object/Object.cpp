@@ -2067,7 +2067,7 @@ TempSummon* Map::SummonCreature(uint32 entry, Position const& pos, SummonPropert
 
     summon->SetVisibleBySummonerOnly(visibleBySummonerOnly);
 
-    AddToMapDelayed(summon->ToCreature());
+    AddToMap(summon->ToCreature());
 
     summon->InitSummon();
 
