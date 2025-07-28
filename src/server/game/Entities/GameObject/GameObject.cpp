@@ -669,8 +669,10 @@ void GameObject::Update(uint32 diff)
                         uint32 poolid = GetSpawnId() ? sPoolMgr->IsPartOfAPool<GameObject>(GetSpawnId()) : 0;
                         if (poolid)
                             sPoolMgr->UpdatePool<GameObject>(poolid, GetSpawnId());
-                        else
+                        else if (!IsInWorld())
                             GetMap()->AddToMapDelayed(this);
+                        else
+                            UpdateObjectVisibility();
                     }
                 }
             }
@@ -952,7 +954,12 @@ void GameObject::Refresh()
         return;
 
     if (isSpawned())
-        GetMap()->AddToMapDelayed(this);
+    {
+        if (!IsInWorld())
+            GetMap()->AddToMapDelayed(this);
+        else
+            UpdateObjectVisibility();
+    }
 }
 
 void GameObject::AddUniqueUse(Player* player)
