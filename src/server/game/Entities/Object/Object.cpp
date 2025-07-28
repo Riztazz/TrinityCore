@@ -3635,6 +3635,7 @@ void WorldObject::UpdateObjectVisibility()
 {
     //updates object's visibility for nearby players
     Trinity::VisibleChangesNotifier notifier(*this);
+    TC_LOG_DEBUB("vis", "UpdateObjectVisibility range {} guid {}", GetVisibilityRange(), GetGUID().ToString());
     Cell::VisitWorldObjects(this, notifier, GetVisibilityRange());
 }
 

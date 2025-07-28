@@ -570,7 +570,6 @@ bool Map::AddPlayerToMap(Player* player)
 
     player->m_clientGUIDs.clear();
     player->UpdateObjectVisibility(); // FIXME TEST
-    player->ProcessRelocateVisibilityUpdates(); // Update vis for other players
 
     if (player->IsAlive())
         ConvertCorpseToBones(player->GetGUID());
@@ -608,7 +607,6 @@ bool Map::AddPlayerToPartition(Player* player)
 
     player->m_clientGUIDs.clear();
     player->UpdateObjectVisibility(); // FIXME TEST
-    player->ProcessRelocateVisibilityUpdates(); // Update vis for other players
 
     if (player->IsAlive())
         ConvertCorpseToBones(player->GetGUID());

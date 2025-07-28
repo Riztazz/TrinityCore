@@ -23292,6 +23292,7 @@ void Player::UpdateObjectVisibility()
     if (!IsInWorld())
         return;
 
+    TC_LOG_DEBUG("vis", "Update player visibility guid {}", GetGuid().ToString());
     Unit::UpdateObjectVisibility();
     UpdateVisibilityForPlayer();
 }
