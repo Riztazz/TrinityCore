@@ -2067,7 +2067,7 @@ TempSummon* Map::SummonCreature(uint32 entry, Position const& pos, SummonPropert
 
     summon->SetVisibleBySummonerOnly(visibleBySummonerOnly);
 
-    AddToMap(summon->ToCreature());
+    AddToMapDelayed(summon->ToCreature());
 
     summon->InitSummon();
 
@@ -2167,7 +2167,7 @@ GameObject* WorldObject::SummonGameObject(uint32 entry, Position const& pos, Qua
     else
         go->SetSpawnedByDefault(false);
 
-    map->AddToMap(go);
+    map->AddToMapDelayed(go);
     return go;
 }
 

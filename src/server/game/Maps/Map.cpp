@@ -1008,6 +1008,18 @@ void Map::Update(uint32 t_diff)
     }
 
     {
+        ZoneScopedN("Map::Update::DelayedAddToMap")
+
+        for (Creature* creature : _addToMapCreatures)
+            creature->AddToMap();
+        _addToMapCreatures.clear();
+        
+        for (GameObject* gameObject : _addToMapGameObjects)
+            gameObject->AddToMap();
+        _addToMapGameObjects.clear();
+    }
+
+    {
         ZoneScopedN("Map::Update::SetNewCreatureGroupLeader")
 
         for (CreatureGroup* group : m_creatureGroupUpdates)

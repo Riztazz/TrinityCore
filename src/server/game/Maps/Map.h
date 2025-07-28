@@ -403,28 +403,51 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
         template<typename T>
         bool IsNeedNotify(T* unit) const
         {
-            if constexpr (std::is_same_v<T, Player>)
-            {
-                return _updateVisibilityPlayers.find(unit) != _updateVisibilityPlayers.end();
-            }
-            else if constexpr (std::is_same_v<T, Creature>)
-            {
-                return _updateVisibilityCreatures.find(unit) != _updateVisibilityCreatures.end();
-            }
             return true;
         }
-        template<typename T>
-        bool AddToNotify(T* unit) const
+        template<>
+        bool IsNeedNotify<Player>(Player* unit) const
         {
-            if constexpr (std::is_same_v<T, Player>)
-            {
-                return _updateVisibilityPlayers.insert(unit);
-            }
-            else if constexpr (std::is_same_v<T, Creature>)
-            {
-                return _updateVisibilityCreatures.insert(unit);
-            }
-            return true;
+            return _updateVisibilityPlayers.find(unit) != _updateVisibilityPlayers.end();
+        }
+
+        template<>
+        bool IsNeedNotify<Creature>(Creature* unit) const
+        {
+            return _updateVisibilityCreatures.find(unit) != _updateVisibilityCreatures.end();
+        }
+
+        template<typename T>
+        void AddToNotify(T* unit) {}
+
+        template<>
+        void AddToNotify<Player>(Player* unit)
+        {
+            _updateVisibilityPlayers.insert(unit);
+        }
+
+        template<>
+        void AddToNotify<Creature>(Creature* unit)
+        {
+            _updateVisibilityCreatures.insert(unit);
+        }
+
+        template<typename T>
+        bool AddToMapDelayed(T* unit)
+        {
+            return false;
+        }
+
+        template<>
+        bool AddToMapDelayed<Creature>(Creature* unit)
+        {
+            return _addToMapCreatures.insert(unit).second;
+        }
+
+        template<>
+        bool AddToMapDelayed<GameObject>(GameObject* go)
+        {
+            return _addToMapGameObjects.insert(go).second;
         }
 
         void PlayerRelocation(Player*, float x, float y, float z, float orientation);
@@ -552,7 +575,7 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
             m_activeNonPlayers.insert(obj);
         }
 
-        // must called with RemoveFromWorld/RemoveFromPartition
+        // called from add/remove from map/partition as well as creature death/script (on update)
         void RemoveFromActive(WorldObject* obj)
         {
             if (m_activeNonPlayersIter != m_activeNonPlayers.end())
@@ -948,6 +971,8 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
         std::unordered_set<DynamicObject*> _relocatedDynamicObjects;
         std::unordered_set<Player*> _updateVisibilityPlayers;
         std::unordered_set<Creature*> _updateVisibilityCreatures;
+        std::unordered_set<Creature*> _addToMapCreatures;
+        std::unordered_set<GameObject*> _addToMapGameObjects;
         std::unordered_set<Player*> _updateMapPartitionPlayers;
         std::unordered_set<Creature*> _updateMapPartitionCreatures;
         MPSCQueue<FarSpellCallback> _farSpellCallbacks;
