@@ -259,7 +259,8 @@ Map::Map(uint32 id, uint32 instanceOrPartitionId):
 i_mapEntry(sMapStore.LookupEntry(id)),
 m_unloadTimer(0), m_VisibleDistance(DEFAULT_VISIBILITY_DISTANCE),
 m_activeNonPlayersIter(m_activeNonPlayers.end()), _transportsUpdateIter(_transports.end()),
-i_scriptLock(false), _respawnTimes(std::make_unique<RespawnListContainer>())
+i_scriptLock(false), _respawnTimes(std::make_unique<RespawnListContainer>()),
+m_processingObjectUpdates(false)
 {
     for (unsigned int idx=0; idx < MAX_NUMBER_OF_GRIDS; ++idx)
     {
@@ -1264,6 +1265,8 @@ void Map::ProcessObjectUpdates()
     if (_updateObjects.empty())
         return;
 
+    m_processingObjectUpdates = true;
+
     uint32 maxTasks = GetMaxTasks(_updateObjects.size());
     if (maxTasks == 1)
     {
@@ -1342,6 +1345,8 @@ void Map::ProcessObjectUpdates()
     }
 
     _updateObjects.clear();
+
+    m_processingObjectUpdates = true;
 }
 
 uint32 Map::GetMaxTasks(uint32 numElements)

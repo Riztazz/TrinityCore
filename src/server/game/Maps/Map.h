@@ -759,11 +759,16 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
 
         void AddUpdateObject(Object* obj)
         {
+            if (m_processingObjectUpdates)
+                return;
+            std::lock_guard<std::mutex> lock(m_processingObjectUpdatesLock);
             _updateObjects.insert(obj);
         }
 
         void RemoveUpdateObject(Object* obj)
         {
+            ASSERT(!m_processingObjectUpdates);
+            std::lock_guard<std::mutex> lock(m_processingObjectUpdatesLock);
             _updateObjects.erase(obj);
         }
 
@@ -806,6 +811,8 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
         void ProcessVisibilityUpdates();
         void ProcessObjectUpdates();
         uint32 GetMaxTasks(uint32 numElements);
+        bool m_processingObjectUpdates = false;
+        mutable std::mutex bool m_processingObjectUpdatesLock;
 
     protected:
         std::mutex _mapLock;
