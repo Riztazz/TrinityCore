@@ -626,7 +626,6 @@ void Vehicle::TeleportPassengers(uint32 mapId, float x, float y, float z, float 
 
 void Vehicle::UpdatePassengerVisibility(Map* map)
 {
-    std::vector<Player*> players;
     std::vector<Creature*> creatures;
     for (SeatMap::const_iterator itr = Seats.begin(); itr != Seats.end(); ++itr)
     {
