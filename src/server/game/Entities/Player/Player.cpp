@@ -23163,6 +23163,8 @@ inline void BeforeVisibilityDestroy<Creature>(Creature* t, Player* p)
 
 void Player::UpdateVisibilityOf(WorldObject* target)
 {
+    if (target->IsPlayer())
+        TC_LOG_DEBUG("vis", "UpdateVisibilityOf {}", target->GetGUID().ToString());
     if (HaveAtClient(target))
     {
         if (!CanSeeOrDetect(target, false, true))
@@ -23180,8 +23182,10 @@ void Player::UpdateVisibilityOf(WorldObject* target)
     }
     else
     {
+        TC_LOG_DEBUG("vis", "UpdateVisibilityOf Not Have At Client {}", target->GetGUID().ToString());
         if (CanSeeOrDetect(target, false, true))
         {
+            TC_LOG_DEBUG("vis", "UpdateVisibilityOf SendUpdateToPlayer {}", target->GetGUID().ToString());
             target->SendUpdateToPlayer(this);
             m_clientGUIDs.insert(target->GetGUID());
 
