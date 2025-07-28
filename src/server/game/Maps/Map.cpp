@@ -268,7 +268,7 @@ void Map::LoadAllCells()
     }
 #endif
 
-void Map::AddUpdateObject(Object* obj)
+void AddUpdateObject(Object* obj)
 {
     if (m_processingObjectUpdates)
         return;
