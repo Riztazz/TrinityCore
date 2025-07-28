@@ -630,7 +630,10 @@ void Map::ScriptsProcess()
                         pGO->SetLootState(GO_READY);
                         pGO->SetRespawnTime(nTimeToDespawn);
 
-                        pGO->GetMap()->AddToMap(pGO);
+                        if (pGO->IsInWorld())
+                            pGO->UpdateObjectVisibility();
+                        else
+                            pGO->GetMap()->AddToMap(pGO);
                     }
                 }
                 break;
