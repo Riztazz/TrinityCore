@@ -18,6 +18,7 @@
 #ifndef TRINITY_MAP_H
 #define TRINITY_MAP_H
 
+#ifndef ASSERT_WITH_TRACE
 #include <boost/stacktrace.hpp>
 #include <iostream>
 #include <cstdlib>
@@ -28,6 +29,7 @@
         std::cerr << boost::stacktrace::stacktrace(); \
         std::abort(); \
     }
+#endif
 
 #include "Define.h"
 
