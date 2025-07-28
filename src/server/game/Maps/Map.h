@@ -765,7 +765,13 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
             _updateObjects.insert(obj);
         }
 
-        void RemoveUpdateObject(Object* obj);
+        void Map::RemoveUpdateObject(Object* obj)
+        {
+            if (m_processingObjectUpdates)
+                return; // Object will be cleared anyway when processing finishes
+            std::lock_guard<std::mutex> lock(m_processingObjectUpdatesLock);
+            _updateObjects.erase(obj);
+        }
 
         size_t GetActiveNonPlayersCount() const
         {

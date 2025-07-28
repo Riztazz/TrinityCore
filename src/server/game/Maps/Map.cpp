@@ -255,33 +255,6 @@ void Map::LoadAllCells()
             LoadGrid((cellX + 0.5f - CENTER_GRID_CELL_ID) * SIZE_OF_GRID_CELL, (cellY + 0.5f - CENTER_GRID_CELL_ID) * SIZE_OF_GRID_CELL);
 }
 
-#ifndef ASSERT_WITH_TRACE
-#include <boost/stacktrace.hpp>
-#include <iostream>
-#include <cstdlib>
-
-#define ASSERT_WITH_TRACE(expr) \
-    if (!(expr)) { \
-        std::cerr << "Assertion failed: " #expr "\n"; \
-        std::cerr << boost::stacktrace::stacktrace(); \
-        std::abort(); \
-    }
-#endif
-
-void Map::RemoveUpdateObject(Object* obj)
-{
-    std::lock_guard<std::mutex> lock(m_processingObjectUpdatesLock);
-    
-    if (m_processingObjectUpdates)
-    {
-        // Defer removal until after ProcessObjectUpdates completes
-        _pendingObjectRemovals.insert(obj);
-        return;
-    }
-    
-    _updateObjects.erase(obj);
-}
-
 Map::Map(uint32 id, uint32 instanceOrPartitionId):
 i_mapEntry(sMapStore.LookupEntry(id)),
 m_unloadTimer(0), m_VisibleDistance(DEFAULT_VISIBILITY_DISTANCE),
@@ -1371,16 +1344,10 @@ void Map::ProcessObjectUpdates()
         }
     }
 
-    _updateObjects.clear();
-    
-    // Process pending removals that were deferred during object updates
+    // Safe clear
     {
         std::lock_guard<std::mutex> lock(m_processingObjectUpdatesLock);
-        for (Object* obj : _pendingObjectRemovals)
-        {
-            _updateObjects.erase(obj);
-        }
-        _pendingObjectRemovals.clear();
+        _updateObjects.clear();
         m_processingObjectUpdates = false;
     }
 }
