@@ -10400,7 +10400,7 @@ void Unit::RemoveFromPartition()
         }
     }
 
-    RemoveAreaAurasDueToLeaveWorld();
+    //RemoveAreaAurasDueToLeaveWorld();
 
     RemoveAllFollowers();
 

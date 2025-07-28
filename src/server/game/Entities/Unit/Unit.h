@@ -29,7 +29,6 @@
 #include "Util.h"
 #include <map>
 #include <memory>
-#include <mutex>
 #include <stack>
 #include <queue>
 
@@ -2052,31 +2051,7 @@ class TC_GAME_API Unit : public WorldObject
         void ProcSkillsAndReactives(bool isVictim, Unit* procTarget, uint32 typeMask, uint32 hitMask, WeaponAttackType attType);
 
         void PatchValuesUpdate(ByteBuffer& valuesUpdateBuf, BuildValuesCachePosPointers& posPointers, Player* target);
-        void InvalidateValuesUpdateCache() 
-        { 
-            // Try to detect concurrent access by using try_lock first
-            if (!_valuesUpdateCacheMutex.try_lock())
-            {
-                TC_LOG_ERROR("entities.unit", "Unit::InvalidateValuesUpdateCache: Concurrent access detected! "
-                    "Unit {} (Entry: {}) cache access is being blocked by another thread. "
-                    "This indicates the same unit is being processed by multiple partition threads simultaneously.",
-                    GetGUID().ToString(), GetEntry());
-                
-                // Fall back to blocking lock
-                std::lock_guard<std::mutex> lock(_valuesUpdateCacheMutex);
-                _valuesUpdateCache.clear();
-                return;
-            }
-
-            // We got the lock immediately - no contention
-            std::lock_guard<std::mutex> lock(_valuesUpdateCacheMutex, std::adopt_lock);
-            if (!_valuesUpdateCache.empty())
-            {
-                TC_LOG_DEBUG("entities.unit", "Unit::InvalidateValuesUpdateCache: Clearing cache for unit {} (Entry: {}) - {} entries", 
-                    GetGUID().ToString(), GetEntry(), _valuesUpdateCache.size());
-            }
-            _valuesUpdateCache.clear(); 
-        }
+        void InvalidateValuesUpdateCache() { _valuesUpdateCache.clear(); }
 
     protected:
         void SetFeared(bool apply);
@@ -2141,7 +2116,6 @@ class TC_GAME_API Unit : public WorldObject
 
         typedef std::unordered_map<uint64 /*visibleFlag(uint32) + updateType(uint8)*/, BuildValuesCachedBuffer>  ValuesUpdateCache;
         ValuesUpdateCache _valuesUpdateCache;
-        mutable std::mutex _valuesUpdateCacheMutex;
 };
 
 namespace Trinity
