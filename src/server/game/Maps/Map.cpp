@@ -1171,18 +1171,17 @@ void Map::ProcessVisibilityUpdates()
                 }
             };
 
-            // Submit tasks to thread pool and track with futures
+            // Submit tasks to thread pool with proper future tracking
             std::vector<std::future<void>> futures;
             futures.reserve(maxTasks - 1);
 
             for (uint32 i = 1; i < maxTasks; ++i)
             {
-                auto promise = std::make_shared<std::promise<void>>();
-                futures.push_back(promise->get_future());
+                auto task = std::make_shared<std::packaged_task<void()>>(processPlayers);
+                futures.push_back(task->get_future());
                 
-                threadPool.PostWork([processPlayers, promise]() {
-                    processPlayers();
-                    promise->set_value();
+                threadPool.PostWork([task]() {
+                    (*task)();
                 });
             }
 
@@ -1222,18 +1221,17 @@ void Map::ProcessVisibilityUpdates()
                 }
             };
 
-            // Submit tasks to thread pool and track with futures
+            // Submit tasks to thread pool with proper future tracking
             std::vector<std::future<void>> futures;
             futures.reserve(maxTasks - 1);
 
             for (uint32 i = 1; i < maxTasks; ++i)
             {
-                auto promise = std::make_shared<std::promise<void>>();
-                futures.push_back(promise->get_future());
+                auto task = std::make_shared<std::packaged_task<void()>>(processCreatures);
+                futures.push_back(task->get_future());
                 
-                threadPool.PostWork([processCreatures, promise]() {
-                    processCreatures();
-                    promise->set_value();
+                threadPool.PostWork([task]() {
+                    (*task)();
                 });
             }
 
@@ -1293,19 +1291,18 @@ void Map::ProcessObjectUpdates()
         }
     };
 
-    // Submit tasks to thread pool and track with futures
+    // Submit tasks to thread pool with proper future tracking
     std::vector<std::future<void>> futures;
     futures.reserve(maxTasks - 1);
 
     // Submit tasks to thread pool (excluding main thread) 
     for (uint32 i = 1; i < maxTasks; ++i)
     {
-        auto promise = std::make_shared<std::promise<void>>();
-        futures.push_back(promise->get_future());
+        auto task = std::make_shared<std::packaged_task<void()>>(processObjects);
+        futures.push_back(task->get_future());
         
-        threadPool.PostWork([processObjects, promise]() {
-            processObjects();
-            promise->set_value();
+        threadPool.PostWork([task]() {
+            (*task)();
         });
     }
 
