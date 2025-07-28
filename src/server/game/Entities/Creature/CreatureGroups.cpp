@@ -275,13 +275,18 @@ void CreatureGroup::RemoveMember(Creature* member)
     if (!_leader || member != _leader)
         return;
 
+    _leader->GetMap()->AddToCreatureGroupUpdates(*this);
+}
+
+Creature* CreatureGroup::UpdateLeadership()
+{
     // If we remove the leader we need to find a new leader
     Creature* newLeader = _members.empty() ? nullptr : _members.begin()->first;
     // No-one left mark group as unformed
     if (!newLeader)
     {
         _leader = nullptr;
-        return;
+        return _leader;
     }
     
     if (_leader->GetDefaultMovementType() == WAYPOINT_MOTION_TYPE && _leader->GetWaypointPath())
@@ -295,8 +300,6 @@ void CreatureGroup::RemoveMember(Creature* member)
         // Override temp leaders movement
         newLeader->SetDefaultMovementType(WAYPOINT_MOTION_TYPE);
         newLeader->LoadPath(_leader->GetWaypointPath());
-        // Register the temp leader as a waypoint creature (always ticked)
-        newLeader->GetMap()->AddNewWaypointCreature(newLeader);
         // Re-initialize the motion if not engaged
         if (!newLeader->IsEngaged())
             newLeader->GetMotionMaster()->Initialize();
@@ -306,6 +309,7 @@ void CreatureGroup::RemoveMember(Creature* member)
 
     // set new leader
     _leader = newLeader;
+    return _leader;
 }
 
 void CreatureGroup::UpdateMemberMapPartition(Map* map)

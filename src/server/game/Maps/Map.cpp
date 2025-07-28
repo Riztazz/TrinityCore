@@ -1008,10 +1008,17 @@ void Map::Update(uint32 t_diff)
     }
 
     {
-        ZoneScopedN("Map::Update::AddNewWaypointCreatures")
+        ZoneScopedN("Map::Update::SetNewCreatureGroupLeader")
 
-        m_waypointCreatures.insert(m_newWaypointCreatures.begin(), m_newWaypointCreatures.end());
-        m_newWaypointCreatures.clear();
+        for (CreatureGroup& group : m_creatureGroupUpdates)
+        {
+            Creature* newLeader = group.UpdateLeadership();
+            
+            if (newLeader && newLeader->GetWaypointPath() != 0)
+                AddToWaypointCreatures(newLeader);
+        }
+
+        m_creatureGroupUpdates.clear();
     }
 
     // We must delay grid relocation until after entities are updated to avoid updating multiple times (by moving to an unmarked cell)
@@ -1428,7 +1435,6 @@ void Map::RemoveFromMap(T *obj, bool remove)
     if (obj->IsCreature())
     {
         Creature* c = obj->ToCreature();
-        m_newWaypointCreatures.erase(c);
         m_waypointCreatures.erase(c);
 
         // RemoveFromMap is called from the delayed update so _relocatedCreatures is empty,
@@ -1498,7 +1504,6 @@ void Map::RemoveFromPartition(T *obj)
     if (obj->IsCreature())
     {
         Creature* c = obj->ToCreature();
-        m_newWaypointCreatures.erase(c);
         m_waypointCreatures.erase(c);
 
         // this is called from delayedUpdate, so _relocatedCreatures is always empty, and _updateMapPartitionCreatures
