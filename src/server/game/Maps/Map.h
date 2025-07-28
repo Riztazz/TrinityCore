@@ -18,6 +18,17 @@
 #ifndef TRINITY_MAP_H
 #define TRINITY_MAP_H
 
+#include <boost/stacktrace.hpp>
+#include <iostream>
+#include <cstdlib>
+
+#define ASSERT_WITH_TRACE(expr) \
+    if (!(expr)) { \
+        std::cerr << "Assertion failed: " #expr "\n"; \
+        std::cerr << boost::stacktrace::stacktrace(); \
+        std::abort(); \
+    }
+
 #include "Define.h"
 
 #include "Cell.h"
@@ -767,21 +778,7 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
 
         void RemoveUpdateObject(Object* obj)
         {
-            if (m_processingObjectUpdates)
-            {
-#ifdef WIN32
-                void* stack[20];
-                WORD frames = CaptureStackBackTrace(1, 20, stack, NULL);
-                TC_LOG_ERROR("objectupdates", "RemoveUpdateObject called during ProcessObjectUpdates!");
-                for (WORD i = 0; i < frames; ++i)
-                {
-                    TC_LOG_ERROR("objectupdates", "Frame {}: 0x{:x}", i, reinterpret_cast<uintptr_t>(stack[i]));
-                }
-#else
-                TC_LOG_ERROR("objectupdates", "RemoveUpdateObject called during ProcessObjectUpdates!");
-#endif
-                ABORT();
-            }
+            ASSERT_WITH_TRACE(!m_processingObjectUpdates);
             std::lock_guard<std::mutex> lock(m_processingObjectUpdatesLock);
             _updateObjects.erase(obj);
         }
