@@ -851,6 +851,7 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
         std::bitset<TOTAL_NUMBER_OF_CELLS_PER_MAP*TOTAL_NUMBER_OF_CELLS_PER_MAP> marked_cells;
 
         bool i_scriptLock;
+        mutable std::mutex      m_objectsToRemoveLock;
         std::set<WorldObject*> i_objectsToRemove;
         std::map<WorldObject*, bool> i_objectsToSwitch;
         std::set<WorldObject*> i_worldObjects;

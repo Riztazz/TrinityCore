@@ -3769,7 +3769,7 @@ void Map::AddObjectToRemoveList(WorldObject* obj)
     ASSERT(obj->GetMapId() == GetId() && obj->GetPartitionId() == GetPartitionId() && obj->GetInstanceId() == GetInstanceId());
 
     obj->CleanupsBeforeDelete(false);                            // remove or simplify at least cross referenced links
-
+    std::lock_guard<std::mutex> lock(m_objectsToRemoveLock);
     i_objectsToRemove.insert(obj);
 }
 
@@ -3821,9 +3821,13 @@ void Map::RemoveAllObjectsInRemoveList()
         }
     }
 
+    if (m_objectsToRemove.empty())
+        return;
+
     {
         ZoneScopedN("Map::RemoveAllObjectsInRemoveList::Remove")
 
+        std::lock_guard<std::mutex> lock(m_objectsToRemoveLock);
         while (!i_objectsToRemove.empty())
         {
             std::set<WorldObject*>::iterator itr = i_objectsToRemove.begin();
