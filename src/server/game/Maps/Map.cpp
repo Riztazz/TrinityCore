@@ -176,13 +176,19 @@ bool Map::ExistVMap(uint32 mapId, int gx, int gy)
 
 Trinity::ThreadPool& Map::GetUpdateThreadPool()
 {
-    static Trinity::ThreadPool updateThreadPool([]() -> uint32 {
+    static Trinity::ThreadPool updateThreadPool(GetUpdateThreadPoolSize());
+    return updateThreadPool;
+}
+
+uint32 Map::GetUpdateThreadPoolSize()
+{
+    static uint32 poolSize = []() -> uint32 {
         uint32 configThreads = sWorld->getIntConfig(CONFIG_MAP_UPDATE_THREAD_POOL);
         if (configThreads == 0)
             return std::max(1u, std::thread::hardware_concurrency() / 2);
         return std::max(1u, configThreads);
-    }());
-    return updateThreadPool;
+    }();
+    return poolSize;
 }
 
 void Map::LoadMMap(int gx, int gy)
@@ -1157,7 +1163,7 @@ void Map::ProcessVisibilityUpdates()
             std::vector<Player*> players(_updateVisibilityPlayers.begin(), _updateVisibilityPlayers.end());
             
             uint32 playerCount = players.size();
-            uint32 maxTasks = std::min(playerCount, std::thread::hardware_concurrency());
+            uint32 maxTasks = std::min(playerCount, GetUpdateThreadPoolSize());
             if (maxTasks < 1)
                 maxTasks = 1;
 
@@ -1207,7 +1213,7 @@ void Map::ProcessVisibilityUpdates()
             std::vector<Creature*> creatures(_updateVisibilityCreatures.begin(), _updateVisibilityCreatures.end());
             
             uint32 creatureCount = creatures.size();
-            uint32 maxTasks = std::min(creatureCount, std::thread::hardware_concurrency());
+            uint32 maxTasks = std::min(creatureCount, GetUpdateThreadPoolSize());
             if (maxTasks < 1)
                 maxTasks = 1;
 
@@ -1266,7 +1272,7 @@ void Map::ProcessObjectUpdates()
     uint32 objectsCount = t.size() - 1;
 
     // Determine work distribution based on object count
-    uint32 maxTasks = std::min(objectsCount, std::thread::hardware_concurrency());
+    uint32 maxTasks = std::min(objectsCount, GetUpdateThreadPoolSize());
     if (maxTasks < 1)
         maxTasks = 1;
 
