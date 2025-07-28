@@ -20,6 +20,7 @@
 
 #include "Object.h"
 #include "CombatManager.h"
+#include "Log.h"
 #include "Random.h"
 #include "SharedDefines.h"
 #include "SpellAuraDefines.h"
