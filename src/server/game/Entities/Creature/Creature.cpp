@@ -441,14 +441,14 @@ void Creature::UpdateMapPartition(Map* forcedMap)
     if (!newMap || newMap == currentMap)
         return;
 
-    // If leader of a formation force update its members first
-    if (m_formation && m_formation->IsLeader(this))
-        m_formation->UpdateMemberMapPartition(newMap);
-
     // If this unit is a vehicle force update its passengers
     Vehicle* vehicle = GetVehicleKit();
     if (vehicle)
         vehicle->UpdatePassengersMapPartition(newMap);
+
+    // If leader of a formation force update its members first
+    if (m_formation && m_formation->IsLeader(this))
+        m_formation->UpdateMemberMapPartition(newMap);
 
     currentMap->RemoveFromPartition(this);
 
