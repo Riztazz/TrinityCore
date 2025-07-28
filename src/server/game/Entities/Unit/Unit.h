@@ -2059,11 +2059,14 @@ class TC_GAME_API Unit : public WorldObject
         void SetStunned(bool apply);
         void SetRooted(bool apply);
 
-        uint32 m_rootTimes;
-
-    private:
         uint32 m_lastTickTime;
         uint32 m_lastTickPartitionId;
+        uint32 m_rootTimes;
+        Position _lastNotifiedPosition;
+        uint32 _lastNotifiedTime;
+        Position _lastCheckedPartitionPosition;
+
+    private:
         uint32 m_state;                                     // Even derived shouldn't modify
         uint32 m_lastManaUse;                               // msecs
         TimeTracker m_splineSyncTimer;
@@ -2103,8 +2106,6 @@ class TC_GAME_API Unit : public WorldObject
         SpellHistory* _spellHistory;
 
         PositionUpdateInfo _positionUpdateInfo;
-        Position _lastNotifiedPosition;
-        Position _lastCheckedPartitionPosition;
 
         bool _isCombatDisallowed;
 

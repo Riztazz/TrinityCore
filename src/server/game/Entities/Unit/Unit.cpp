@@ -336,6 +336,8 @@ Unit::Unit(bool isWorldObject) :
 
     m_lastTickTime = 0;
     m_lastTickPartitionId = 0;
+    _lastNotifiedTime = 0;
+    
     m_state = 0;
     m_deathState = ALIVE;
 
@@ -10303,6 +10305,7 @@ void Unit::AddToWorld()
     WorldObject::AddToWorld();
     i_motionMaster->AddToWorld();
 
+    _lastNotifiedTime = GameTime::GetGameTimeMS();
     _lastNotifiedPosition = GetPosition();
     _lastCheckedPartitionPosition = GetPosition();
 }
@@ -10364,6 +10367,7 @@ void Unit::AddToPartition()
     WorldObject::AddToPartition();
     //i_motionMaster->AddToWorld();
 
+    _lastNotifiedTime = GameTime::GetGameTimeMS();
     _lastNotifiedPosition = GetPosition();
     _lastCheckedPartitionPosition = GetPosition();
 }
@@ -13175,6 +13179,7 @@ bool Unit::ShouldRelocateUpdateVisibility()
     if (distsq < World::GetRelocationLowerLimitSq())
         return false;
 
+    _lastNotifiedTime = GameTime::GetGameTimeMS();
     _lastNotifiedPosition = GetPosition();
     return true;
 }

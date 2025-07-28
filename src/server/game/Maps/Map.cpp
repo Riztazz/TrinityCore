@@ -1042,7 +1042,7 @@ void Map::Update(uint32 t_diff)
             //creature->UpdateObjectVisibility(); FIXME TEST before remove
 
             if (creature->ShouldRelocateUpdateVisibility())
-                _updateVisibilityCreatures.insert(creature);
+                AddToNotify(creature);
             if (creature->ShouldRelocateUpdateMapPartition())
                 _updateMapPartitionCreatures.insert(creature);
         }
@@ -1543,7 +1543,7 @@ void Map::PlayerRelocation(Player* player, float x, float y, float z, float orie
     //player->UpdateObjectVisibility(); FIXME TEST before remove
 
     if (player->ShouldRelocateUpdateVisibility())
-        _updateVisibilityPlayers.insert(player);
+        AddToNotify(player);
     if (player->ShouldRelocateUpdateMapPartition())
         _updateMapPartitionPlayers.insert(player);
 }
@@ -1566,7 +1566,7 @@ void Map::CreatureRelocation(Creature* creature, float x, float y, float z, floa
         //creature->UpdateObjectVisibility(); FIXME TEST before remove
 
         if (creature->ShouldRelocateUpdateVisibility())
-            _updateVisibilityCreatures.insert(creature);
+            AddToNotify(creature);
         if (creature->ShouldRelocateUpdateMapPartition())
             _updateMapPartitionCreatures.insert(creature);
     }

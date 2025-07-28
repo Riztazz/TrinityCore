@@ -413,6 +413,19 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
             }
             return true;
         }
+        template<typename T>
+        bool AddToNotify(T* unit) const
+        {
+            if constexpr (std::is_same_v<T, Player>)
+            {
+                return _updateVisibilityPlayers.insert(unit);
+            }
+            else if constexpr (std::is_same_v<T, Creature>)
+            {
+                return _updateVisibilityCreatures.insert(unit);
+            }
+            return true;
+        }
 
         void PlayerRelocation(Player*, float x, float y, float z, float orientation);
         void CreatureRelocation(Creature* creature, float x, float y, float z, float orientation);

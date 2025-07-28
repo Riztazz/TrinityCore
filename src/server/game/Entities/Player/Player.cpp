@@ -1401,8 +1401,20 @@ void Player::Update(uint32 p_time)
             m_hostileReferenceCheckTimer -= p_time;
     }
 
+    uint32 lastNotify = m_lastTickTime - _lastNotifiedTime;
     if (IsHasDelayedTeleport())
         TeleportTo(m_teleport_dest, m_teleport_options);
+    else if (lastNotify >= 5000)
+    {
+        // We no longer periodically update visibility, which has 1 issue which is long patrolling creatures walking
+        // out of site while players stand still, we need a long poll notify to handle this case
+        uint32 guidOffset = GetGUID().GetCounter() % 1000;
+        uint32 windowStart = 5000 + (guidOffset / 100) * 100; // Creates 10 windows of 100ms each
+        if (lastNotify >= windowStart)
+        {
+            GetMap()->AddToNotify(this);
+        }
+    }
 }
 
 void Player::ProcessRelocateVisibilityUpdates()

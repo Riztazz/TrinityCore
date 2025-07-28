@@ -3636,7 +3636,7 @@ void WorldObject::UpdateObjectVisibility()
     //updates object's visibility for nearby players
     Trinity::VisibleChangesNotifier notifier(*this);
     // We need to increase this update range by the relocation limit so that creatures notify players when they leave site range
-    Cell::VisitWorldObjects(this, notifier, GetVisibilityRange() + World::GetRelocationLowerLimit());
+    Cell::VisitWorldObjects(this, notifier, GetVisibilityRange());
 }
 
 struct WorldObjectChangeAccumulator
