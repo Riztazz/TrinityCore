@@ -569,7 +569,8 @@ bool Map::AddPlayerToMap(Player* player)
     SendInitTransports(player);
 
     player->m_clientGUIDs.clear();
-    player->UpdateObjectVisibility(); // FIXME TEST
+    //if (!player->GetSession()->PlayerLoading()) TODO See if we can not do this on login without issue
+    player->UpdateObjectVisibility(); // Does not set as visible on login, need to try again there
 
     if (player->IsAlive())
         ConvertCorpseToBones(player->GetGUID());

@@ -1063,6 +1063,8 @@ void WorldSession::HandlePlayerLogin(LoginQueryHolder const& holder)
 
     m_playerLoading = false;
 
+    _player->UpdateObjectVisibility(); // Update our visibility for others now that we are loaded
+
     // Handle Login-Achievements (should be handled after loading)
     _player->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_ON_LOGIN, 1);
 

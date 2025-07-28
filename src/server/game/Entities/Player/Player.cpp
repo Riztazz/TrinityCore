@@ -23065,9 +23065,11 @@ bool Player::HaveAtClient(Object const* u) const
 
 bool Player::IsNeverVisible(bool allowServersideObjects) const
 {
+    TC_LOG_DEBUG("vis", "PlayerIsNeverVisible IsInWorld? {} UnitIsNeverVisible {}", IsInWorld(), Unit::IsNeverVisible(allowServersideObjects));
     if (Unit::IsNeverVisible(allowServersideObjects))
         return true;
 
+    TC_LOG_DEBUG("vis", "PlayerLogout {} PlayerLoading {}", GetSession()->PlayerLogout(), GetSession()->PlayerLoading());
     if (GetSession()->PlayerLogout() || GetSession()->PlayerLoading())
         return true;
 
