@@ -23065,11 +23065,9 @@ bool Player::HaveAtClient(Object const* u) const
 
 bool Player::IsNeverVisible(bool allowServersideObjects) const
 {
-    TC_LOG_DEBUG("vis", "PlayerIsNeverVisible IsInWorld? {} UnitIsNeverVisible {}", IsInWorld(), Unit::IsNeverVisible(allowServersideObjects));
     if (Unit::IsNeverVisible(allowServersideObjects))
         return true;
 
-    TC_LOG_DEBUG("vis", "PlayerLogout {} PlayerLoading {}", GetSession()->PlayerLogout(), GetSession()->PlayerLoading());
     if (GetSession()->PlayerLogout() || GetSession()->PlayerLoading())
         return true;
 
@@ -23165,8 +23163,6 @@ inline void BeforeVisibilityDestroy<Creature>(Creature* t, Player* p)
 
 void Player::UpdateVisibilityOf(WorldObject* target)
 {
-    if (target->IsPlayer())
-        TC_LOG_DEBUG("vis", "UpdateVisibilityOf {}", target->GetGUID().ToString());
     if (HaveAtClient(target))
     {
         if (!CanSeeOrDetect(target, false, true))
@@ -23184,10 +23180,8 @@ void Player::UpdateVisibilityOf(WorldObject* target)
     }
     else
     {
-        TC_LOG_DEBUG("vis", "UpdateVisibilityOf Not Have At Client {}", target->GetGUID().ToString());
         if (CanSeeOrDetect(target, false, true))
         {
-            TC_LOG_DEBUG("vis", "UpdateVisibilityOf SendUpdateToPlayer {}", target->GetGUID().ToString());
             target->SendUpdateToPlayer(this);
             m_clientGUIDs.insert(target->GetGUID());
 
@@ -23298,7 +23292,6 @@ void Player::UpdateObjectVisibility()
     if (!IsInWorld())
         return;
 
-    TC_LOG_DEBUG("vis", "Update player visibility guid {}", GetGUID().ToString());
     Unit::UpdateObjectVisibility();
     UpdateVisibilityForPlayer();
 }

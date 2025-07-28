@@ -1611,11 +1611,6 @@ bool WorldObject::CanSeeOrDetect(WorldObject const* obj, bool implicitDetect, bo
     if (this == obj)
         return true;
 
-    if (IsPlayer() && obj->IsPlayer())
-    {
-        TC_LOG_DEBUG("vis", "me {}, target {} IsNeverVisible {}, CanNeverSee {}", GetGUID().ToString(), obj->GetGUID().ToString(), obj->IsNeverVisible(implicitDetect), CanNeverSee(obj));
-    }
-
     if (obj->IsNeverVisible(implicitDetect) || CanNeverSee(obj))
         return false;
 
@@ -3640,8 +3635,6 @@ void WorldObject::UpdateObjectVisibility()
 {
     //updates object's visibility for nearby players
     Trinity::VisibleChangesNotifier notifier(*this);
-    if (IsPlayer())
-        TC_LOG_DEBUG("vis", "UpdateObjectVisibility range {} guid {}", GetVisibilityRange(), GetGUID().ToString());
     Cell::VisitWorldObjects(this, notifier, GetVisibilityRange());
 }
 
