@@ -1611,7 +1611,7 @@ bool WorldObject::CanSeeOrDetect(WorldObject const* obj, bool implicitDetect, bo
     if (this == obj)
         return true;
 
-    if (obj->IsPlayer())
+    if (IsPlayer() && obj->IsPlayer())
         TC_LOG_DEBUG("vis", "ZERO");
     if (obj->IsNeverVisible(implicitDetect) || CanNeverSee(obj))
         return false;
@@ -1619,7 +1619,7 @@ bool WorldObject::CanSeeOrDetect(WorldObject const* obj, bool implicitDetect, bo
     if (obj->IsAlwaysVisibleFor(this) || CanAlwaysSee(obj))
         return true;
 
-    if (obj->IsPlayer())
+    if (IsPlayer() && obj->IsPlayer())
         TC_LOG_DEBUG("vis", "A");
     bool corpseVisibility = false;
     if (distanceCheck)
@@ -1665,7 +1665,7 @@ bool WorldObject::CanSeeOrDetect(WorldObject const* obj, bool implicitDetect, bo
         if (!corpseCheck && !viewpoint->IsWithinDist(obj, GetSightRange(obj), false))
             return false;
     }
-    if (obj->IsPlayer())
+    if (IsPlayer() && obj->IsPlayer())
         TC_LOG_DEBUG("vis", "B");
 
     // GM visibility off or hidden NPC
@@ -1678,7 +1678,7 @@ bool WorldObject::CanSeeOrDetect(WorldObject const* obj, bool implicitDetect, bo
     else
         return m_serverSideVisibilityDetect.GetValue(SERVERSIDE_VISIBILITY_GM) >= obj->m_serverSideVisibility.GetValue(SERVERSIDE_VISIBILITY_GM);
 
-    if (obj->IsPlayer())
+    if (IsPlayer() && obj->IsPlayer())
         TC_LOG_DEBUG("vis", "C");
     // Ghost players, Spirit Healers, and some other NPCs
     if (!corpseVisibility && !(obj->m_serverSideVisibility.GetValue(SERVERSIDE_VISIBILITY_GHOST) & m_serverSideVisibilityDetect.GetValue(SERVERSIDE_VISIBILITY_GHOST)))
@@ -1697,12 +1697,12 @@ bool WorldObject::CanSeeOrDetect(WorldObject const* obj, bool implicitDetect, bo
         else
             return false;
     }
-    if (obj->IsPlayer())
+    if (IsPlayer() && obj->IsPlayer())
         TC_LOG_DEBUG("vis", "D");
 
     if (obj->IsInvisibleDueToDespawn())
         return false;
-    if (obj->IsPlayer())
+    if (IsPlayer() && obj->IsPlayer())
         TC_LOG_DEBUG("vis", "E");
 
     if (!CanDetect(obj, implicitDetect, checkAlert))
@@ -1722,7 +1722,7 @@ bool WorldObject::CanDetect(WorldObject const* obj, bool implicitDetect, bool ch
 
     // If a unit is possessing another one, it uses the detection of the latter
     // Pets don't have detection, they use the detection of their masters
-    if (obj->IsPlayer())
+    if (IsPlayer() && obj->IsPlayer())
         TC_LOG_DEBUG("vis", "F");
     if (Unit const* thisUnit = ToUnit())
     {
@@ -1734,7 +1734,7 @@ bool WorldObject::CanDetect(WorldObject const* obj, bool implicitDetect, bool ch
         else if (Unit* controller = thisUnit->GetCharmerOrOwner())
             seer = controller;
     }
-    if (obj->IsPlayer())
+    if (IsPlayer() && obj->IsPlayer())
         TC_LOG_DEBUG("vis", "G");
     if (obj->IsAlwaysDetectableFor(seer))
         return true;
@@ -1744,7 +1744,7 @@ bool WorldObject::CanDetect(WorldObject const* obj, bool implicitDetect, bool ch
 
     if (!implicitDetect && !seer->CanDetectStealthOf(obj, checkAlert))
         return false;
-    if (obj->IsPlayer())
+    if (IsPlayer() && obj->IsPlayer())
         TC_LOG_DEBUG("vis", "H");
     return true;
 }
