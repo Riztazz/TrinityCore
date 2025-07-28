@@ -1105,6 +1105,20 @@ void Creature::Update(uint32 diff)
         }
         default:
             break;
+
+        uint32 lastNotify = m_lastTickTime - _lastNotifiedTime;
+        if (GetVehicleKit() && lastNotify >= 1000)
+        {
+            // We no longer periodically update visibility, which has 1 issue which is long patrolling creatures walking
+            // out of site while players stand still, we need a long poll notify to handle this case
+            uint32 guidOffset = GetGUID().GetCounter() % 1000;
+            uint32 windowStart = 1000 + (guidOffset / 100) * 100; // Creates 10 windows of 100ms each
+            if (lastNotify >= windowStart)
+            {
+                GetMap()->AddToNotify(this);
+                GetVehicleKit()->UpdatePassengersMapPartition(GetMap());
+            }
+        }
     }
 }
 
