@@ -270,7 +270,7 @@ void CreatureGroup::AddMember(Creature* member)
 void CreatureGroup::RemoveMember(Creature* member)
 {
     // We cannot remove from the formation during the update
-    _leader->GetMap()->AddToRemoveGroupCreatures(this);
+    _leader->GetMap()->AddToRemoveGroupCreatures(member);
 }
 
 Creature* CreatureGroup::RemoveAndUpdateLeader(Creature* member)
