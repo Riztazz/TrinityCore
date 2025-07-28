@@ -1022,15 +1022,18 @@ void Map::Update(uint32 t_diff)
     {
         ZoneScopedN("Map::Update::SetNewCreatureGroupLeader")
 
-        for (CreatureGroup* group : m_creatureGroupUpdates)
+        for (Creature* member : m_removeFromGroupCreatures)
         {
-            Creature* newLeader = group->UpdateLeadership();
-            
-            if (newLeader && newLeader->GetWaypointPath() != 0)
-                AddToWaypointCreatures(newLeader);
+            CreatureGroup* group = member->GetFormation();
+            if (group)
+            {
+                Creature* newLeader = group->RemoveAndUpdateLeader();
+                if (newLeader && newLeader->GetWaypointPath() != 0)
+                    AddToWaypointCreatures(newLeader);
+            }
         }
 
-        m_creatureGroupUpdates.clear();
+        m_removeFromGroupCreatures.clear();
     }
 
     // We must delay grid relocation until after entities are updated to avoid updating multiple times (by moving to an unmarked cell)

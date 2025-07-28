@@ -598,9 +598,9 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
         }
 
         // called from CreatureGroup::RemoveMember
-        void AddToCreatureGroupUpdates(CreatureGroup* group)
+        void AddToRemoveGroupCreatures(Creature* creature)
         {
-            m_creatureGroupUpdates.insert(group);
+            m_removeFromGroupCreatures.insert(creature);
         }
 
         template<class T> void SwitchGridContainers(T* obj, bool on);
@@ -826,8 +826,7 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
 
         typedef std::set<Creature*> WaypointCreatures;
         WaypointCreatures m_waypointCreatures;
-        typedef std::set<CreatureGroup*> CreatureGroupSet;
-        CreatureGroupSet m_creatureGroupUpdates;
+        WaypointCreatures m_removeFromGroupCreatures;
 
         // Objects that must update even in inactive grids without activating them
         typedef std::set<Transport*> TransportsContainer;

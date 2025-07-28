@@ -269,17 +269,19 @@ void CreatureGroup::AddMember(Creature* member)
 
 void CreatureGroup::RemoveMember(Creature* member)
 {
-    _members.erase(member);
-    member->SetFormation(nullptr);
-    // If group is unformed or member is not the leader we don't need to do anything else
-    if (!_leader || member != _leader)
-        return;
-
-    _leader->GetMap()->AddToCreatureGroupUpdates(this);
+    // We cannot remove from the formation during the update
+    _leader->GetMap()->AddToRemoveGroupCreatures(this);
 }
 
-Creature* CreatureGroup::UpdateLeadership()
+Creature* CreatureGroup::RemoveAndUpdateLeader(Creature* member)
 {
+    _members.erase(member);
+    member->SetFormation(nullptr);
+
+    // If group is unformed or member is not the leader we don't need to do anything else
+    if (!_leader || member != _leader)
+        return nullptr;
+
     // If we remove the leader we need to find a new leader
     Creature* newLeader = _members.empty() ? nullptr : _members.begin()->first;
     // No-one left mark group as unformed
