@@ -18,19 +18,6 @@
 #ifndef TRINITY_MAP_H
 #define TRINITY_MAP_H
 
-#ifndef ASSERT_WITH_TRACE
-#include <boost/stacktrace.hpp>
-#include <iostream>
-#include <cstdlib>
-
-#define ASSERT_WITH_TRACE(expr) \
-    if (!(expr)) { \
-        std::cerr << "Assertion failed: " #expr "\n"; \
-        std::cerr << boost::stacktrace::stacktrace(); \
-        std::abort(); \
-    }
-#endif
-
 #include "Define.h"
 
 #include "Cell.h"
@@ -778,12 +765,7 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
             _updateObjects.insert(obj);
         }
 
-        void RemoveUpdateObject(Object* obj)
-        {
-            ASSERT_WITH_TRACE(!m_processingObjectUpdates);
-            std::lock_guard<std::mutex> lock(m_processingObjectUpdatesLock);
-            _updateObjects.erase(obj);
-        }
+        void RemoveUpdateObject(Object* obj);
 
         size_t GetActiveNonPlayersCount() const
         {
