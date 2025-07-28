@@ -812,7 +812,7 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
         void ProcessObjectUpdates();
         uint32 GetMaxTasks(uint32 numElements);
         bool m_processingObjectUpdates = false;
-        mutable std::mutex bool m_processingObjectUpdatesLock;
+        mutable std::mutex m_processingObjectUpdatesLock;
 
     protected:
         std::mutex _mapLock;
