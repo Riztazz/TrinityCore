@@ -359,27 +359,45 @@ void CreatureGroup::MemberEngagingTarget(Creature* member, Unit* target)
 
 void CreatureGroup::MemberDisengaging(Creature* member)
 {
-    // used to prevent recursive calls
-    if (_disengaging)
+    // used to prevent recursive calls - now thread-safe with atomic exchange
+    bool expected = false;
+    if (!_disengaging.compare_exchange_strong(expected, true))
+    {
+        // Log error when concurrent access is detected
+        TC_LOG_ERROR("entities.unit", "CreatureGroup::MemberDisengaging: Concurrent access detected! "
+            "Member {} (SpawnId: {}) attempted to disengage while group {} is already disengaging. "
+            "This indicates a threading issue with creature group updates.",
+            member->GetGUID().ToString(), member->GetSpawnId(), _leaderSpawnId);
         return;
+    }
 
     uint8 groupAI = ASSERT_NOTNULL(sFormationMgr->GetFormationInfo(member->GetSpawnId()))->GroupAI;
     if (!groupAI)
+    {
+        _disengaging = false;
         return;
+    }
 
     // we only disengage other members if disengaging member is alive
     if (!member->IsAlive())
+    {
+        _disengaging = false;
         return;
+    }
 
     if (member == _leader)
     {
         if (!(groupAI & FLAG_MEMBERS_ASSIST_LEADER))
+        {
+            _disengaging = false;
             return;
+        }
     }
     else if (!(groupAI & FLAG_LEADER_ASSISTS_MEMBER))
+    {
+        _disengaging = false;
         return;
-
-    _disengaging = true;
+    }
 
     for (auto const& pair : _members)
     {

@@ -22,6 +22,7 @@
 #include "Map.h"
 #include "ObjectGuid.h"
 #include <unordered_map>
+#include <atomic>
 #include <map>
 
 enum GroupAIFlags
@@ -80,7 +81,7 @@ class TC_GAME_API CreatureGroup
         MovementGeneratorType _tempLeaderDefaultMovementType;
         uint32 _tempLeaderPathId;
         bool _engaging;
-        bool _disengaging;
+        std::atomic<bool> _disengaging;
 
     public:
         typedef std::unordered_map<Creature*, FormationInfo*> FormationMap;
