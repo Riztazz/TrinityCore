@@ -1027,7 +1027,7 @@ void Map::Update(uint32 t_diff)
             CreatureGroup* group = member->GetFormation();
             if (group)
             {
-                Creature* newLeader = group->RemoveAndUpdateLeader();
+                Creature* newLeader = group->RemoveAndUpdateLeader(member);
                 if (newLeader && newLeader->GetWaypointPath() != 0)
                     AddToWaypointCreatures(newLeader);
             }
