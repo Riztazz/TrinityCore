@@ -1159,45 +1159,54 @@ void Map::ProcessVisibilityUpdates()
 
         if (!_updateVisibilityPlayers.empty())
         {
-            // Build vector for parallel processing
-            std::vector<Player*> players(_updateVisibilityPlayers.begin(), _updateVisibilityPlayers.end());
-            
-            uint32 playerCount = players.size();
-            uint32 maxTasks = std::min(playerCount, GetUpdateThreadPoolSize());
-            if (maxTasks < 1)
-                maxTasks = 1;
-
-            std::atomic<uint32> playerIndex(0);
-            Trinity::ThreadPool& threadPool = GetUpdateThreadPool();
-
-            auto processPlayers = [&players, &playerIndex]() {
-                uint32 idx;
-                while ((idx = playerIndex.fetch_add(1)) < players.size())
-                {
-                    players[idx]->ProcessRelocateVisibilityUpdates();
-                }
-            };
-
-            // Submit tasks to thread pool with proper future tracking
-            std::vector<std::future<void>> futures;
-            futures.reserve(maxTasks - 1);
-
-            for (uint32 i = 1; i < maxTasks; ++i)
+            if (Instanceable())
             {
-                auto task = std::make_shared<std::packaged_task<void()>>(processPlayers);
-                futures.push_back(task->get_future());
-                
-                threadPool.PostWork([task]() {
-                    (*task)();
-                });
+                // Process players inline for instanceable maps
+                for (Player* player : _updateVisibilityPlayers)
+                    player->ProcessRelocateVisibilityUpdates();
             }
-
-            processPlayers(); // Main thread processes a portion
-
-            // Wait for all tasks to complete
-            for (auto& future : futures)
+            else
             {
-                future.wait();
+                // Build vector for parallel processing
+                std::vector<Player*> players(_updateVisibilityPlayers.begin(), _updateVisibilityPlayers.end());
+                
+                uint32 playerCount = players.size();
+                uint32 maxTasks = std::min(playerCount, GetUpdateThreadPoolSize() / 4);
+                if (maxTasks < 1)
+                    maxTasks = 1;
+
+                std::atomic<uint32> playerIndex(0);
+                Trinity::ThreadPool& threadPool = GetUpdateThreadPool();
+
+                auto processPlayers = [&players, &playerIndex]() {
+                    uint32 idx;
+                    while ((idx = playerIndex.fetch_add(1)) < players.size())
+                    {
+                        players[idx]->ProcessRelocateVisibilityUpdates();
+                    }
+                };
+
+                // Submit tasks to thread pool with proper future tracking
+                std::vector<std::future<void>> futures;
+                futures.reserve(maxTasks - 1);
+
+                for (uint32 i = 1; i < maxTasks; ++i)
+                {
+                    auto task = std::make_shared<std::packaged_task<void()>>(processPlayers);
+                    futures.push_back(task->get_future());
+                    
+                    threadPool.PostWork([task]() {
+                        (*task)();
+                    });
+                }
+
+                processPlayers(); // Main thread processes a portion
+
+                // Wait for all tasks to complete
+                for (auto& future : futures)
+                {
+                    future.wait();
+                }
             }
         }
 
@@ -1209,45 +1218,54 @@ void Map::ProcessVisibilityUpdates()
 
         if (!_updateVisibilityCreatures.empty())
         {
-            // Build vector for parallel processing
-            std::vector<Creature*> creatures(_updateVisibilityCreatures.begin(), _updateVisibilityCreatures.end());
-            
-            uint32 creatureCount = creatures.size();
-            uint32 maxTasks = std::min(creatureCount, GetUpdateThreadPoolSize());
-            if (maxTasks < 1)
-                maxTasks = 1;
-
-            std::atomic<uint32> creatureIndex(0);
-            Trinity::ThreadPool& threadPool = GetUpdateThreadPool();
-
-            auto processCreatures = [&creatures, &creatureIndex]() {
-                uint32 idx;
-                while ((idx = creatureIndex.fetch_add(1)) < creatures.size())
-                {
-                    creatures[idx]->ProcessRelocateVisibilityUpdates();
-                }
-            };
-
-            // Submit tasks to thread pool with proper future tracking
-            std::vector<std::future<void>> futures;
-            futures.reserve(maxTasks - 1);
-
-            for (uint32 i = 1; i < maxTasks; ++i)
+            if (Instanceable())
             {
-                auto task = std::make_shared<std::packaged_task<void()>>(processCreatures);
-                futures.push_back(task->get_future());
-                
-                threadPool.PostWork([task]() {
-                    (*task)();
-                });
+                // Process creatures inline for instanceable maps
+                for (Creature* creature : _updateVisibilityCreatures)
+                    creature->ProcessRelocateVisibilityUpdates();
             }
-
-            processCreatures(); // Main thread processes a portion
-
-            // Wait for all tasks to complete
-            for (auto& future : futures)
+            else
             {
-                future.wait();
+                // Build vector for parallel processing
+                std::vector<Creature*> creatures(_updateVisibilityCreatures.begin(), _updateVisibilityCreatures.end());
+                
+                uint32 creatureCount = creatures.size();
+                uint32 maxTasks = std::min(creatureCount, GetUpdateThreadPoolSize() / 4);
+                if (maxTasks < 1)
+                    maxTasks = 1;
+
+                std::atomic<uint32> creatureIndex(0);
+                Trinity::ThreadPool& threadPool = GetUpdateThreadPool();
+
+                auto processCreatures = [&creatures, &creatureIndex]() {
+                    uint32 idx;
+                    while ((idx = creatureIndex.fetch_add(1)) < creatures.size())
+                    {
+                        creatures[idx]->ProcessRelocateVisibilityUpdates();
+                    }
+                };
+
+                // Submit tasks to thread pool with proper future tracking
+                std::vector<std::future<void>> futures;
+                futures.reserve(maxTasks - 1);
+
+                for (uint32 i = 1; i < maxTasks; ++i)
+                {
+                    auto task = std::make_shared<std::packaged_task<void()>>(processCreatures);
+                    futures.push_back(task->get_future());
+                    
+                    threadPool.PostWork([task]() {
+                        (*task)();
+                    });
+                }
+
+                processCreatures(); // Main thread processes a portion
+
+                // Wait for all tasks to complete
+                for (auto& future : futures)
+                {
+                    future.wait();
+                }
             }
         }
 
@@ -1262,63 +1280,85 @@ void Map::ProcessObjectUpdates()
     if (_updateObjects.empty())
         return;
 
-    // Build a vector of iterators to the objects for safe multi-threaded access
-    std::vector<std::unordered_set<Object*>::iterator> t;
-    t.reserve(_updateObjects.size() + 1);
-    for (auto it = _updateObjects.begin(); it != _updateObjects.end(); ++it)
-        t.push_back(it);
-    t.push_back(_updateObjects.end());
-
-    uint32 objectsCount = t.size() - 1;
-
-    // Determine work distribution based on object count
-    uint32 maxTasks = std::min(objectsCount, GetUpdateThreadPoolSize());
-    if (maxTasks < 1)
-        maxTasks = 1;
-
-    std::atomic<int> ait(0);
-    Trinity::ThreadPool& threadPool = GetUpdateThreadPool();
-
-    auto processObjects = [this, &t, &ait]() {
+    if (Instanceable())
+    {
+        // Process object updates inline for instanceable maps
         UpdateDataMapType update_players;
-        int idx;
-        while ((idx = ait.fetch_add(1)) < static_cast<int>(t.size() - 1))
+        for (auto it = _updateObjects.begin(); it != _updateObjects.end(); ++it)
         {
-            Object* obj = *t[idx];
+            Object* obj = *it;
             ASSERT(obj->IsInWorld());
             obj->BuildUpdate(update_players);
         }
 
-        WorldPacket packet; // Each thread has its own packet to avoid sharing
+        WorldPacket packet;
         for (UpdateDataMapType::iterator iter = update_players.begin(); iter != update_players.end(); ++iter)
         {
             iter->second.BuildPacket(&packet);
             iter->first->SendDirectMessage(&packet);
             packet.clear();
         }
-    };
-
-    // Submit tasks to thread pool with proper future tracking
-    std::vector<std::future<void>> futures;
-    futures.reserve(maxTasks - 1);
-
-    // Submit tasks to thread pool (excluding main thread) 
-    for (uint32 i = 1; i < maxTasks; ++i)
-    {
-        auto task = std::make_shared<std::packaged_task<void()>>(processObjects);
-        futures.push_back(task->get_future());
-        
-        threadPool.PostWork([task]() {
-            (*task)();
-        });
     }
-
-    processObjects(); // Main thread processes a portion of the work
-
-    // Wait for all tasks to complete
-    for (auto& future : futures)
+    else
     {
-        future.wait();
+        // Build a vector of iterators to the objects for safe multi-threaded access
+        std::vector<std::unordered_set<Object*>::iterator> t;
+        t.reserve(_updateObjects.size() + 1);
+        for (auto it = _updateObjects.begin(); it != _updateObjects.end(); ++it)
+            t.push_back(it);
+        t.push_back(_updateObjects.end());
+
+        uint32 objectsCount = t.size() - 1;
+
+        // Determine work distribution based on object count
+        uint32 maxTasks = std::min(objectsCount, GetUpdateThreadPoolSize() / 4);
+        if (maxTasks < 1)
+            maxTasks = 1;
+
+        std::atomic<int> ait(0);
+        Trinity::ThreadPool& threadPool = GetUpdateThreadPool();
+
+        auto processObjects = [this, &t, &ait]() {
+            UpdateDataMapType update_players;
+            int idx;
+            while ((idx = ait.fetch_add(1)) < static_cast<int>(t.size() - 1))
+            {
+                Object* obj = *t[idx];
+                ASSERT(obj->IsInWorld());
+                obj->BuildUpdate(update_players);
+            }
+
+            WorldPacket packet; // Each thread has its own packet to avoid sharing
+            for (UpdateDataMapType::iterator iter = update_players.begin(); iter != update_players.end(); ++iter)
+            {
+                iter->second.BuildPacket(&packet);
+                iter->first->SendDirectMessage(&packet);
+                packet.clear();
+            }
+        };
+
+        // Submit tasks to thread pool with proper future tracking
+        std::vector<std::future<void>> futures;
+        futures.reserve(maxTasks - 1);
+
+        // Submit tasks to thread pool (excluding main thread) 
+        for (uint32 i = 1; i < maxTasks; ++i)
+        {
+            auto task = std::make_shared<std::packaged_task<void()>>(processObjects);
+            futures.push_back(task->get_future());
+            
+            threadPool.PostWork([task]() {
+                (*task)();
+            });
+        }
+
+        processObjects(); // Main thread processes a portion of the work
+
+        // Wait for all tasks to complete
+        for (auto& future : futures)
+        {
+            future.wait();
+        }
     }
 
     _updateObjects.clear();
