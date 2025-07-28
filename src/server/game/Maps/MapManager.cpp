@@ -356,12 +356,12 @@ void MapManager::Update(uint32 diff)
         
         for (auto& [id, mapPtr] : _baseMaps)
         {
-            mapsToUpdate.emplace_back(mapPtr, mapPtr->GetPlayersCountExceptGMs());
+            mapsToUpdate.push_back(std::make_pair(mapPtr, mapPtr->GetPlayersCountExceptGMs()));
             
             if (MapPartitioned* mapPartitioned = mapPtr->ToMapPartitioned())
             {
                 for (auto& [_, partitionPtr] : mapPartitioned->GetPartitions())
-                    mapsToUpdate.emplace_back(partitionPtr, partitionPtr->GetPlayersCountExceptGMs());
+                    mapsToUpdate.push_back(std::make_pair(partitionPtr, partitionPtr->GetPlayersCountExceptGMs()));
             }
             
             if (MapInstanced* mapInstanced = mapPtr->ToMapInstanced())
@@ -370,7 +370,7 @@ void MapManager::Update(uint32 diff)
                 for (auto& [_, instancePtr] : instances)
                 {
                     if (!instancePtr->CanUnload(uint32(i_timer.GetCurrent())))
-                        mapsToUpdate.emplace_back(instancePtr, instancePtr->GetPlayersCountExceptGMs());
+                        mapsToUpdate.push_back(std::make_pair(instancePtr, instancePtr->GetPlayersCountExceptGMs()));
                 }
             }
         }
