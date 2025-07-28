@@ -24,6 +24,7 @@
 #include <unordered_map>
 #include <atomic>
 #include <map>
+#include <thread>
 
 enum GroupAIFlags
 {
@@ -82,6 +83,7 @@ class TC_GAME_API CreatureGroup
         uint32 _tempLeaderPathId;
         bool _engaging;
         std::atomic<bool> _disengaging;
+        std::atomic<std::thread::id> _disengagingThreadId;
 
     public:
         typedef std::unordered_map<Creature*, FormationInfo*> FormationMap;
