@@ -1318,7 +1318,10 @@ void Map::ProcessObjectUpdates()
         std::atomic<int> ait(0);
         Trinity::ThreadPool& threadPool = GetUpdateThreadPool();
 
-        auto processObjects = [this, &t, &ait]() {
+        auto processObjects = [this, &t, &ait]()
+        {
+            ZoneScopedN("Map::ProcessObject")
+
             UpdateDataMapType update_players;
             int idx;
             while ((idx = ait.fetch_add(1)) < static_cast<int>(t.size() - 1))
