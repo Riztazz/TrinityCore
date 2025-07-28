@@ -765,7 +765,7 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
             _updateObjects.insert(obj);
         }
 
-        void Map::RemoveUpdateObject(Object* obj)
+        void RemoveUpdateObject(Object* obj)
         {
             if (m_processingObjectUpdates)
                 return; // Object will be cleared anyway when processing finishes
