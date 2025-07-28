@@ -258,7 +258,7 @@ void Map::LoadAllCells()
 Map::Map(uint32 id, uint32 instanceOrPartitionId):
 i_mapEntry(sMapStore.LookupEntry(id)),
 m_unloadTimer(0), m_VisibleDistance(DEFAULT_VISIBILITY_DISTANCE),
-m_activeNonPlayersIter(m_activeNonPlayers.end()), m_waypointCreaturesIter(m_waypointCreatures.end()), _transportsUpdateIter(_transports.end()),
+m_activeNonPlayersIter(m_activeNonPlayers.end()), _transportsUpdateIter(_transports.end()),
 i_scriptLock(false), _respawnTimes(std::make_unique<RespawnListContainer>())
 {
     for (unsigned int idx=0; idx < MAX_NUMBER_OF_GRIDS; ++idx)
@@ -943,12 +943,10 @@ void Map::Update(uint32 t_diff)
     {
         ZoneScopedN("Map::Update::WaypointCreatures")
 
-        // waypoint creatures, increasing iterator in the loop in case of object removal
-        // TODO should objects be removed during update? I thought they get put in move list
-        for (m_waypointCreaturesIter = m_waypointCreatures.begin(); m_waypointCreaturesIter != m_waypointCreatures.end();)
+        for (auto it = m_waypointCreatures.begin(); it != m_waypointCreatures.end();)
         {
-            Creature* creature = *m_waypointCreaturesIter;
-            ++m_waypointCreaturesIter;
+            Creature* creature = *it;
+            ++it;
 
             if (!creature || !creature->IsInWorld() || !creature->IsPositionValid())
                 continue;
@@ -1007,6 +1005,13 @@ void Map::Update(uint32 t_diff)
 
             obj->Update(t_diff);
         }
+    }
+
+    {
+        ZoneScopedN("Map::Update::AddNewWaypointCreatures")
+
+        m_waypointCreatures.insert(m_newWaypointCreatures.begin(), m_newWaypointCreatures.end());
+        m_newWaypointCreatures.clear();
     }
 
     // We must delay grid relocation until after entities are updated to avoid updating multiple times (by moving to an unmarked cell)
@@ -1423,7 +1428,8 @@ void Map::RemoveFromMap(T *obj, bool remove)
     if (obj->IsCreature())
     {
         Creature* c = obj->ToCreature();
-        RemoveFromWaypointCreatures(c);
+        m_newWaypointCreatures.erase(c);
+        m_waypointCreatures.erase(c);
 
         // RemoveFromMap is called from the delayed update so _relocatedCreatures is empty,
         // but before we iterate the _updateMapPartitionCreatures, so lets remove that here
@@ -1492,7 +1498,8 @@ void Map::RemoveFromPartition(T *obj)
     if (obj->IsCreature())
     {
         Creature* c = obj->ToCreature();
-        RemoveFromWaypointCreatures(c);
+        m_newWaypointCreatures.erase(c);
+        m_waypointCreatures.erase(c);
 
         // this is called from delayedUpdate, so _relocatedCreatures is always empty, and _updateMapPartitionCreatures
         // is cleared immediately afterwards (this is called from iterating that)
