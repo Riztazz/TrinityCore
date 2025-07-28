@@ -2063,6 +2063,7 @@ class TC_GAME_API Unit : public WorldObject
 
     private:
         uint32 m_lastTickTime;
+        uint32 m_lastTickPartitionId;
         uint32 m_state;                                     // Even derived shouldn't modify
         uint32 m_lastManaUse;                               // msecs
         TimeTracker m_splineSyncTimer;

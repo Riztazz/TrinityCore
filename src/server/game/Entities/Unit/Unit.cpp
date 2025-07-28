@@ -335,6 +335,7 @@ Unit::Unit(bool isWorldObject) :
     m_rootTimes = 0;
 
     m_lastTickTime = 0;
+    m_lastTickPartitionId = 0;
     m_state = 0;
     m_deathState = ALIVE;
 
@@ -457,10 +458,11 @@ void Unit::Update(uint32 p_time)
     uint32 tickTime = GameTime::GetGameTimeMS();
     if (tickTime != m_lastTickTime)
     {
-        TC_LOG_ERROR("entities.unit", "Double tick detected for {}", GetGUID().ToString());
+        TC_LOG_ERROR("entities.unit", "Double tick detected for {} last tick partition {} this partition {}", GetGUID().ToString(), m_lastTickPartitionId, GetMap()->GetPartitionId());
         return;
     }
     m_lastTickTime = tickTime;
+    m_lastTickPartitionId = GetMap()->GetPartitionId();
 
     // @tswow-begin
     m_tsWorldEntity.tick(TSWorldObject(this));
