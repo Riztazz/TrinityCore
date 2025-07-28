@@ -4798,8 +4798,8 @@ Corpse* Map::ConvertCorpseToBones(ObjectGuid const& ownerGuid, bool insignia /*=
     // ignore bones creating option in case insignia
     GridCoord p = Trinity::ComputeGridCoord(corpse->GetPositionX(), corpse->GetPositionY());
     if ((insignia ||
-        (IsBattlegroundOrArena() ? sWorld->getBoolConfig(CONFIG_DEATH_BONES_BG_OR_ARENA) : sWorld->getBoolConfig(CONFIG_DEATH_BONES_WORLD)))) &&
-        getNGrid(p.x_coord, p.y_coord)
+        (IsBattlegroundOrArena() ? sWorld->getBoolConfig(CONFIG_DEATH_BONES_BG_OR_ARENA) : sWorld->getBoolConfig(CONFIG_DEATH_BONES_WORLD))) &&
+        getNGrid(p.x_coord, p.y_coord))
     {
         // Create bones, don't change Corpse
         bones = new Corpse();
