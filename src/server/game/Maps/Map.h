@@ -760,7 +760,12 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
         void AddUpdateObject(Object* obj)
         {
             if (m_processingObjectUpdates)
-                return;
+            {
+                TC_LOG_ERROR("objectupdates", "RemoveUpdateObject called during ProcessObjectUpdates! Stack trace:\n{}", GetStackTrace());
+                ABORT();
+            }
+            // if (m_processingObjectUpdates)
+            //     return;
             std::lock_guard<std::mutex> lock(m_processingObjectUpdatesLock);
             _updateObjects.insert(obj);
         }

@@ -997,7 +997,7 @@ void Transport::BuildUpdate(UpdateDataMapType& data_map)
     for (Map::PlayerList::const_iterator itr = players.begin(); itr != players.end(); ++itr)
         BuildFieldsUpdate(itr->GetSource(), data_map);
 
-    //ClearUpdateMask(true);
+    ClearUpdateMask(true);
 }
 
 std::string Transport::GetDebugInfo() const
