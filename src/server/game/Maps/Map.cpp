@@ -1011,11 +1011,11 @@ void Map::Update(uint32 t_diff)
         ZoneScopedN("Map::Update::DelayedAddToMap")
 
         for (Creature* creature : _addToMapCreatures)
-            creature->AddToMap();
+            AddToMap(creature);
         _addToMapCreatures.clear();
         
-        for (GameObject* gameObject : _addToMapGameObjects)
-            gameObject->AddToMap();
+        for (GameObject* go : _addToMapGameObjects)
+            AddToMap(go);
         _addToMapGameObjects.clear();
     }
 
