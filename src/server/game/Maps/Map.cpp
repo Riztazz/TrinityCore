@@ -1187,7 +1187,7 @@ void Map::ProcessVisibilityUpdates()
 
         if (!_updateVisibilityCreatures.empty())
         {
-            if (Instanceable() sWorld->getIntConfig(CONFIG_MAP_UPDATE_THREAD_POOL) < 4)
+            if (Instanceable() || sWorld->getIntConfig(CONFIG_MAP_UPDATE_THREAD_POOL) < 4)
             {
                 // Process creatures inline for instanceable maps
                 for (Creature* creature : _updateVisibilityCreatures)
