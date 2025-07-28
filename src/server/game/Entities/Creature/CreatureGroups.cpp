@@ -359,46 +359,29 @@ void CreatureGroup::MemberEngagingTarget(Creature* member, Unit* target)
 
 void CreatureGroup::MemberDisengaging(Creature* member)
 {
-    std::thread::id currentThreadId = std::this_thread::get_id();
-    
     // used to prevent recursive calls - now thread-safe with atomic exchange
     bool expected = false;
     if (!_disengaging.compare_exchange_strong(expected, true))
     {
-        // Check if this is the same thread (legitimate recursion) or different thread (concurrent access)
-        std::thread::id disengagingThreadId = _disengagingThreadId.load();
-        if (currentThreadId != disengagingThreadId)
-        {
-            // Log error only when actual concurrent access from different threads is detected
-            TC_LOG_ERROR("entities.unit", "CreatureGroup::MemberDisengaging: Cross-thread concurrent access detected! "
-                "Member {} (SpawnId: {}) on thread {} attempted to disengage while group {} is already disengaging on thread {}. "
-                "This indicates the same creature group is being processed by multiple partition threads simultaneously.",
-                member->GetGUID().ToString(), member->GetSpawnId(), 
-                std::hash<std::thread::id>{}(currentThreadId),
-                _leaderSpawnId, std::hash<std::thread::id>{}(disengagingThreadId));
-        }
-        // else: Same thread - this is legitimate recursion, no logging needed
+        // Log error when concurrent access is detected
+        TC_LOG_ERROR("entities.unit", "CreatureGroup::MemberDisengaging: Concurrent access detected! "
+            "Member {} (SpawnId: {}) attempted to disengage while group {} is already disengaging. "
+            "This indicates a threading issue with creature group updates.",
+            member->GetGUID().ToString(), member->GetSpawnId(), _leaderSpawnId);
         return;
     }
-    
-    // Store the current thread ID when we successfully acquire the lock
-    _disengagingThreadId = currentThreadId;
 
     uint8 groupAI = ASSERT_NOTNULL(sFormationMgr->GetFormationInfo(member->GetSpawnId()))->GroupAI;
     if (!groupAI)
     {
-        // Clear the thread ID before releasing the flag
-    _disengagingThreadId = std::thread::id{};
-    _disengaging = false;
+        _disengaging = false;
         return;
     }
 
     // we only disengage other members if disengaging member is alive
     if (!member->IsAlive())
     {
-        // Clear the thread ID before releasing the flag
-    _disengagingThreadId = std::thread::id{};
-    _disengaging = false;
+        _disengaging = false;
         return;
     }
 
@@ -406,17 +389,13 @@ void CreatureGroup::MemberDisengaging(Creature* member)
     {
         if (!(groupAI & FLAG_MEMBERS_ASSIST_LEADER))
         {
-            // Clear the thread ID before releasing the flag
-    _disengagingThreadId = std::thread::id{};
-    _disengaging = false;
+            _disengaging = false;
             return;
         }
     }
     else if (!(groupAI & FLAG_LEADER_ASSISTS_MEMBER))
     {
-        // Clear the thread ID before releasing the flag
-    _disengagingThreadId = std::thread::id{};
-    _disengaging = false;
+        _disengaging = false;
         return;
     }
 
@@ -436,8 +415,6 @@ void CreatureGroup::MemberDisengaging(Creature* member)
         }
     }
 
-    // Clear the thread ID before releasing the flag
-    _disengagingThreadId = std::thread::id{};
     _disengaging = false;
 }
 
