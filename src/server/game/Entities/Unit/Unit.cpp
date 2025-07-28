@@ -456,7 +456,7 @@ Unit::~Unit()
 void Unit::Update(uint32 p_time)
 {
     uint32 tickTime = GameTime::GetGameTimeMS();
-    if (tickTime != m_lastTickTime && m_lastTickTime != 0)
+    if (tickTime == m_lastTickTime && m_lastTickTime != 0)
     {
         TC_LOG_ERROR("entities.unit", "Double tick detected for {} last tick partition {} this partition {}", GetGUID().ToString(), m_lastTickPartitionId, GetMap()->GetPartitionId());
         return;
