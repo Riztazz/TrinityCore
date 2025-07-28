@@ -1613,7 +1613,7 @@ bool WorldObject::CanSeeOrDetect(WorldObject const* obj, bool implicitDetect, bo
 
     if (IsPlayer() && obj->IsPlayer())
     {
-        TC_LOG_DEBUG("vis", "me {}, target {} IsNeverVisible {}, CanNeverSee {}", GetGUId().ToString(), obj->GetGUID().ToString(), obj->IsNeverVisible(implicitDetect), CanNeverSee(obj));
+        TC_LOG_DEBUG("vis", "me {}, target {} IsNeverVisible {}, CanNeverSee {}", GetGUID().ToString(), obj->GetGUID().ToString(), obj->IsNeverVisible(implicitDetect), CanNeverSee(obj));
     }
 
     if (obj->IsNeverVisible(implicitDetect) || CanNeverSee(obj))
