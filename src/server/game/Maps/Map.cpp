@@ -270,8 +270,15 @@ void Map::LoadAllCells()
 
 void Map::RemoveUpdateObject(Object* obj)
 {
-    ASSERT_WITH_TRACE(!m_processingObjectUpdates);
     std::lock_guard<std::mutex> lock(m_processingObjectUpdatesLock);
+    
+    if (m_processingObjectUpdates)
+    {
+        // Defer removal until after ProcessObjectUpdates completes
+        _pendingObjectRemovals.insert(obj);
+        return;
+    }
+    
     _updateObjects.erase(obj);
 }
 
@@ -1365,8 +1372,17 @@ void Map::ProcessObjectUpdates()
     }
 
     _updateObjects.clear();
-
-    m_processingObjectUpdates = true;
+    
+    // Process pending removals that were deferred during object updates
+    {
+        std::lock_guard<std::mutex> lock(m_processingObjectUpdatesLock);
+        for (Object* obj : _pendingObjectRemovals)
+        {
+            _updateObjects.erase(obj);
+        }
+        _pendingObjectRemovals.clear();
+        m_processingObjectUpdates = false;
+    }
 }
 
 uint32 Map::GetMaxTasks(uint32 numElements)
