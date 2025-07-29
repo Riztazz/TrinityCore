@@ -120,7 +120,6 @@ void WorldSocketMgr::OnSocketOpen(tcp::socket&& sock, uint32 threadIndex)
 
 NetworkThread<WorldSocket>* WorldSocketMgr::CreateThreads() const
 {
-    //return new WorldSocketThread[GetNetworkThreadCount()];
     NetworkThread<WorldSocket>* threads = new WorldSocketThread[GetNetworkThreadCount()];
 
     bool proxyProtocolEnabled = sConfigMgr->GetBoolDefault("Network.EnableProxyProtocol", false, true);
