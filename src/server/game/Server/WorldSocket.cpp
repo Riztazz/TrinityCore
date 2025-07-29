@@ -46,6 +46,12 @@ WorldSocket::~WorldSocket() = default;
 
 void WorldSocket::Start()
 {
+    const bool isBehindProxy = sConfigMgr->GetBoolDefault("Network.EnableProxyProtocol", false);
+    // Do not initialize the remote addresses and ports again if we're behind proxy
+    // we did that after resolving the proxy header
+    if (!isBehindProxy)
+        Initialize();
+
     std::string ip_address = GetRemoteIpAddress().to_string();
     LoginDatabasePreparedStatement* stmt = LoginDatabase.GetPreparedStatement(LOGIN_SEL_IP_INFO);
     stmt->setString(0, ip_address);
