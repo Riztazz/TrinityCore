@@ -454,7 +454,6 @@ Unit::~Unit()
 void Unit::Update(uint32 p_time)
 {
     // @tswow-begin
-    ZoneScopedN("Unit::Update")
     m_tsWorldEntity.tick(TSWorldObject(this));
     m_tsCollisions.Tick(TSWorldObject(this));
     // @tswow-end
